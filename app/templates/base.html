@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Freizeit Rezepturverwaltung{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/static/css/custom.css" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.0/dist/ext/loading-states.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- SortableJS (for meal planning) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body hx-ext="loading-states" class="bg-gray-50 min-h-screen">
+    <!-- Navigation (only show if camp is selected) -->
+    {% if current_camp %}
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <!-- Logo/Title -->
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">Freizeit Rezepte</h1>
+                    </div>
+                    
+                    <!-- Navigation Links -->
+                    <div class="hidden md:flex space-x-8">
+                        <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+                            <span class="text-lg">📊</span> Dashboard
+                        </a>
+                        <a href="/recipes" class="nav-link {% if '/recipes' in request.url.path %}active{% endif %}">
+                            <span class="text-lg">📖</span> Rezepte
+                        </a>
+                        <a href="/meal-planning" class="nav-link {% if '/meal-planning' in request.url.path %}active{% endif %}">
+                            <span class="text-lg">📅</span> Planung
+                        </a>
+                        <a href="/shopping-list" class="nav-link {% if '/shopping-list' in request.url.path %}active{% endif %}">
+                            <span class="text-lg">🛒</span> Einkaufsliste
+                        </a>
+                        <a href="/settings" class="nav-link {% if '/settings' in request.url.path %}active{% endif %}">
+                            <span class="text-lg">⚙️</span> Einstellungen
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Camp Info and Switcher -->
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <span class="font-medium">{{ current_camp.name }}</span>
+                        <span class="text-gray-400">•</span>
+                        <span>{{ current_camp.participant_count }} Personen</span>
+                    </div>
+                    
+                    <!-- Camp Switcher Dropdown -->
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open" class="flex items-center text-sm text-gray-700 hover:text-gray-900">
+                            <span class="text-lg">🔄</span>
+                            <span class="ml-1">Wechseln</span>
+                        </button>
+                        
+                        <div x-show="open" @click.away="open = false" x-cloak
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="/select-camp" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Freizeit wechseln
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="md:hidden" x-data="{ mobileOpen: false }">
+            <div class="px-4 py-2">
+                <button @click="mobileOpen = !mobileOpen" class="text-gray-600 hover:text-gray-900">
+                    <span class="text-lg">☰</span> Menü
+                </button>
+            </div>
+            
+            <div x-show="mobileOpen" x-cloak class="px-4 py-2 space-y-2 bg-gray-50">
+                <a href="/dashboard" class="block py-2 text-gray-700 hover:text-gray-900">📊 Dashboard</a>
+                <a href="/recipes" class="block py-2 text-gray-700 hover:text-gray-900">📖 Rezepte</a>
+                <a href="/meal-planning" class="block py-2 text-gray-700 hover:text-gray-900">📅 Planung</a>
+                <a href="/shopping-list" class="block py-2 text-gray-700 hover:text-gray-900">🛒 Einkaufsliste</a>
+                <a href="/settings" class="block py-2 text-gray-700 hover:text-gray-900">⚙️ Einstellungen</a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Main Content -->
+    <main class="{% if current_camp %}max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% else %}min-h-screen flex items-center justify-center{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Global Modal -->
+    <div id="global-modal" x-data="{ show: false }" 
+         @open-modal.window="show = true" 
+         @close-modal.window="show = false"
+         x-show="show" x-cloak
+         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+            <div id="modal-content" class="p-6">
+                <!-- Modal content will be loaded here via HTMX -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="htmx-indicator fixed top-4 right-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            <span class="text-sm text-gray-700">Laden...</span>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-40 space-y-2">
+        <!-- Toasts will be added here dynamically -->
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Global JavaScript utilities
+        window.FreizeitApp = {
+            showToast: function(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type} bg-white rounded-lg shadow-lg p-4 mb-2 transform transition-all duration-300 translate-x-full`;
+                
+                const colors = {
+                    success: 'border-l-4 border-green-500',
+                    error: 'border-l-4 border-red-500',
+                    warning: 'border-l-4 border-yellow-500',
+                    info: 'border-l-4 border-blue-500'
+                };
+                
+                toast.className += ' ' + colors[type];
+                toast.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700">${message}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
+                            ✕
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('toast-container').appendChild(toast);
+                
+                // Animate in
+                setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+            },
+            
+            openModal: function(url) {
+                htmx.ajax('GET', url, {target: '#modal-content'}).then(() => {
+                    window.dispatchEvent(new CustomEvent('open-modal'));
+                });
+            },
+            
+            closeModal: function() {
+                window.dispatchEvent(new CustomEvent('close-modal'));
+            }
+        };
+        
+        // HTMX event listeners
+        document.addEventListener('htmx:responseError', function(event) {
+            FreizeitApp.showToast('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'error');
+        });
+        
+        document.addEventListener('htmx:sendError', function(event) {
+            FreizeitApp.showToast('Verbindungsfehler. Bitte überprüfen Sie Ihre Internetverbindung.', 'error');
+        });
+    </script>
+</body>
+</html>

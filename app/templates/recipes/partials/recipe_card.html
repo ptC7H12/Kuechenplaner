@@ -1,0 +1,81 @@
+<div class="recipe-card">
+    <div class="recipe-card-header">
+        <h3 class="recipe-card-title">{{ recipe.name }}</h3>
+        <div class="recipe-card-actions">
+            <button 
+                onclick="FreizeitApp.openModal('/recipes/{{ recipe.id }}')"
+                class="btn btn-sm btn-secondary"
+                title="Details anzeigen"
+            >
+                👁️
+            </button>
+            <button 
+                hx-delete="/api/recipes/{{ recipe.id }}"
+                hx-confirm="Sind Sie sicher, dass Sie das Rezept '{{ recipe.name }}' löschen möchten?"
+                hx-target="closest .recipe-card"
+                hx-swap="outerHTML"
+                class="btn btn-sm text-red-600 hover:text-red-800"
+                title="Löschen"
+            >
+                🗑️
+            </button>
+        </div>
+    </div>
+    
+    <div class="recipe-card-content">
+        {% if recipe.description %}
+        <p class="recipe-card-description">{{ recipe.description }}</p>
+        {% endif %}
+        
+        <div class="recipe-card-meta">
+            <div class="recipe-meta-item">
+                <span class="recipe-meta-icon">👥</span>
+                <span class="recipe-meta-text">{{ recipe.base_servings }} Personen</span>
+            </div>
+            
+            {% if recipe.preparation_time %}
+            <div class="recipe-meta-item">
+                <span class="recipe-meta-icon">⏱️</span>
+                <span class="recipe-meta-text">{{ recipe.preparation_time }} min</span>
+            </div>
+            {% endif %}
+            
+            {% if recipe.cooking_time %}
+            <div class="recipe-meta-item">
+                <span class="recipe-meta-icon">🔥</span>
+                <span class="recipe-meta-text">{{ recipe.cooking_time }} min</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if recipe.allergens %}
+        <div class="recipe-allergens">
+            <span class="allergen-label">⚠️ Allergene:</span>
+            <span class="allergen-text">{{ recipe.allergens }}</span>
+        </div>
+        {% endif %}
+        
+        {% if recipe.tags %}
+        <div class="recipe-tags">
+            {% for tag in recipe.tags %}
+            <span class="recipe-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                {{ tag.icon or '🏷️' }} {{ tag.name }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="recipe-card-footer">
+        <button 
+            class="btn btn-sm btn-primary"
+            onclick="FreizeitApp.openModal('/recipes/{{ recipe.id }}/edit')"
+        >
+            ✏️ Bearbeiten
+        </button>
+        
+        <div class="recipe-card-drag-handle" title="Zum Planen ziehen">
+            ⋮⋮
+        </div>
+    </div>
+</div>

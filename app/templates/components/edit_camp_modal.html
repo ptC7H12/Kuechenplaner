@@ -1,0 +1,89 @@
+<div class="modal-header">
+    <h2 class="modal-title">Freizeit bearbeiten</h2>
+    <button onclick="FreizeitApp.closeModal()" class="modal-close">
+        ✕
+    </button>
+</div>
+
+<form 
+    hx-put="/api/camps/{{ camp.id }}"
+    hx-target="#modal-content"
+    hx-indicator="#edit-spinner"
+    class="space-y-4"
+>
+    <div class="form-group">
+        <label for="edit_name" class="form-label">Name der Freizeit *</label>
+        <input 
+            type="text" 
+            id="edit_name" 
+            name="name" 
+            required 
+            class="form-input"
+            value="{{ camp.name }}"
+        >
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="form-group">
+            <label for="edit_start_date" class="form-label">Startdatum *</label>
+            <input 
+                type="date" 
+                id="edit_start_date" 
+                name="start_date" 
+                required 
+                class="form-input"
+                value="{{ camp.start_date.strftime('%Y-%m-%d') }}"
+            >
+        </div>
+        
+        <div class="form-group">
+            <label for="edit_end_date" class="form-label">Enddatum *</label>
+            <input 
+                type="date" 
+                id="edit_end_date" 
+                name="end_date" 
+                required 
+                class="form-input"
+                value="{{ camp.end_date.strftime('%Y-%m-%d') }}"
+            >
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="edit_participant_count" class="form-label">Anzahl Teilnehmer *</label>
+        <input 
+            type="number" 
+            id="edit_participant_count" 
+            name="participant_count" 
+            required 
+            min="1" 
+            max="500"
+            class="form-input"
+            value="{{ camp.participant_count }}"
+        >
+        <div class="form-error text-sm text-yellow-600 mt-1">
+            ⚠️ Änderungen der Teilnehmerzahl führen zur automatischen Neuberechnung aller Rezeptmengen.
+        </div>
+    </div>
+    
+    <div class="flex items-center justify-between pt-4">
+        <button type="button" onclick="FreizeitApp.closeModal()" class="btn btn-secondary">
+            Abbrechen
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <span id="edit-spinner" class="htmx-indicator animate-spin mr-2">⏳</span>
+            Änderungen speichern
+        </button>
+    </div>
+</form>
+
+<script>
+    // Validate end date is after start date
+    document.getElementById('edit_start_date').addEventListener('change', function() {
+        const endInput = document.getElementById('edit_end_date');
+        endInput.min = this.value;
+        if (endInput.value && endInput.value < this.value) {
+            endInput.value = this.value;
+        }
+    });
+</script>
