@@ -1,0 +1,37 @@
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stat-grid">
+    <!-- Planned Meals -->
+    <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-number">{{ stats.planned_meals }}</div>
+        <div class="stat-label">Geplante Mahlzeiten</div>
+        <div class="text-xs text-gray-500 mt-1">
+            von {{ stats.expected_meals }} erwartet
+        </div>
+    </div>
+    
+    <!-- Unique Recipes -->
+    <div class="stat-card">
+        <div class="stat-icon">📖</div>
+        <div class="stat-number">{{ stats.unique_recipes }}</div>
+        <div class="stat-label">Verschiedene Rezepte</div>
+    </div>
+    
+    <!-- Completion Percentage -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            {% if stats.completion_percentage >= 100 %}✅
+            {% elif stats.completion_percentage >= 75 %}🟡
+            {% else %}🔴{% endif %}
+        </div>
+        <div class="stat-number">{{ stats.completion_percentage }}%</div>
+        <div class="stat-label">Vollständigkeit</div>
+    </div>
+    
+    <!-- Days Remaining -->
+    <div class="stat-card">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-number">{{ stats.total_days }}</div>
+        <div class="stat-label">Tage insgesamt</div>
+    </div>
+</div>

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Rezepte - {{ current_camp.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Rezepte</h1>
+        <button 
+            onclick="FreizeitApp.openModal('/recipes/create')"
+            class="btn btn-primary"
+        >
+            ➕ Neues Rezept
+        </button>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card">
+        <div class="flex flex-wrap items-center gap-4">
+            <div class="flex-1 min-w-64">
+                <input 
+                    type="text" 
+                    placeholder="Rezepte suchen..." 
+                    class="form-input"
+                    hx-get="/recipes/grid"
+                    hx-target="#recipes-grid"
+                    hx-trigger="keyup changed delay:300ms"
+                    name="search"
+                >
+            </div>
+            <div class="flex items-center space-x-2">
+                <label class="text-sm font-medium text-gray-700">Tags:</label>
+                <select 
+                    multiple 
+                    class="form-select w-48"
+                    hx-get="/recipes/grid"
+                    hx-target="#recipes-grid"
+                    hx-trigger="change"
+                    name="tags"
+                >
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recipes Grid -->
+    <div id="recipes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 recipe-grid">
+        {% for recipe in recipes %}
+        <div class="recipe-card">
+            <div class="recipe-card-image">
+                🍽️
+            </div>
+            <div class="recipe-card-content">
+                <h3 class="recipe-card-title">{{ recipe.name }}</h3>
+                <p class="recipe-card-description">{{ recipe.description or 'Keine Beschreibung verfügbar' }}</p>
+                
+                <div class="recipe-card-meta">
+                    <span>👥 {{ recipe.base_servings }} Personen</span>
+                    {% if recipe.preparation_time %}
+                    <span>⏱️ {{ recipe.preparation_time }} min</span>
+                    {% endif %}
+                </div>
+                
+                {% if recipe.tags %}
+                <div class="recipe-card-tags">
+                    {% for tag in recipe.tags %}
+                    <span 
+                        class="recipe-tag" 
+                        style="background-color: {{ tag.color }}20; color: {{ tag.color }};"
+                    >
+                        {% if tag.icon %}{{ tag.icon }}{% endif %} {{ tag.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                    <button 
+                        onclick="FreizeitApp.openModal('/recipes/{{ recipe.id }}')"
+                        class="text-sm text-primary-600 hover:text-primary-800"
+                    >
+                        👁️ Anzeigen
+                    </button>
+                    <div class="flex space-x-2">
+                        <button 
+                            onclick="FreizeitApp.openModal('/recipes/{{ recipe.id }}/edit')"
+                            class="text-sm text-gray-600 hover:text-gray-800"
+                        >
+                            ✏️ Bearbeiten
+                        </button>
+                        <button 
+                            hx-delete="/api/recipes/{{ recipe.id }}"
+                            hx-confirm="Rezept '{{ recipe.name }}' wirklich löschen?"
+                            hx-target="closest .recipe-card"
+                            hx-swap="outerHTML"
+                            class="text-sm text-red-600 hover:text-red-800"
+                        >
+                            🗑️ Löschen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if not recipes %}
+        <div class="col-span-full text-center py-12 text-gray-500">
+            <span class="text-6xl">📖</span>
+            <h3 class="text-lg font-medium text-gray-900 mt-4">Noch keine Rezepte</h3>
+            <p class="text-gray-600 mt-2">Erstellen Sie Ihr erstes Rezept, um loszulegen.</p>
+            <button 
+                onclick="FreizeitApp.openModal('/recipes/create')"
+                class="btn btn-primary mt-4"
+            >
+                ➕ Erstes Rezept erstellen
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

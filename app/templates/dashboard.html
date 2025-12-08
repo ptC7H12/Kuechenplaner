@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ current_camp.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">{{ current_camp.name }}</h1>
+            <p class="text-gray-600 mt-1">
+                {{ current_camp.start_date.strftime('%d.%m.%Y') }} - {{ current_camp.end_date.strftime('%d.%m.%Y') }}
+                • {{ stats.total_days }} Tage
+                • {{ current_camp.participant_count }} Teilnehmer
+            </p>
+        </div>
+        <div class="flex space-x-3">
+            <button 
+                onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
+                class="btn btn-secondary"
+            >
+                ✏️ Bearbeiten
+            </button>
+            <a href="/select-camp" class="btn btn-secondary">
+                🔄 Freizeit wechseln
+            </a>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stat-grid">
+        <!-- Planned Meals -->
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-number">{{ stats.planned_meals }}</div>
+            <div class="stat-label">Geplante Mahlzeiten</div>
+            <div class="text-xs text-gray-500 mt-1">
+                von {{ stats.expected_meals }} erwartet
+            </div>
+        </div>
+        
+        <!-- Unique Recipes -->
+        <div class="stat-card">
+            <div class="stat-icon">📖</div>
+            <div class="stat-number">{{ stats.unique_recipes }}</div>
+            <div class="stat-label">Verschiedene Rezepte</div>
+        </div>
+        
+        <!-- Completion Percentage -->
+        <div class="stat-card">
+            <div class="stat-icon">
+                {% if stats.completion_percentage >= 100 %}✅
+                {% elif stats.completion_percentage >= 75 %}🟡
+                {% else %}🔴{% endif %}
+            </div>
+            <div class="stat-number">{{ stats.completion_percentage }}%</div>
+            <div class="stat-label">Vollständigkeit</div>
+        </div>
+        
+        <!-- Days Remaining -->
+        <div class="stat-card">
+            <div class="stat-icon">⏰</div>
+            <div class="stat-number">{{ stats.total_days }}</div>
+            <div class="stat-label">Tage insgesamt</div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Planungsfortschritt</h2>
+        </div>
+        <div class="space-y-4">
+            <div class="progress-bar">
+                <div 
+                    class="progress-bar-fill bg-primary-600" 
+                    style="width: {{ stats.completion_percentage }}%"
+                ></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-600">
+                <span>{{ stats.planned_meals }} von {{ stats.expected_meals }} Mahlzeiten geplant</span>
+                <span>{{ stats.completion_percentage }}%</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Warnings -->
+    {% if stats.warnings %}
+    <div class="alert alert-warning">
+        <h3 class="font-semibold mb-2">⚠️ Hinweise</h3>
+        <ul class="list-disc list-inside space-y-1">
+            {% for warning in stats.warnings %}
+            <li>{{ warning }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <!-- Meal Type Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Meal Distribution -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Mahlzeiten-Verteilung</h2>
+            </div>
+            <div class="space-y-3">
+                {% set meal_types = [('BREAKFAST', 'Frühstück', '🌅'), ('LUNCH', 'Mittagessen', '🍽️'), ('DINNER', 'Abendessen', '🌙')] %}
+                {% for meal_type, label, icon in meal_types %}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-lg mr-2">{{ icon }}</span>
+                        <span class="text-sm font-medium text-gray-900">{{ label }}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">
+                            {{ stats.meal_counts.get(meal_type, 0) }} / {{ stats.total_days }}
+                        </span>
+                        <div class="w-16 h-2 bg-gray-200 rounded-full">
+                            <div 
+                                class="h-2 bg-primary-600 rounded-full" 
+                                style="width: {{ (stats.meal_counts.get(meal_type, 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Schnellzugriff</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <a href="/recipes" class="btn btn-secondary justify-center">
+                    📖 Rezepte verwalten
+                </a>
+                <a href="/meal-planning" class="btn btn-secondary justify-center">
+                    📅 Mahlzeiten planen
+                </a>
+                <a href="/shopping-list" class="btn btn-secondary justify-center">
+                    🛒 Einkaufsliste
+                </a>
+                <button 
+                    onclick="FreizeitApp.openModal('/export/options')"
+                    class="btn btn-secondary justify-center"
+                >
+                    📄 Exportieren
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity / Overview -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Übersicht</h2>
+            <a href="/meal-planning" class="text-sm text-primary-600 hover:text-primary-800">
+                Zur Planung →
+            </a>
+        </div>
+        
+        <!-- Mini Calendar Overview -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="text-left py-2 px-3 text-sm font-medium text-gray-900">Tag</th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🌅</th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🍽️</th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🌙</th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for day in range(stats.total_days) %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-3 text-sm text-gray-900">
+                            Tag {{ day + 1 }}
+                        </td>
+                        <td class="text-center py-2 px-3">
+                            <span class="text-xs">⭕</span>
+                        </td>
+                        <td class="text-center py-2 px-3">
+                            <span class="text-xs">⭕</span>
+                        </td>
+                        <td class="text-center py-2 px-3">
+                            <span class="text-xs">⭕</span>
+                        </td>
+                        <td class="text-center py-2 px-3">
+                            <span class="text-xs text-gray-500">0/3</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="/meal-planning" class="btn btn-primary">
+                📅 Zur detaillierten Planung
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh statistics every 30 seconds
+    setInterval(function() {
+        htmx.ajax('GET', '/api/camps/{{ current_camp.id }}/stats', {
+            target: 'body',
+            swap: 'none'
+        });
+    }, 30000);
+</script>
+{% endblock %}

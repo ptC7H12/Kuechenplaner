@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Einstellungen - {{ current_camp.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Einstellungen</h1>
+    </div>
+    
+    <!-- Tabs -->
+    <div x-data="{ activeTab: 'camps' }" class="space-y-6">
+        <!-- Tab Navigation -->
+        <div class="tab-list">
+            <button 
+                @click="activeTab = 'camps'" 
+                :class="{ 'active': activeTab === 'camps' }"
+                class="tab-button"
+            >
+                🏕️ Freizeiten
+            </button>
+            <button 
+                @click="activeTab = 'units'" 
+                :class="{ 'active': activeTab === 'units' }"
+                class="tab-button"
+            >
+                ⚖️ Einheiten
+            </button>
+            <button 
+                @click="activeTab = 'tags'" 
+                :class="{ 'active': activeTab === 'tags' }"
+                class="tab-button"
+            >
+                🏷️ Tags & Kategorien
+            </button>
+            <button 
+                @click="activeTab = 'backup'" 
+                :class="{ 'active': activeTab === 'backup' }"
+                class="tab-button"
+            >
+                💾 Backup
+            </button>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="min-h-96">
+            <!-- Camps Tab -->
+            <div x-show="activeTab === 'camps'" x-cloak>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Freizeiten verwalten</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="alert alert-info">
+                            <p class="text-sm">
+                                ℹ️ Änderungen an der Teilnehmerzahl führen zur automatischen Neuberechnung aller Mengen.
+                            </p>
+                        </div>
+                        
+                        <!-- Current Camp -->
+                        <div class="border border-primary-200 bg-primary-50 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-semibold text-primary-900">{{ current_camp.name }}</h3>
+                                    <p class="text-sm text-primary-700">Aktuelle Freizeit</p>
+                                </div>
+                                <button 
+                                    onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
+                                    class="btn btn-sm btn-primary"
+                                >
+                                    ✏️ Bearbeiten
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Other Camps -->
+                        <div class="space-y-3">
+                            <h4 class="font-medium text-gray-900">Andere Freizeiten</h4>
+                            <div class="text-center py-8 text-gray-500">
+                                <a href="/select-camp" class="btn btn-secondary">
+                                    🔄 Zur Freizeitauswahl
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Units Tab -->
+            <div x-show="activeTab === 'units'" x-cloak>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Einheiten & Konvertierungen</h2>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- Default Conversions -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Standard-Konvertierungen</h3>
+                            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span>1000 g → 1 kg</span>
+                                    <span class="text-green-600">✓ Aktiv</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span>1000 ml → 1 L</span>
+                                    <span class="text-green-600">✓ Aktiv</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span>1000 mg → 1 g</span>
+                                    <span class="text-green-600">✓ Aktiv</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Custom Conversions -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Benutzerdefinierte Konvertierungen</h3>
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                    <div>
+                                        <label class="form-label">Von Einheit</label>
+                                        <input type="text" class="form-input" placeholder="z.B. Becher">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Zu Einheit</label>
+                                        <input type="text" class="form-input" placeholder="z.B. ml">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Faktor</label>
+                                        <input type="number" class="form-input" placeholder="z.B. 250" step="0.001">
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-primary w-full">➕ Hinzufügen</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center py-4 text-gray-500 text-sm">
+                                    Keine benutzerdefinierten Konvertierungen vorhanden
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tags Tab -->
+            <div x-show="activeTab === 'tags'" x-cloak>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Tags & Kategorien</h2>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- Tags -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Rezept-Tags</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {% for tag in tags %}
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center space-x-2">
+                                        <span>{{ tag.icon or '🏷️' }}</span>
+                                        <span class="font-medium">{{ tag.name }}</span>
+                                        <div 
+                                            class="w-4 h-4 rounded-full" 
+                                            style="background-color: {{ tag.color }}"
+                                        ></div>
+                                    </div>
+                                    <button class="text-red-600 hover:text-red-800 text-sm">
+                                        🗑️
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                    <div>
+                                        <label class="form-label">Name</label>
+                                        <input type="text" class="form-input" placeholder="z.B. Dessert">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Icon</label>
+                                        <input type="text" class="form-input" placeholder="🍰">
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Farbe</label>
+                                        <input type="color" class="form-input" value="#3B82F6">
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-primary w-full">➕ Tag hinzufügen</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ingredient Categories -->
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-3">Zutaten-Kategorien</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Gemüse</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Obst</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Milchprodukte</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Fleisch</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Getreide</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Gewürze</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Öle & Fette</span>
+                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Backwaren</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Backup Tab -->
+            <div x-show="activeTab === 'backup'" x-cloak>
+                <div class="space-y-6">
+                    <!-- Create Backup -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Backup erstellen</h2>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-600">
+                                Erstellen Sie ein Backup aller Ihrer Daten (Freizeiten, Rezepte, Mahlzeitenpläne).
+                            </p>
+                            
+                            <button class="btn btn-primary">
+                                💾 Backup herunterladen
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Restore Backup -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Backup wiederherstellen</h2>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="alert alert-warning">
+                                <p class="text-sm">
+                                    ⚠️ Das Wiederherstellen eines Backups überschreibt alle aktuellen Daten!
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <input type="file" accept=".zip" class="form-input">
+                            </div>
+                            
+                            <button class="btn btn-secondary">
+                                📂 Backup wiederherstellen
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Reset Database -->
+                    <div class="card border-red-200 bg-red-50">
+                        <div class="card-header">
+                            <h2 class="card-title text-red-900">⚠️ Datenbank zurücksetzen</h2>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="alert alert-error">
+                                <p class="text-sm">
+                                    🚨 <strong>Achtung:</strong> Diese Aktion löscht alle Daten unwiderruflich!
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <label class="form-label">Geben Sie "LÖSCHEN" ein, um zu bestätigen:</label>
+                                <input type="text" class="form-input" placeholder="LÖSCHEN">
+                            </div>
+                            
+                            <button class="btn btn-danger" disabled>
+                                🗑️ Alle Daten löschen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

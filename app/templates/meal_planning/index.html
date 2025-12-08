@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Mahlzeitenplanung - {{ current_camp.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Mahlzeitenplanung</h1>
+        <div class="flex space-x-3">
+            <button class="btn btn-secondary">
+                📄 Plan exportieren
+            </button>
+            <button class="btn btn-secondary">
+                🔄 Aktualisieren
+            </button>
+        </div>
+    </div>
+    
+    <!-- Planning Interface -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Recipe Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="card sticky top-4">
+                <div class="card-header">
+                    <h2 class="card-title">Rezepte</h2>
+                </div>
+                
+                <!-- Search -->
+                <div class="mb-4">
+                    <input 
+                        type="text" 
+                        placeholder="Rezepte suchen..." 
+                        class="form-input"
+                    >
+                </div>
+                
+                <!-- Recipe List -->
+                <div id="recipe-sidebar" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div class="recipe-card-draggable" data-recipe-id="1">
+                        <h4 class="font-medium text-sm">Spaghetti Bolognese</h4>
+                        <p class="text-xs text-gray-600">30 Personen • 45 min</p>
+                        <div class="flex space-x-1 mt-1">
+                            <span class="recipe-tag text-xs">🍽️ Mittagessen</span>
+                        </div>
+                    </div>
+                    
+                    <div class="recipe-card-draggable" data-recipe-id="2">
+                        <h4 class="font-medium text-sm">Pfannkuchen</h4>
+                        <p class="text-xs text-gray-600">30 Personen • 30 min</p>
+                        <div class="flex space-x-1 mt-1">
+                            <span class="recipe-tag text-xs">🌅 Frühstück</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center py-4 text-gray-500 text-sm">
+                        Ziehen Sie Rezepte in den Kalender
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="lg:col-span-3">
+            <div class="card">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full meal-planning-table">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 font-medium text-gray-900 w-24">Mahlzeit</th>
+                                {% for day in range((current_camp.end_date - current_camp.start_date).days + 1) %}
+                                <th class="text-center py-3 px-2 font-medium text-gray-900 min-w-32">
+                                    <div class="text-sm">Tag {{ day + 1 }}</div>
+                                    <div class="text-xs text-gray-600">{{ (current_camp.start_date + timedelta(days=day)).strftime('%d.%m.') }}</div>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% set meal_types = [('BREAKFAST', 'Frühstück', '🌅'), ('LUNCH', 'Mittagessen', '🍽️'), ('DINNER', 'Abendessen', '🌙')] %}
+                            {% for meal_type, label, icon in meal_types %}
+                            <tr>
+                                <td class="py-4 px-4 font-medium text-gray-900 bg-gray-50">
+                                    <div class="flex items-center">
+                                        <span class="mr-2">{{ icon }}</span>
+                                        <span class="text-sm">{{ label }}</span>
+                                    </div>
+                                </td>
+                                {% for day in range((current_camp.end_date - current_camp.start_date).days + 1) %}
+                                <td class="py-2 px-2">
+                                    <div 
+                                        class="meal-cell-dropzone"
+                                        data-meal-date="{{ (current_camp.start_date + timedelta(days=day)).strftime('%Y-%m-%d') }}"
+                                        data-meal-type="{{ meal_type }}"
+                                    >
+                                        <!-- Planned meals will be inserted here -->
+                                        <div class="text-center text-gray-400 text-xs py-8">
+                                            Rezept hier ablegen
+                                        </div>
+                                    </div>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize drag and drop functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make recipe sidebar sortable (clone only)
+        const sidebar = document.getElementById('recipe-sidebar');
+        if (sidebar) {
+            new Sortable(sidebar, {
+                group: { name: 'recipes', pull: 'clone', put: false },
+                sort: false,
+                animation: 150
+            });
+        }
+        
+        // Make meal cells sortable (accept drops)
+        document.querySelectorAll('.meal-cell-dropzone').forEach(zone => {
+            new Sortable(zone, {
+                group: { name: 'recipes', pull: true, put: true },
+                animation: 150,
+                
+                onAdd: function(evt) {
+                    const recipeId = evt.item.dataset.recipeId;
+                    const mealDate = evt.to.dataset.mealDate;
+                    const mealType = evt.to.dataset.mealType;
+                    
+                    // Remove the placeholder text
+                    const placeholder = evt.to.querySelector('.text-center.text-gray-400');
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
+                    
+                    // Make API call to save meal plan
+                    htmx.ajax('POST', '/api/meal-plans', {
+                        values: { 
+                            recipe_id: recipeId, 
+                            meal_date: mealDate, 
+                            meal_type: mealType 
+                        },
+                        target: evt.to,
+                        swap: 'beforeend'
+                    }).then(() => {
+                        // Remove the dragged item (it was cloned)
+                        evt.item.remove();
+                        FreizeitApp.showToast('Rezept zur Planung hinzugefügt', 'success');
+                    }).catch(() => {
+                        evt.item.remove();
+                        FreizeitApp.showToast('Fehler beim Hinzufügen des Rezepts', 'error');
+                    });
+                },
+                
+                onUpdate: function(evt) {
+                    const mealPlanId = evt.item.dataset.mealPlanId;
+                    if (mealPlanId) {
+                        htmx.ajax('PUT', `/api/meal-plans/${mealPlanId}/position`, {
+                            values: { position: evt.newIndex }
+                        });
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
