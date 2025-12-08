@@ -15,7 +15,8 @@ from app.dependencies import get_current_camp, get_template_context
 from app import crud
 
 # Import routers
-from app.routers import camps, recipes
+from app.routers import camps
+from app.routers import recipes as recipes_router
 # from app.routers import meal_planning, shopping_list, settings, export
 
 app = FastAPI(title="Freizeit Rezepturverwaltung", version="1.0.0")
@@ -162,7 +163,7 @@ async def settings(context = Depends(get_template_context)):
 
 # Include routers
 app.include_router(camps.router, prefix="/api/camps", tags=["camps"])
-app.include_router(recipes.router, prefix="/api/recipes", tags=["recipes"])
+app.include_router(recipes_router.router, prefix="/api/recipes", tags=["recipes"])
 # app.include_router(meal_planning.router, prefix="/api/meal-plans", tags=["meal-planning"])
 # app.include_router(shopping_list.router, prefix="/api/shopping-list", tags=["shopping-list"])
 # app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
