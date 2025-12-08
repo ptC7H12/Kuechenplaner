@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Freizeit Rezepturverwaltung{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/static/css/custom.css" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.0/dist/ext/loading-states.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body hx-ext="loading-states" class="bg-gray-50 min-h-screen">
+    <!-- Simple Layout for Camp Selection -->
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="w-full max-w-4xl mx-auto p-6">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <!-- Global Modal -->
+    <div id="global-modal" x-data="{ show: false }" 
+         @open-modal.window="show = true" 
+         @close-modal.window="show = false"
+         x-show="show" x-cloak
+         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+            <div id="modal-content" class="p-6">
+                <!-- Modal content will be loaded here via HTMX -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="htmx-indicator fixed top-4 right-4 z-50">
+        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            <span class="text-sm text-gray-700">Laden...</span>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-40 space-y-2">
+        <!-- Toasts will be added here dynamically -->
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // Global JavaScript utilities
+        window.FreizeitApp = {
+            showToast: function(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type} bg-white rounded-lg shadow-lg p-4 mb-2 transform transition-all duration-300 translate-x-full`;
+                
+                const colors = {
+                    success: 'border-l-4 border-green-500',
+                    error: 'border-l-4 border-red-500',
+                    warning: 'border-l-4 border-yellow-500',
+                    info: 'border-l-4 border-blue-500'
+                };
+                
+                toast.className += ' ' + colors[type];
+                toast.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700">${message}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
+                            ✕
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('toast-container').appendChild(toast);
+                
+                // Animate in
+                setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+            },
+            
+            openModal: function(url) {
+                htmx.ajax('GET', url, {target: '#modal-content'}).then(() => {
+                    window.dispatchEvent(new CustomEvent('open-modal'));
+                });
+            },
+            
+            closeModal: function() {
+                window.dispatchEvent(new CustomEvent('close-modal'));
+            }
+        };
+        
+        // HTMX event listeners
+        document.addEventListener('htmx:responseError', function(event) {
+            FreizeitApp.showToast('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'error');
+        });
+        
+        document.addEventListener('htmx:sendError', function(event) {
+            FreizeitApp.showToast('Verbindungsfehler. Bitte überprüfen Sie Ihre Internetverbindung.', 'error');
+        });
+    </script>
+</body>
+</html>

@@ -38,86 +38,115 @@
 </head>
 
 <body hx-ext="loading-states" class="bg-gray-50 min-h-screen">
-    <!-- Navigation (only show if camp is selected) -->
-    {% if current_camp %}
-    <nav class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center space-x-8">
-                    <!-- Logo/Title -->
-                    <div class="flex-shrink-0">
-                        <h1 class="text-xl font-bold text-gray-900">Freizeit Rezepte</h1>
-                    </div>
-                    
-                    <!-- Navigation Links -->
-                    <div class="hidden md:flex space-x-8">
-                        <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">
-                            <span class="text-lg">📊</span> Dashboard
-                        </a>
-                        <a href="/recipes" class="nav-link {% if '/recipes' in request.url.path %}active{% endif %}">
-                            <span class="text-lg">📖</span> Rezepte
-                        </a>
-                        <a href="/meal-planning" class="nav-link {% if '/meal-planning' in request.url.path %}active{% endif %}">
-                            <span class="text-lg">📅</span> Planung
-                        </a>
-                        <a href="/shopping-list" class="nav-link {% if '/shopping-list' in request.url.path %}active{% endif %}">
-                            <span class="text-lg">🛒</span> Einkaufsliste
-                        </a>
-                        <a href="/settings" class="nav-link {% if '/settings' in request.url.path %}active{% endif %}">
-                            <span class="text-lg">⚙️</span> Einstellungen
-                        </a>
-                    </div>
-                </div>
+    <!-- Main Layout Container -->
+    <div class="{% if current_camp %}hamburger-layout{% else %}camp-select-layout{% endif %}">
+        {% if current_camp %}
+        <!-- Hamburger Menu Layout -->
+        <div x-data="{ sidebarOpen: false }" class="flex h-screen bg-gray-50">
+            <!-- Sidebar -->
+            <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out" 
+                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
                 
-                <!-- Camp Info and Switcher -->
-                <div class="flex items-center space-x-4">
-                    <div class="text-sm text-gray-600">
-                        <span class="font-medium">{{ current_camp.name }}</span>
-                        <span class="text-gray-400">•</span>
-                        <span>{{ current_camp.participant_count }} Personen</span>
-                    </div>
-                    
-                    <!-- Camp Switcher Dropdown -->
-                    <div x-data="{ open: false }" class="relative">
-                        <button @click="open = !open" class="flex items-center text-sm text-gray-700 hover:text-gray-900">
-                            <span class="text-lg">🔄</span>
-                            <span class="ml-1">Wechseln</span>
-                        </button>
-                        
-                        <div x-show="open" @click.away="open = false" x-cloak
-                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                            <a href="/select-camp" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                Freizeit wechseln
-                            </a>
-                        </div>
-                    </div>
+                <!-- Sidebar Header -->
+                <div class="flex items-center justify-between h-16 px-4 bg-primary-600 text-white">
+                    <h1 class="text-lg font-bold">Freizeit Rezepte</h1>
+                    <button @click="sidebarOpen = false" class="text-white hover:text-gray-200 p-1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Camp Info -->
+                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <div class="text-sm font-medium text-gray-900">{{ current_camp.name }}</div>
+                    <div class="text-xs text-gray-600">{{ current_camp.participant_count }} Personen</div>
+                </div>
+
+                <!-- Navigation Menu -->
+                <nav class="flex-1 px-2 py-4 space-y-1">
+                    <a href="/dashboard" 
+                       class="nav-item {% if request.url.path == '/dashboard' %}nav-item-active{% endif %}"
+                       @click="sidebarOpen = false">
+                        <span class="mr-3 text-lg">📊</span>
+                        Dashboard
+                    </a>
+                    <a href="/recipes" 
+                       class="nav-item {% if '/recipes' in request.url.path %}nav-item-active{% endif %}"
+                       @click="sidebarOpen = false">
+                        <span class="mr-3 text-lg">📖</span>
+                        Rezepte
+                    </a>
+                    <a href="/meal-planning" 
+                       class="nav-item {% if '/meal-planning' in request.url.path %}nav-item-active{% endif %}"
+                       @click="sidebarOpen = false">
+                        <span class="mr-3 text-lg">📅</span>
+                        Planung
+                    </a>
+                    <a href="/shopping-list" 
+                       class="nav-item {% if '/shopping-list' in request.url.path %}nav-item-active{% endif %}"
+                       @click="sidebarOpen = false">
+                        <span class="mr-3 text-lg">🛒</span>
+                        Einkaufsliste
+                    </a>
+                    <a href="/settings" 
+                       class="nav-item {% if '/settings' in request.url.path %}nav-item-active{% endif %}"
+                       @click="sidebarOpen = false">
+                        <span class="mr-3 text-lg">⚙️</span>
+                        Einstellungen
+                    </a>
+                </nav>
+
+                <!-- Camp Switch Button at Bottom -->
+                <div class="p-4 border-t border-gray-200">
+                    <a href="/select-camp" 
+                       class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 transition-colors"
+                       @click="sidebarOpen = false">
+                        <span class="mr-2 text-lg">🔄</span>
+                        Freizeit wechseln
+                    </a>
                 </div>
             </div>
-        </div>
-        
-        <!-- Mobile Navigation -->
-        <div class="md:hidden" x-data="{ mobileOpen: false }">
-            <div class="px-4 py-2">
-                <button @click="mobileOpen = !mobileOpen" class="text-gray-600 hover:text-gray-900">
-                    <span class="text-lg">☰</span> Menü
-                </button>
+
+            <!-- Overlay -->
+            <div x-show="sidebarOpen" 
+                 @click="sidebarOpen = false" 
+                 x-cloak
+                 class="fixed inset-0 z-40 bg-black bg-opacity-50"></div>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col">
+                <!-- Top Bar with Hamburger -->
+                <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-4">
+                    <button @click="sidebarOpen = !sidebarOpen" 
+                            class="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h2 class="ml-4 text-lg font-semibold text-gray-900">
+                        {% block page_title %}
+                            {% if request.url.path == '/dashboard' %}Dashboard
+                            {% elif '/recipes' in request.url.path %}Rezepte
+                            {% elif '/meal-planning' in request.url.path %}Mahlzeitenplanung
+                            {% elif '/shopping-list' in request.url.path %}Einkaufsliste
+                            {% elif '/settings' in request.url.path %}Einstellungen
+                            {% else %}Freizeit Rezepte
+                            {% endif %}
+                        {% endblock %}
+                    </h2>
+                </header>
+
+                <!-- Page Content -->
+                <main class="flex-1 overflow-auto p-6">
+                    {% block content %}{% endblock %}
+                </main>
             </div>
-            
-            <div x-show="mobileOpen" x-cloak class="px-4 py-2 space-y-2 bg-gray-50">
-                <a href="/dashboard" class="block py-2 text-gray-700 hover:text-gray-900">📊 Dashboard</a>
-                <a href="/recipes" class="block py-2 text-gray-700 hover:text-gray-900">📖 Rezepte</a>
-                <a href="/meal-planning" class="block py-2 text-gray-700 hover:text-gray-900">📅 Planung</a>
-                <a href="/shopping-list" class="block py-2 text-gray-700 hover:text-gray-900">🛒 Einkaufsliste</a>
-                <a href="/settings" class="block py-2 text-gray-700 hover:text-gray-900">⚙️ Einstellungen</a>
-            </div>
         </div>
-    </nav>
-    {% endif %}
+        {% endif %}
+    </div>
     
-    <!-- Main Content -->
-    <main class="{% if current_camp %}max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8{% else %}min-h-screen flex items-center justify-center{% endif %}">
-        {% block content %}{% endblock %}
-    </main>
+
     
     <!-- Global Modal -->
     <div id="global-modal" x-data="{ show: false }" 
