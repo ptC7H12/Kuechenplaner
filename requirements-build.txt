@@ -1,0 +1,13 @@
+# Build-Abhängigkeiten für Nuitka
+# Diese Pakete werden nur für den Build-Prozess benötigt
+
+# Nuitka Compiler
+nuitka>=1.8.0
+
+# Optional: Ordered Sets für bessere Performance
+ordered-set>=4.1.0
+
+# Optional: C Compiler wird benötigt
+# Windows: Visual Studio Build Tools oder MinGW64
+# Linux: gcc (sudo apt-get install gcc)
+# macOS: Xcode Command Line Tools (xcode-select --install)
