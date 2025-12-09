@@ -4,6 +4,9 @@
 # Nuitka Compiler
 nuitka>=1.8.0
 
+# Pillow für Icon-Generierung
+Pillow>=10.0.0
+
 # Optional: Ordered Sets für bessere Performance
 ordered-set>=4.1.0
 
