@@ -2,101 +2,188 @@
 
 {% block title %}Mahlzeitenplanung - {{ current_camp.name }}{% endblock %}
 
+{% block header_actions %}
+<div class="flex items-center space-x-2">
+    <a href="/export/meal-plan/pdf/{{ camp.id }}" class="btn btn-primary btn-sm">
+        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
+        </svg>
+        Plan exportieren (PDF)
+    </a>
+    <a href="/export/recipe-book/pdf/{{ camp.id }}" class="btn btn-secondary btn-sm">
+        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+        </svg>
+        Rezeptbuch (PDF)
+    </a>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-gray-900">Mahlzeitenplanung</h1>
-        <div class="flex space-x-3">
-            <button class="btn btn-secondary">
-                📄 Plan exportieren
-            </button>
-            <button class="btn btn-secondary">
-                🔄 Aktualisieren
-            </button>
+<div class="space-y-6" x-data="mealPlanning()">
+    <!-- Info Card -->
+    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-sm">
+        <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white text-2xl shadow-md">
+                    📅
+                </div>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-purple-900">Mahlzeitenplanung</h3>
+                <p class="text-sm text-purple-800 mt-2 leading-relaxed">
+                    Ziehen Sie Rezepte aus der linken Seitenleiste in den Kalender, um Ihre Mahlzeiten zu planen.
+                    Der Zeitraum umfasst <strong>{{ days|length }} Tage</strong> ({{ camp.start_date.strftime('%d.%m.%Y') }} - {{ camp.end_date.strftime('%d.%m.%Y') }})
+                    für <strong>{{ camp.participant_count }} Personen</strong>.
+                </p>
+            </div>
         </div>
     </div>
-    
+
     <!-- Planning Interface -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Recipe Sidebar -->
         <div class="lg:col-span-1">
-            <div class="card sticky top-4">
-                <div class="card-header">
-                    <h2 class="card-title">Rezepte</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-4">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-bold text-gray-900">Verfügbare Rezepte</h2>
+                    <p class="text-sm text-gray-600 mt-1">{{ recipes|length }} Rezepte</p>
                 </div>
-                
+
                 <!-- Search -->
-                <div class="mb-4">
-                    <input 
-                        type="text" 
-                        placeholder="Rezepte suchen..." 
-                        class="form-input"
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <input
+                        type="text"
+                        x-model="searchQuery"
+                        @input="filterRecipes()"
+                        placeholder="Rezepte suchen..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                 </div>
-                
+
                 <!-- Recipe List -->
-                <div id="recipe-sidebar" class="space-y-2 max-h-96 overflow-y-auto">
-                    <div class="recipe-card-draggable" data-recipe-id="1">
-                        <h4 class="font-medium text-sm">Spaghetti Bolognese</h4>
-                        <p class="text-xs text-gray-600">30 Personen • 45 min</p>
-                        <div class="flex space-x-1 mt-1">
-                            <span class="recipe-tag text-xs">🍽️ Mittagessen</span>
+                <div id="recipe-sidebar" class="p-4 space-y-2 max-h-[600px] overflow-y-auto">
+                    {% if recipes %}
+                        {% for recipe in recipes %}
+                        <div class="recipe-card-draggable"
+                             data-recipe-id="{{ recipe.id }}"
+                             data-recipe-name="{{ recipe.name }}"
+                             x-show="filteredRecipes.includes({{ recipe.id }})">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-lg mr-2">
+                                    🍽️
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-medium text-sm text-gray-900 truncate">{{ recipe.name }}</h4>
+                                    <p class="text-xs text-gray-600">
+                                        {{ recipe.base_servings }} Portionen
+                                        {% if recipe.preparation_time %}
+                                        • {{ recipe.preparation_time + (recipe.cooking_time or 0) }} min
+                                        {% endif %}
+                                    </p>
+                                    {% if recipe.tags %}
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        {% for tag in recipe.tags[:2] %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            {{ tag.name }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="recipe-card-draggable" data-recipe-id="2">
-                        <h4 class="font-medium text-sm">Pfannkuchen</h4>
-                        <p class="text-xs text-gray-600">30 Personen • 30 min</p>
-                        <div class="flex space-x-1 mt-1">
-                            <span class="recipe-tag text-xs">🌅 Frühstück</span>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-2">📋</div>
+                            <p class="text-sm">Keine Rezepte vorhanden</p>
+                            <a href="/recipes/create" class="text-blue-600 hover:text-blue-700 text-sm underline mt-2 inline-block">
+                                Rezept erstellen
+                            </a>
                         </div>
-                    </div>
-                    
-                    <div class="text-center py-4 text-gray-500 text-sm">
-                        Ziehen Sie Rezepte in den Kalender
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <!-- Calendar Grid -->
         <div class="lg:col-span-3">
-            <div class="card">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full meal-planning-table">
+                    <table class="min-w-full">
                         <thead>
-                            <tr class="border-b border-gray-200">
-                                <th class="text-left py-3 px-4 font-medium text-gray-900 w-24">Mahlzeit</th>
-                                {% for day in range((current_camp.end_date - current_camp.start_date).days + 1) %}
-                                <th class="text-center py-3 px-2 font-medium text-gray-900 min-w-32">
-                                    <div class="text-sm">Tag {{ day + 1 }}</div>
-                                    <div class="text-xs text-gray-600">{{ (current_camp.start_date + timedelta(days=day)).strftime('%d.%m.') }}</div>
+                            <tr class="border-b-2 border-gray-200 bg-gray-50">
+                                <th class="text-left py-4 px-4 font-bold text-gray-900 w-32 sticky left-0 bg-gray-50 z-10">
+                                    Mahlzeit
+                                </th>
+                                {% for day in days %}
+                                <th class="text-center py-4 px-3 font-semibold text-gray-900 min-w-[200px]">
+                                    <div class="text-base">{{ day.strftime('%A') }}</div>
+                                    <div class="text-sm text-gray-600 font-normal">{{ day.strftime('%d.%m.%Y') }}</div>
                                 </th>
                                 {% endfor %}
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            {% set meal_types = [('BREAKFAST', 'Frühstück', '🌅'), ('LUNCH', 'Mittagessen', '🍽️'), ('DINNER', 'Abendessen', '🌙')] %}
-                            {% for meal_type, label, icon in meal_types %}
-                            <tr>
-                                <td class="py-4 px-4 font-medium text-gray-900 bg-gray-50">
+                            {% set meal_config = [
+                                ('BREAKFAST', 'Frühstück', '🌅', 'yellow'),
+                                ('LUNCH', 'Mittagessen', '🍽️', 'green'),
+                                ('DINNER', 'Abendessen', '🌙', 'indigo')
+                            ] %}
+                            {% for meal_type_value, label, icon, color in meal_config %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-4 px-4 font-medium text-gray-900 bg-{{ color }}-50 sticky left-0 z-10">
                                     <div class="flex items-center">
-                                        <span class="mr-2">{{ icon }}</span>
-                                        <span class="text-sm">{{ label }}</span>
+                                        <span class="mr-2 text-xl">{{ icon }}</span>
+                                        <span class="text-sm font-semibold">{{ label }}</span>
                                     </div>
                                 </td>
-                                {% for day in range((current_camp.end_date - current_camp.start_date).days + 1) %}
-                                <td class="py-2 px-2">
-                                    <div 
-                                        class="meal-cell-dropzone"
-                                        data-meal-date="{{ (current_camp.start_date + timedelta(days=day)).strftime('%Y-%m-%d') }}"
-                                        data-meal-type="{{ meal_type }}"
+                                {% for day in days %}
+                                {% set date_key = day.date() %}
+                                {% set meal_type = namespace(enum=None) %}
+                                {% for mt in meal_types %}
+                                    {% if mt.value == meal_type_value %}
+                                        {% set meal_type.enum = mt %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% set meals = meal_grid.get(date_key, {}).get(meal_type.enum, []) %}
+                                <td class="py-2 px-2 align-top">
+                                    <div
+                                        class="meal-cell-dropzone min-h-[120px] rounded-lg"
+                                        data-meal-date="{{ day.strftime('%Y-%m-%d') }}"
+                                        data-meal-type="{{ meal_type_value }}"
+                                        data-camp-id="{{ camp.id }}"
                                     >
-                                        <!-- Planned meals will be inserted here -->
-                                        <div class="text-center text-gray-400 text-xs py-8">
-                                            Rezept hier ablegen
-                                        </div>
+                                        {% if meals %}
+                                            {% for meal_plan in meals %}
+                                            <div class="recipe-card-planned bg-white border border-gray-200 rounded-lg p-3 mb-2 shadow-sm hover:shadow-md transition-shadow cursor-move"
+                                                 data-meal-plan-id="{{ meal_plan.id }}"
+                                                 data-recipe-id="{{ meal_plan.recipe_id }}">
+                                                <div class="flex items-start justify-between">
+                                                    <div class="flex-1 min-w-0">
+                                                        <h4 class="font-medium text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
+                                                        <p class="text-xs text-gray-600">
+                                                            {{ meal_plan.recipe.base_servings }} Portionen
+                                                        </p>
+                                                        {% if meal_plan.notes %}
+                                                        <p class="text-xs text-gray-500 mt-1 italic truncate">{{ meal_plan.notes }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <button @click="deleteMealPlan({{ meal_plan.id }})"
+                                                            class="ml-2 text-red-500 hover:text-red-700 transition-colors flex-shrink-0">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="empty-placeholder text-center text-gray-400 text-xs py-12 h-full flex items-center justify-center">
+                                                <span>Rezept hier ablegen</span>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 {% endfor %}
@@ -111,64 +198,171 @@
 </div>
 
 <script>
-    // Initialize drag and drop functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Make recipe sidebar sortable (clone only)
-        const sidebar = document.getElementById('recipe-sidebar');
-        if (sidebar) {
-            new Sortable(sidebar, {
-                group: { name: 'recipes', pull: 'clone', put: false },
-                sort: false,
-                animation: 150
-            });
-        }
-        
-        // Make meal cells sortable (accept drops)
-        document.querySelectorAll('.meal-cell-dropzone').forEach(zone => {
-            new Sortable(zone, {
-                group: { name: 'recipes', pull: true, put: true },
-                animation: 150,
-                
-                onAdd: function(evt) {
-                    const recipeId = evt.item.dataset.recipeId;
-                    const mealDate = evt.to.dataset.mealDate;
-                    const mealType = evt.to.dataset.mealType;
-                    
-                    // Remove the placeholder text
-                    const placeholder = evt.to.querySelector('.text-center.text-gray-400');
-                    if (placeholder) {
-                        placeholder.remove();
-                    }
-                    
-                    // Make API call to save meal plan
-                    htmx.ajax('POST', '/api/meal-plans', {
-                        values: { 
-                            recipe_id: recipeId, 
-                            meal_date: mealDate, 
-                            meal_type: mealType 
+function mealPlanning() {
+    return {
+        searchQuery: '',
+        filteredRecipes: {{ recipes | map(attribute='id') | list | tojson }},
+
+        init() {
+            this.initializeDragAndDrop();
+        },
+
+        filterRecipes() {
+            const query = this.searchQuery.toLowerCase();
+            if (!query) {
+                this.filteredRecipes = {{ recipes | map(attribute='id') | list | tojson }};
+                return;
+            }
+
+            this.filteredRecipes = [];
+            {% for recipe in recipes %}
+            if ('{{ recipe.name }}'.toLowerCase().includes(query)) {
+                this.filteredRecipes.push({{ recipe.id }});
+            }
+            {% endfor %}
+        },
+
+        initializeDragAndDrop() {
+            // Make recipe sidebar sortable (clone only)
+            const sidebar = document.getElementById('recipe-sidebar');
+            if (sidebar && typeof Sortable !== 'undefined') {
+                new Sortable(sidebar, {
+                    group: {
+                        name: 'recipes',
+                        pull: 'clone',
+                        put: false
+                    },
+                    sort: false,
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen'
+                });
+            }
+
+            // Make meal cells sortable (accept drops)
+            document.querySelectorAll('.meal-cell-dropzone').forEach(zone => {
+                if (typeof Sortable !== 'undefined') {
+                    new Sortable(zone, {
+                        group: {
+                            name: 'recipes',
+                            pull: true,
+                            put: true
                         },
-                        target: evt.to,
-                        swap: 'beforeend'
-                    }).then(() => {
-                        // Remove the dragged item (it was cloned)
-                        evt.item.remove();
-                        FreizeitApp.showToast('Rezept zur Planung hinzugefügt', 'success');
-                    }).catch(() => {
-                        evt.item.remove();
-                        FreizeitApp.showToast('Fehler beim Hinzufügen des Rezepts', 'error');
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+
+                        onAdd: async (evt) => {
+                            const recipeId = evt.item.dataset.recipeId;
+                            const recipeName = evt.item.dataset.recipeName;
+                            const mealDate = evt.to.dataset.mealDate;
+                            const mealType = evt.to.dataset.mealType;
+                            const campId = evt.to.dataset.campId;
+
+                            // Remove the placeholder if it exists
+                            const placeholder = evt.to.querySelector('.empty-placeholder');
+                            if (placeholder) {
+                                placeholder.remove();
+                            }
+
+                            // Remove the cloned draggable element
+                            evt.item.remove();
+
+                            // Calculate position (number of existing recipes)
+                            const existingRecipes = evt.to.querySelectorAll('.recipe-card-planned');
+                            const position = existingRecipes.length;
+
+                            // Make API call to save meal plan
+                            try {
+                                const response = await fetch('/meal-planning/api/meal-plans', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        camp_id: parseInt(campId),
+                                        recipe_id: parseInt(recipeId),
+                                        meal_date: mealDate + 'T00:00:00',
+                                        meal_type: mealType,
+                                        position: position
+                                    })
+                                });
+
+                                if (response.ok) {
+                                    // Reload the page to show updated meal plan
+                                    window.location.reload();
+                                    window.FreizeitApp.showToast(`"${recipeName}" hinzugefügt`, 'success');
+                                } else {
+                                    throw new Error('Failed to save meal plan');
+                                }
+                            } catch (error) {
+                                console.error('Error saving meal plan:', error);
+                                window.FreizeitApp.showToast('Fehler beim Hinzufügen des Rezepts', 'error');
+                            }
+                        },
+
+                        onUpdate: async (evt) => {
+                            const mealPlanId = evt.item.dataset.mealPlanId;
+                            if (mealPlanId) {
+                                // Update position when reordering within same cell
+                                try {
+                                    await fetch(`/meal-planning/api/meal-plans/${mealPlanId}`, {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({
+                                            position: evt.newIndex
+                                        })
+                                    });
+                                } catch (error) {
+                                    console.error('Error updating position:', error);
+                                }
+                            }
+                        }
                     });
-                },
-                
-                onUpdate: function(evt) {
-                    const mealPlanId = evt.item.dataset.mealPlanId;
-                    if (mealPlanId) {
-                        htmx.ajax('PUT', `/api/meal-plans/${mealPlanId}/position`, {
-                            values: { position: evt.newIndex }
-                        });
-                    }
                 }
             });
-        });
-    });
+        },
+
+        async deleteMealPlan(mealPlanId) {
+            if (!confirm('Möchten Sie dieses Rezept wirklich aus dem Plan entfernen?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/meal-planning/api/meal-plans/${mealPlanId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Reload the page to show updated meal plan
+                    window.location.reload();
+                    window.FreizeitApp.showToast('Rezept entfernt', 'success');
+                } else {
+                    throw new Error('Failed to delete meal plan');
+                }
+            } catch (error) {
+                console.error('Error deleting meal plan:', error);
+                window.FreizeitApp.showToast('Fehler beim Entfernen des Rezepts', 'error');
+            }
+        }
+    };
+}
 </script>
+
+<style>
+.sortable-ghost {
+    opacity: 0.4;
+    background: #e5e7eb;
+}
+
+.sortable-chosen {
+    cursor: move;
+}
+
+.meal-cell-dropzone.sortable-drag-over {
+    background-color: #dbeafe;
+    border: 2px dashed #3b82f6;
+}
+</style>
 {% endblock %}

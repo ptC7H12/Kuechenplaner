@@ -2,204 +2,254 @@
 
 {% block title %}Einkaufsliste - {{ current_camp.name }}{% endblock %}
 
+{% block header_actions %}
+<div class="flex items-center space-x-2">
+    <a href="/export/shopping-list/excel/{{ camp.id }}" class="btn btn-secondary btn-sm">
+        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path>
+            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path>
+        </svg>
+        Excel
+    </a>
+    <a href="/export/shopping-list/pdf/{{ camp.id }}" class="btn btn-primary btn-sm">
+        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
+        </svg>
+        PDF
+    </a>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-gray-900">Einkaufsliste</h1>
-        <div class="flex space-x-3">
-            <button class="btn btn-secondary">
-                📄 PDF Export
-            </button>
-            <button class="btn btn-secondary">
-                📊 Excel Export
-            </button>
-            <button 
-                hx-post="/api/shopping-list/recalc"
-                hx-target="#shopping-list-content"
-                class="btn btn-primary"
-            >
-                🔄 Neu berechnen
-            </button>
-        </div>
-    </div>
-    
     <!-- Info Card -->
-    <div class="card bg-blue-50 border-blue-200">
-        <div class="flex items-start space-x-3">
-            <span class="text-2xl">ℹ️</span>
-            <div>
-                <h3 class="font-semibold text-blue-900">Automatische Berechnung</h3>
-                <p class="text-sm text-blue-800 mt-1">
-                    Diese Einkaufsliste wurde automatisch aus allen geplanten Mahlzeiten berechnet 
-                    und auf {{ current_camp.participant_count }} Personen skaliert. 
-                    Gleiche Zutaten wurden zusammengefasst und Einheiten automatisch konvertiert.
+    <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-sm">
+        <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white text-2xl shadow-md">
+                    📝
+                </div>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-blue-900">Automatische Berechnung</h3>
+                <p class="text-sm text-blue-800 mt-2 leading-relaxed">
+                    Diese Einkaufsliste wurde automatisch aus <strong>{{ total_recipes }} Rezepten</strong> berechnet
+                    und auf <strong>{{ camp.participant_count }} Personen</strong> skaliert.
+                    Gleiche Zutaten wurden zusammengefasst und Einheiten automatisch konvertiert (z.B. 1500g → 1.5kg).
                 </p>
             </div>
         </div>
     </div>
-    
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
+                    🛒
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Zutaten</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_items }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
+                    📦
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Kategorien</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ categories|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-2xl">
+                    📖
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Rezepte</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_recipes }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-2xl">
+                    👥
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-600">Personen</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ camp.participant_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if categories %}
     <!-- Shopping List Content -->
-    <div id="shopping-list-content">
-        <!-- Categories will be loaded here -->
-        <div class="space-y-6">
-            <!-- Example Category: Gemüse -->
-            <div class="shopping-category" x-data="{ open: true }">
-                <div class="shopping-category-header" @click="open = !open">
-                    <div class="flex items-center">
-                        <span class="text-lg mr-2">🥬</span>
-                        <h3 class="shopping-category-title">Gemüse</h3>
+    <div id="shopping-list-content" class="space-y-4" x-data="shoppingList()">
+        {% for category, items in categories.items() %}
+        <div class="shopping-category bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="shopping-category-header bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 cursor-pointer hover:from-gray-100 hover:to-gray-200 transition-colors"
+                 @click="toggleCategory('{{ category }}')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">
+                            {% if category == "Gemüse" %}🥬
+                            {% elif category == "Obst" %}🍎
+                            {% elif category == "Milchprodukte" %}🥛
+                            {% elif category == "Fleisch" %}🥩
+                            {% elif category == "Backwaren" %}🍞
+                            {% elif category == "Getreide" %}🌾
+                            {% elif category == "Öle & Fette" %}🫒
+                            {% elif category == "Gewürze" %}🧂
+                            {% else %}📦
+                            {% endif %}
+                        </span>
+                        <h3 class="text-lg font-bold text-gray-900">{{ category }}</h3>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                            {{ items|length }} Artikel
+                        </span>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="shopping-category-count">5 Artikel</span>
-                        <span x-show="open">▼</span>
-                        <span x-show="!open">▶</span>
-                    </div>
-                </div>
-                
-                <div x-show="open" class="bg-white rounded-lg border border-gray-200 mt-2">
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Kartoffeln</span>
-                        <span class="shopping-item-quantity">3.5 kg</span>
-                    </div>
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Zwiebeln</span>
-                        <span class="shopping-item-quantity">1.2 kg</span>
-                    </div>
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Tomaten</span>
-                        <span class="shopping-item-quantity">2.8 kg</span>
-                    </div>
+                    <svg class="w-6 h-6 text-gray-400 transition-transform"
+                         :class="openCategories.includes('{{ category }}') ? 'transform rotate-180' : ''"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
                 </div>
             </div>
-            
-            <!-- Example Category: Milchprodukte -->
-            <div class="shopping-category" x-data="{ open: true }">
-                <div class="shopping-category-header" @click="open = !open">
-                    <div class="flex items-center">
-                        <span class="text-lg mr-2">🥛</span>
-                        <h3 class="shopping-category-title">Milchprodukte</h3>
+
+            <div x-show="openCategories.includes('{{ category }}')" x-collapse>
+                <div class="divide-y divide-gray-100">
+                    {% for item in items %}
+                    <div class="shopping-item px-6 py-4 hover:bg-gray-50 transition-colors"
+                         :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'bg-gray-50' : ''">
+                        <label class="flex items-center justify-between cursor-pointer group">
+                            <div class="flex items-center flex-1">
+                                <input type="checkbox"
+                                       class="shopping-item-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                                       @change="toggleItem('{{ item.ingredient.name }}')"
+                                       :checked="checkedItems.includes('{{ item.ingredient.name }}')">
+                                <span class="shopping-item-name ml-4 text-base text-gray-900 font-medium group-hover:text-blue-600 transition-colors"
+                                      :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'line-through opacity-60' : ''">
+                                    {{ item.ingredient.name }}
+                                </span>
+                            </div>
+                            <span class="shopping-item-quantity text-base font-bold text-gray-700 ml-4"
+                                  :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'opacity-60' : ''">
+                                {{ "%.1f"|format(item.quantity) }} {{ item.unit }}
+                            </span>
+                        </label>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="shopping-category-count">3 Artikel</span>
-                        <span x-show="open">▼</span>
-                        <span x-show="!open">▶</span>
-                    </div>
-                </div>
-                
-                <div x-show="open" class="bg-white rounded-lg border border-gray-200 mt-2">
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Milch</span>
-                        <span class="shopping-item-quantity">4.5 L</span>
-                    </div>
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Eier</span>
-                        <span class="shopping-item-quantity">60 Stück</span>
-                    </div>
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Butter</span>
-                        <span class="shopping-item-quantity">800 g</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Example Category: Fleisch -->
-            <div class="shopping-category" x-data="{ open: false }">
-                <div class="shopping-category-header" @click="open = !open">
-                    <div class="flex items-center">
-                        <span class="text-lg mr-2">🥩</span>
-                        <h3 class="shopping-category-title">Fleisch</h3>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="shopping-category-count">2 Artikel</span>
-                        <span x-show="open">▼</span>
-                        <span x-show="!open">▶</span>
-                    </div>
-                </div>
-                
-                <div x-show="open" class="bg-white rounded-lg border border-gray-200 mt-2">
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Hackfleisch</span>
-                        <span class="shopping-item-quantity">2.2 kg</span>
-                    </div>
-                    <div class="shopping-item">
-                        <input type="checkbox" class="shopping-item-checkbox">
-                        <span class="shopping-item-name">Hähnchenbrust</span>
-                        <span class="shopping-item-quantity">3.0 kg</span>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
-        
-        <!-- Empty State -->
-        <div class="text-center py-12 text-gray-500" style="display: none;">
-            <span class="text-6xl">🛒</span>
-            <h3 class="text-lg font-medium text-gray-900 mt-4">Keine Einkaufsliste verfügbar</h3>
-            <p class="text-gray-600 mt-2">Planen Sie erst einige Mahlzeiten, um eine Einkaufsliste zu generieren.</p>
-            <a href="/meal-planning" class="btn btn-primary mt-4">
-                📅 Mahlzeiten planen
-            </a>
-        </div>
-    </div>
-    
-    <!-- Summary -->
-    <div class="card bg-gray-50">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="font-semibold text-gray-900">Zusammenfassung</h3>
-                <p class="text-sm text-gray-600 mt-1">
-                    Insgesamt 10 verschiedene Zutaten aus 5 Rezepten
-                </p>
+        {% endfor %}
+
+        <!-- Progress Summary -->
+        <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-6 border border-green-200 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-green-900">Fortschritt</h3>
+                    <p class="text-sm text-green-800 mt-1">
+                        <span x-text="checkedItems.length"></span> von {{ total_items }} Artikeln abgehakt
+                    </p>
+                </div>
+                <div class="text-right">
+                    <div class="text-3xl font-bold text-green-600">
+                        <span x-text="Math.round((checkedItems.length / {{ total_items }}) * 100)"></span>%
+                    </div>
+                    <button @click="clearAll()"
+                            class="text-sm text-green-700 hover:text-green-900 underline mt-2">
+                        Alle zurücksetzen
+                    </button>
+                </div>
             </div>
-            <div class="text-right">
-                <div class="text-sm text-gray-600">Für {{ current_camp.participant_count }} Personen</div>
-                <div class="text-sm text-gray-600">{{ (current_camp.end_date - current_camp.start_date).days + 1 }} Tage</div>
+            <div class="mt-4">
+                <div class="w-full bg-green-200 rounded-full h-3 overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+                         :style="`width: ${Math.round((checkedItems.length / {{ total_items }}) * 100)}%`">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div class="text-6xl mb-4">🛒</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Keine Einkaufsliste verfügbar</h3>
+        <p class="text-gray-600 mb-6 max-w-md mx-auto">
+            Planen Sie erst einige Mahlzeiten, um eine Einkaufsliste zu generieren.
+            Die Liste wird automatisch aus Ihren geplanten Rezepten berechnet.
+        </p>
+        <a href="/meal-planning/" class="btn btn-primary inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            Mahlzeiten planen
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <script>
-    // Save checkbox states to localStorage
-    document.addEventListener('change', function(e) {
-        if (e.target.type === 'checkbox' && e.target.classList.contains('shopping-item-checkbox')) {
-            const item = e.target.closest('.shopping-item');
-            const itemName = item.querySelector('.shopping-item-name').textContent;
-            const isChecked = e.target.checked;
-            
-            // Save to localStorage
-            const key = `shopping_{{ current_camp.id }}_${itemName}`;
-            localStorage.setItem(key, isChecked);
-            
-            // Visual feedback
-            if (isChecked) {
-                item.classList.add('opacity-50', 'line-through');
+function shoppingList() {
+    return {
+        openCategories: {{ categories.keys()|list|tojson }},  // All categories open by default
+        checkedItems: [],
+
+        init() {
+            // Load checked items from localStorage
+            const stored = localStorage.getItem('shopping_{{ camp.id }}_checked');
+            if (stored) {
+                try {
+                    this.checkedItems = JSON.parse(stored);
+                } catch (e) {
+                    this.checkedItems = [];
+                }
+            }
+        },
+
+        toggleCategory(category) {
+            const index = this.openCategories.indexOf(category);
+            if (index > -1) {
+                this.openCategories.splice(index, 1);
             } else {
-                item.classList.remove('opacity-50', 'line-through');
+                this.openCategories.push(category);
+            }
+        },
+
+        toggleItem(itemName) {
+            const index = this.checkedItems.indexOf(itemName);
+            if (index > -1) {
+                this.checkedItems.splice(index, 1);
+            } else {
+                this.checkedItems.push(itemName);
+            }
+            // Save to localStorage
+            localStorage.setItem('shopping_{{ camp.id }}_checked', JSON.stringify(this.checkedItems));
+
+            // Show toast
+            if (this.checkedItems.includes(itemName)) {
+                window.FreizeitApp.showToast(`${itemName} abgehakt`, 'success');
+            }
+        },
+
+        clearAll() {
+            if (confirm('Möchten Sie wirklich alle Häkchen zurücksetzen?')) {
+                this.checkedItems = [];
+                localStorage.removeItem('shopping_{{ camp.id }}_checked');
+                window.FreizeitApp.showToast('Alle Häkchen zurückgesetzt', 'info');
             }
         }
-    });
-    
-    // Restore checkbox states from localStorage
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.shopping-item-checkbox').forEach(checkbox => {
-            const item = checkbox.closest('.shopping-item');
-            const itemName = item.querySelector('.shopping-item-name').textContent;
-            const key = `shopping_{{ current_camp.id }}_${itemName}`;
-            const isChecked = localStorage.getItem(key) === 'true';
-            
-            checkbox.checked = isChecked;
-            if (isChecked) {
-                item.classList.add('opacity-50', 'line-through');
-            }
-        });
-    });
+    };
+}
 </script>
+
 {% endblock %}

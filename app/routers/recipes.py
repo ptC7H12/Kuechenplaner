@@ -20,20 +20,22 @@ async def list_recipes(
     db: Session = Depends(get_db)
 ):
     """List all recipes with optional filtering"""
-    
+
     # Get all recipes (for now, without filtering)
     recipes = crud.get_recipes(db, skip=0, limit=100)
-    
-    # Get all tags for filter dropdown
+
+    # Get all tags and allergens for filter dropdowns
     all_tags = crud.get_tags(db)
-    
+    all_allergens = crud.get_allergens(db)
+
     context.update({
         "recipes": recipes,
         "tags": all_tags,
+        "allergens": all_allergens,
         "search": search or "",
         "selected_tags": tags.split(",") if tags else []
     })
-    
+
     return templates.TemplateResponse("recipes/list.html", context)
 
 @router.get("/create", response_class=HTMLResponse)
