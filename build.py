@@ -40,13 +40,14 @@ def build():
         "--include-package=uvicorn",
         "--include-package=sqlalchemy",
         "--include-package=pydantic",
-        "--include-package=webview",
+        # webview is handled by pywebview plugin automatically
         "--include-package=jinja2",
         "--include-package=reportlab",
         "--include-package=openpyxl",
 
         # Enable plugins
         "--enable-plugin=pylint-warnings",
+        "--enable-plugin=pywebview",  # Explicitly enable pywebview plugin
 
         # Follow imports
         "--follow-imports",
