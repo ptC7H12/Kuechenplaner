@@ -66,11 +66,11 @@ def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None
 
 def create_recipe(db: Session, recipe: schemas.RecipeCreate):
     # Create recipe
-    recipe_data = recipe.dict(exclude={'ingredients', 'tag_ids'})
+    recipe_data = recipe.dict(exclude={'ingredients', 'tag_ids', 'allergen_ids'})
     db_recipe = models.Recipe(**recipe_data)
     db.add(db_recipe)
     db.flush()  # Get the ID without committing
-    
+
     # Add ingredients
     for ingredient_data in recipe.ingredients:
         db_recipe_ingredient = models.RecipeIngredient(
@@ -78,31 +78,40 @@ def create_recipe(db: Session, recipe: schemas.RecipeCreate):
             **ingredient_data.dict()
         )
         db.add(db_recipe_ingredient)
-    
+
     # Add tags
     if recipe.tag_ids:
         tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe.tag_ids)).all()
         db_recipe.tags = tags
-    
+
+    # Add allergens
+    if recipe.allergen_ids:
+        allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe.allergen_ids)).all()
+        db_recipe.allergens = allergens
+
     db.commit()
     db.refresh(db_recipe)
+
+    # Create initial version
+    _create_recipe_version(db, db_recipe)
+
     return db_recipe
 
 def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpdate):
     db_recipe = get_recipe(db, recipe_id)
     if not db_recipe:
         return None
-    
+
     # Update basic fields
-    update_data = recipe_update.dict(exclude_unset=True, exclude={'ingredients', 'tag_ids'})
+    update_data = recipe_update.dict(exclude_unset=True, exclude={'ingredients', 'tag_ids', 'allergen_ids'})
     for field, value in update_data.items():
         setattr(db_recipe, field, value)
-    
+
     # Update ingredients if provided
     if recipe_update.ingredients is not None:
         # Delete existing ingredients
         db.query(models.RecipeIngredient).filter(models.RecipeIngredient.recipe_id == recipe_id).delete()
-        
+
         # Add new ingredients
         for ingredient_data in recipe_update.ingredients:
             db_recipe_ingredient = models.RecipeIngredient(
@@ -110,15 +119,27 @@ def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpda
                 **ingredient_data.dict()
             )
             db.add(db_recipe_ingredient)
-    
+
     # Update tags if provided
     if recipe_update.tag_ids is not None:
         tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe_update.tag_ids)).all()
         db_recipe.tags = tags
-    
+
+    # Update allergens if provided
+    if recipe_update.allergen_ids is not None:
+        allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe_update.allergen_ids)).all()
+        db_recipe.allergens = allergens
+
+    # Increment version number
+    db_recipe.version_number += 1
     db_recipe.updated_at = datetime.utcnow()
+
     db.commit()
     db.refresh(db_recipe)
+
+    # Create new version snapshot
+    _create_recipe_version(db, db_recipe)
+
     return db_recipe
 
 def delete_recipe(db: Session, recipe_id: int):
@@ -249,3 +270,79 @@ def set_setting_value(db: Session, key: str, value):
     else:
         value_str = str(value)
     return set_setting(db, key, value_str)
+
+# Allergen CRUD operations
+def get_allergen(db: Session, allergen_id: int):
+    return db.query(models.Allergen).filter(models.Allergen.id == allergen_id).first()
+
+def get_allergens(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Allergen).order_by(models.Allergen.name).offset(skip).limit(limit).all()
+
+def create_allergen(db: Session, allergen: schemas.AllergenCreate):
+    db_allergen = models.Allergen(**allergen.dict())
+    db.add(db_allergen)
+    db.commit()
+    db.refresh(db_allergen)
+    return db_allergen
+
+def get_or_create_allergen(db: Session, name: str, icon: str = None):
+    """Get existing allergen or create new one"""
+    db_allergen = db.query(models.Allergen).filter(models.Allergen.name == name).first()
+    if not db_allergen:
+        allergen_data = schemas.AllergenCreate(name=name, icon=icon)
+        db_allergen = create_allergen(db, allergen_data)
+    return db_allergen
+
+# Recipe Version CRUD operations
+def get_recipe_version(db: Session, version_id: int):
+    return db.query(models.RecipeVersion).filter(models.RecipeVersion.id == version_id).first()
+
+def get_recipe_versions(db: Session, recipe_id: int):
+    """Get all versions for a recipe, ordered by version number descending"""
+    return db.query(models.RecipeVersion).filter(
+        models.RecipeVersion.recipe_id == recipe_id
+    ).order_by(models.RecipeVersion.version_number.desc()).all()
+
+def _create_recipe_version(db: Session, recipe: models.Recipe):
+    """Internal function to create a version snapshot of a recipe"""
+    # Create JSON snapshots
+    ingredients_snapshot = json.dumps([
+        {
+            'ingredient_id': ri.ingredient_id,
+            'ingredient_name': ri.ingredient.name,
+            'quantity': ri.quantity,
+            'unit': ri.unit
+        }
+        for ri in recipe.ingredients
+    ])
+
+    tags_snapshot = json.dumps([
+        {'id': tag.id, 'name': tag.name, 'color': tag.color, 'icon': tag.icon}
+        for tag in recipe.tags
+    ])
+
+    allergens_snapshot = json.dumps([
+        {'id': allergen.id, 'name': allergen.name, 'icon': allergen.icon}
+        for allergen in recipe.allergens
+    ])
+
+    # Create version record
+    db_version = models.RecipeVersion(
+        recipe_id=recipe.id,
+        version_number=recipe.version_number,
+        name=recipe.name,
+        description=recipe.description,
+        base_servings=recipe.base_servings,
+        instructions=recipe.instructions,
+        preparation_time=recipe.preparation_time,
+        cooking_time=recipe.cooking_time,
+        allergen_notes=recipe.allergen_notes,
+        ingredients_snapshot=ingredients_snapshot,
+        tags_snapshot=tags_snapshot,
+        allergens_snapshot=allergens_snapshot
+    )
+
+    db.add(db_version)
+    db.commit()
+    db.refresh(db_version)
+    return db_version

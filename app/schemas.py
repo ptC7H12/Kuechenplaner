@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
+from app.models import MealType
 
 # Base schemas
 class CampBase(BaseModel):
@@ -38,7 +39,9 @@ class IngredientCreate(IngredientBase):
 
 class Ingredient(IngredientBase):
     id: int
-    
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 
@@ -53,7 +56,9 @@ class RecipeIngredientCreate(RecipeIngredientBase):
 class RecipeIngredient(RecipeIngredientBase):
     id: int
     ingredient: Ingredient
-    
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 
@@ -67,7 +72,25 @@ class TagCreate(TagBase):
 
 class Tag(TagBase):
     id: int
-    
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Allergen schemas
+class AllergenBase(BaseModel):
+    name: str
+    icon: Optional[str] = None
+
+class AllergenCreate(AllergenBase):
+    pass
+
+class Allergen(AllergenBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 
@@ -78,12 +101,13 @@ class RecipeBase(BaseModel):
     instructions: Optional[str] = None
     preparation_time: Optional[int] = None
     cooking_time: Optional[int] = None
-    allergens: Optional[str] = None
     allergen_notes: Optional[str] = None
+    image_path: Optional[str] = None
 
 class RecipeCreate(RecipeBase):
     ingredients: List[RecipeIngredientCreate] = []
     tag_ids: List[int] = []
+    allergen_ids: List[int] = []
 
 class RecipeUpdate(BaseModel):
     name: Optional[str] = None
@@ -92,18 +116,21 @@ class RecipeUpdate(BaseModel):
     instructions: Optional[str] = None
     preparation_time: Optional[int] = None
     cooking_time: Optional[int] = None
-    allergens: Optional[str] = None
     allergen_notes: Optional[str] = None
+    image_path: Optional[str] = None
     ingredients: Optional[List[RecipeIngredientCreate]] = None
     tag_ids: Optional[List[int]] = None
+    allergen_ids: Optional[List[int]] = None
 
 class Recipe(RecipeBase):
     id: int
+    version_number: int
     created_at: datetime
     updated_at: datetime
     ingredients: List[RecipeIngredient] = []
     tags: List[Tag] = []
-    
+    allergens: List[Allergen] = []
+
     class Config:
         from_attributes = True
 
@@ -111,7 +138,7 @@ class Recipe(RecipeBase):
 class MealPlanBase(BaseModel):
     recipe_id: int
     meal_date: datetime
-    meal_type: str  # BREAKFAST, LUNCH, DINNER
+    meal_type: MealType
     position: int = 0
     notes: Optional[str] = None
 
@@ -126,7 +153,9 @@ class MealPlan(MealPlanBase):
     id: int
     camp_id: int
     recipe: Recipe
-    
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
 
@@ -154,3 +183,28 @@ class ShoppingListItem(BaseModel):
 class ShoppingList(BaseModel):
     items: List[ShoppingListItem]
     categories: List[str]
+
+# Recipe Version schemas
+class RecipeVersionBase(BaseModel):
+    recipe_id: int
+    version_number: int
+    name: str
+    description: Optional[str] = None
+    base_servings: int
+    instructions: Optional[str] = None
+    preparation_time: Optional[int] = None
+    cooking_time: Optional[int] = None
+    allergen_notes: Optional[str] = None
+    ingredients_snapshot: str  # JSON
+    tags_snapshot: str  # JSON
+    allergens_snapshot: str  # JSON
+
+class RecipeVersionCreate(RecipeVersionBase):
+    pass
+
+class RecipeVersion(RecipeVersionBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

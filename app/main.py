@@ -50,7 +50,28 @@ async def startup_event():
         
         for tag_data in default_tags:
             crud.get_or_create_tag(db, **tag_data)
-        
+
+        # Create default allergens if they don't exist
+        default_allergens = [
+            {"name": "Gluten", "icon": "🌾"},
+            {"name": "Milch", "icon": "🥛"},
+            {"name": "Eier", "icon": "🥚"},
+            {"name": "Nüsse", "icon": "🥜"},
+            {"name": "Erdnüsse", "icon": "🥜"},
+            {"name": "Soja", "icon": "🫘"},
+            {"name": "Fisch", "icon": "🐟"},
+            {"name": "Schalentiere", "icon": "🦐"},
+            {"name": "Sellerie", "icon": "🥬"},
+            {"name": "Senf", "icon": "🌭"},
+            {"name": "Sesam", "icon": "🌰"},
+            {"name": "Lupinen", "icon": "🌱"},
+            {"name": "Schwefeldioxid", "icon": "⚠️"},
+            {"name": "Weichtiere", "icon": "🦑"},
+        ]
+
+        for allergen_data in default_allergens:
+            crud.get_or_create_allergen(db, **allergen_data)
+
         # Create default ingredient categories if needed
         default_ingredients = [
             {"name": "Mehl", "unit": "g", "category": "Backwaren"},
