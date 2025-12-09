@@ -16,7 +16,20 @@
     display: none !important; 
 }
 
-/* Sidebar Navigation Styles */
+/* Sidebar Navigation Styles - For Blue Sidebar */
+.sidebar-nav-item {
+    @apply flex items-center w-full px-4 py-3 text-base font-medium text-blue-100 rounded-lg transition-all duration-200 hover:bg-blue-600 hover:bg-opacity-50 hover:text-white hover:pl-5 hover:shadow-lg;
+}
+
+.sidebar-nav-item-active {
+    @apply bg-white bg-opacity-20 text-white shadow-lg border-l-4 border-blue-300 pl-5;
+}
+
+.sidebar-nav-item span:first-child {
+    @apply mr-3 flex-shrink-0;
+}
+
+/* Legacy Navigation Styles (for compatibility) */
 .nav-item {
     @apply flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-lg transition-colors hover:bg-gray-100 hover:text-gray-900;
 }
