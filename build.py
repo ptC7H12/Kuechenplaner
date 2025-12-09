@@ -13,6 +13,7 @@ def build():
     """Build the application using Nuitka"""
 
     project_dir = Path(__file__).parent
+    cache_dir = project_dir / ".nuitka_cache"
 
     # Nuitka build command
     nuitka_args = [
@@ -52,8 +53,10 @@ def build():
         # Follow imports
         "--follow-imports",
 
-        # Optimization
+        # Caching & Optimization
+        f"--cache-dir={cache_dir}",  # Use local cache directory
         "--lto=yes",  # Link Time Optimization
+        "--remove-output",  # Remove temporary files but keep cache
 
         # Platform-specific options
     ]
