@@ -17,7 +17,11 @@ from app import crud
 # Import routers
 from app.routers import camps
 from app.routers import recipes as recipes_router
-# from app.routers import meal_planning, shopping_list, settings, export
+from app.routers import allergens
+from app.routers import meal_planning
+from app.routers import shopping_list
+from app.routers import settings
+from app.routers import export
 
 app = FastAPI(title="Freizeit Rezepturverwaltung", version="1.0.0")
 
@@ -50,7 +54,28 @@ async def startup_event():
         
         for tag_data in default_tags:
             crud.get_or_create_tag(db, **tag_data)
-        
+
+        # Create default allergens if they don't exist
+        default_allergens = [
+            {"name": "Gluten", "icon": "🌾"},
+            {"name": "Milch", "icon": "🥛"},
+            {"name": "Eier", "icon": "🥚"},
+            {"name": "Nüsse", "icon": "🥜"},
+            {"name": "Erdnüsse", "icon": "🥜"},
+            {"name": "Soja", "icon": "🫘"},
+            {"name": "Fisch", "icon": "🐟"},
+            {"name": "Schalentiere", "icon": "🦐"},
+            {"name": "Sellerie", "icon": "🥬"},
+            {"name": "Senf", "icon": "🌭"},
+            {"name": "Sesam", "icon": "🌰"},
+            {"name": "Lupinen", "icon": "🌱"},
+            {"name": "Schwefeldioxid", "icon": "⚠️"},
+            {"name": "Weichtiere", "icon": "🦑"},
+        ]
+
+        for allergen_data in default_allergens:
+            crud.get_or_create_allergen(db, **allergen_data)
+
         # Create default ingredient categories if needed
         default_ingredients = [
             {"name": "Mehl", "unit": "g", "category": "Backwaren"},
@@ -125,49 +150,14 @@ async def dashboard(context = Depends(get_template_context)):
         "stats": stats
     })
 
-# Placeholder routes for other pages
-@app.get("/recipes", response_class=HTMLResponse)
-async def recipes(context = Depends(get_template_context)):
-    if not context["current_camp"]:
-        return RedirectResponse(url="/select-camp", status_code=302)
-    
-    recipes = crud.get_recipes(context["db"])
-    tags = crud.get_tags(context["db"])
-    
-    return templates.TemplateResponse("recipes/list.html", {
-        **context,
-        "recipes": recipes,
-        "tags": tags
-    })
-
-@app.get("/meal-planning", response_class=HTMLResponse)
-async def meal_planning(context = Depends(get_template_context)):
-    if not context["current_camp"]:
-        return RedirectResponse(url="/select-camp", status_code=302)
-    
-    return templates.TemplateResponse("meal_planning/index.html", context)
-
-@app.get("/shopping-list", response_class=HTMLResponse)
-async def shopping_list(context = Depends(get_template_context)):
-    if not context["current_camp"]:
-        return RedirectResponse(url="/select-camp", status_code=302)
-    
-    return templates.TemplateResponse("shopping_list.html", context)
-
-@app.get("/settings", response_class=HTMLResponse)
-async def settings(context = Depends(get_template_context)):
-    if not context["current_camp"]:
-        return RedirectResponse(url="/select-camp", status_code=302)
-    
-    return templates.TemplateResponse("settings/index.html", context)
-
 # Include routers
 app.include_router(camps.router, prefix="/api/camps", tags=["camps"])
 app.include_router(recipes_router.router, prefix="/api/recipes", tags=["recipes"])
-# app.include_router(meal_planning.router, prefix="/api/meal-plans", tags=["meal-planning"])
-# app.include_router(shopping_list.router, prefix="/api/shopping-list", tags=["shopping-list"])
-# app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
-# app.include_router(export.router, prefix="/export", tags=["export"])
+app.include_router(allergens.router, prefix="/api/allergens", tags=["allergens"])
+app.include_router(meal_planning.router, prefix="/meal-planning", tags=["meal-planning"])
+app.include_router(shopping_list.router, prefix="/shopping-list", tags=["shopping-list"])
+app.include_router(settings.router, prefix="/settings", tags=["settings"])
+app.include_router(export.router, prefix="/export", tags=["export"])
 
 def start_server():
     """Start the FastAPI server"""
