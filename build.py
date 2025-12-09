@@ -13,7 +13,6 @@ def build():
     """Build the application using Nuitka"""
 
     project_dir = Path(__file__).parent
-    cache_dir = project_dir / ".nuitka_cache"
 
     # Nuitka build command
     nuitka_args = [
@@ -53,10 +52,10 @@ def build():
         # Follow imports
         "--follow-imports",
 
-        # Caching & Optimization
-        f"--cache-dir={cache_dir}",  # Use local cache directory
+        # Optimization
         "--lto=yes",  # Link Time Optimization
         "--remove-output",  # Remove temporary files but keep cache
+        # Note: Nuitka manages cache automatically in default location
 
         # Platform-specific options
     ]
@@ -64,8 +63,8 @@ def build():
     # Windows-specific options
     if sys.platform == "win32":
         nuitka_args.extend([
-            "--windows-disable-console",  # No console window
-            "--windows-icon-from-ico=app/static/icon.ico",  # Application icon (if exists)
+            "--windows-console-mode=disable",  # No console window (Nuitka 2.x+)
+            "--windows-icon-from-ico=app/static/icon.ico",  # Application icon
             "--windows-company-name=Freizeit Rezepturverwaltung",
             "--windows-product-name=Freizeit Rezepturverwaltung",
             "--windows-file-version=1.0.0",
