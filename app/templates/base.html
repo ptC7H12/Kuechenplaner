@@ -25,16 +25,26 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            200: '#bfdbfe',
-                            300: '#93c5fd',
-                            400: '#60a5fa',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            800: '#1e40af',
-                            900: '#1e3a8a'
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95'
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e'
                         }
                     }
                 }
@@ -214,9 +224,9 @@
 
     <!-- Loading Spinner -->
     <div id="loading-spinner" class="htmx-indicator fixed top-4 right-4 z-50">
-        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center space-x-3 border-l-4 border-blue-500">
-            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span class="text-sm font-medium text-gray-700">Laden...</span>
+        <div class="bg-white rounded-xl shadow-2xl p-4 flex items-center space-x-3 border-2 border-purple-300">
+            <div class="animate-spin rounded-full h-7 w-7 border-b-3 border-purple-600"></div>
+            <span class="text-sm font-bold text-gray-800">Laden...</span>
         </div>
     </div>
 
@@ -239,22 +249,22 @@
                     info: 'ℹ'
                 };
                 const colors = {
-                    success: 'bg-green-50 border-green-500 text-green-800',
-                    error: 'bg-red-50 border-red-500 text-red-800',
-                    warning: 'bg-yellow-50 border-yellow-500 text-yellow-800',
-                    info: 'bg-blue-50 border-blue-500 text-blue-800'
+                    success: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400 text-green-900',
+                    error: 'bg-gradient-to-r from-red-50 to-rose-50 border-red-400 text-red-900',
+                    warning: 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-400 text-yellow-900',
+                    info: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-400 text-blue-900'
                 };
 
-                toast.className = `${colors[type]} border-l-4 rounded-lg shadow-lg p-4 transform transition-all duration-300 translate-x-full`;
+                toast.className = `${colors[type]} border-2 rounded-xl shadow-2xl p-4 transform transition-all duration-300 translate-x-full`;
                 toast.innerHTML = `
                     <div class="flex items-start">
-                        <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-current bg-opacity-10 mr-3">
-                            <span class="text-sm font-bold">${icons[type]}</span>
+                        <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-current bg-opacity-20 mr-3 font-bold">
+                            <span class="text-base">${icons[type]}</span>
                         </span>
                         <div class="flex-1">
-                            <p class="text-sm font-medium">${message}</p>
+                            <p class="text-sm font-bold">${message}</p>
                         </div>
-                        <button onclick="this.closest('div').parentElement.remove()" class="ml-4 text-current opacity-50 hover:opacity-100 transition-opacity">
+                        <button onclick="this.closest('div').parentElement.remove()" class="ml-4 text-current opacity-60 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-black hover:bg-opacity-10">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                             </svg>

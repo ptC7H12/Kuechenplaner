@@ -30,56 +30,56 @@
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stat-grid">
         <!-- Planned Meals -->
-        <div class="stat-card">
+        <div class="stat-card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
             <div class="stat-icon">📅</div>
-            <div class="stat-number">{{ stats.planned_meals }}</div>
-            <div class="stat-label">Geplante Mahlzeiten</div>
-            <div class="text-xs text-gray-500 mt-1">
+            <div class="stat-number text-purple-700">{{ stats.planned_meals }}</div>
+            <div class="stat-label text-purple-600">Geplante Mahlzeiten</div>
+            <div class="text-xs text-purple-500 mt-2 font-semibold">
                 von {{ stats.expected_meals }} erwartet
             </div>
         </div>
-        
+
         <!-- Unique Recipes -->
-        <div class="stat-card">
+        <div class="stat-card bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
             <div class="stat-icon">📖</div>
-            <div class="stat-number">{{ stats.unique_recipes }}</div>
-            <div class="stat-label">Verschiedene Rezepte</div>
+            <div class="stat-number text-teal-700">{{ stats.unique_recipes }}</div>
+            <div class="stat-label text-teal-600">Verschiedene Rezepte</div>
         </div>
-        
+
         <!-- Completion Percentage -->
-        <div class="stat-card">
+        <div class="stat-card bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
             <div class="stat-icon">
                 {% if stats.completion_percentage >= 100 %}✅
                 {% elif stats.completion_percentage >= 75 %}🟡
                 {% else %}🔴{% endif %}
             </div>
-            <div class="stat-number">{{ stats.completion_percentage }}%</div>
-            <div class="stat-label">Vollständigkeit</div>
+            <div class="stat-number text-green-700">{{ stats.completion_percentage }}%</div>
+            <div class="stat-label text-green-600">Vollständigkeit</div>
         </div>
-        
+
         <!-- Days Remaining -->
-        <div class="stat-card">
+        <div class="stat-card bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
             <div class="stat-icon">⏰</div>
-            <div class="stat-number">{{ stats.total_days }}</div>
-            <div class="stat-label">Tage insgesamt</div>
+            <div class="stat-number text-orange-700">{{ stats.total_days }}</div>
+            <div class="stat-label text-orange-600">Tage insgesamt</div>
         </div>
     </div>
     
     <!-- Progress Bar -->
-    <div class="card">
+    <div class="card border-2">
         <div class="card-header">
             <h2 class="card-title">Planungsfortschritt</h2>
         </div>
         <div class="space-y-4">
             <div class="progress-bar">
-                <div 
-                    class="progress-bar-fill bg-primary-600" 
+                <div
+                    class="progress-bar-fill"
                     style="width: {{ stats.completion_percentage }}%"
                 ></div>
             </div>
-            <div class="flex justify-between text-sm text-gray-600">
+            <div class="flex justify-between text-sm font-semibold text-gray-700">
                 <span>{{ stats.planned_meals }} von {{ stats.expected_meals }} Mahlzeiten geplant</span>
-                <span>{{ stats.completion_percentage }}%</span>
+                <span class="text-purple-600">{{ stats.completion_percentage }}%</span>
             </div>
         </div>
     </div>
@@ -99,25 +99,25 @@
     <!-- Meal Type Breakdown -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Meal Distribution -->
-        <div class="card">
+        <div class="card border-2 bg-gradient-to-br from-white to-gray-50">
             <div class="card-header">
                 <h2 class="card-title">Mahlzeiten-Verteilung</h2>
             </div>
-            <div class="space-y-3">
+            <div class="space-y-4">
                 {% set meal_types = [('BREAKFAST', 'Frühstück', '🌅'), ('LUNCH', 'Mittagessen', '🍽️'), ('DINNER', 'Abendessen', '🌙')] %}
                 {% for meal_type, label, icon in meal_types %}
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <span class="text-lg mr-2">{{ icon }}</span>
-                        <span class="text-sm font-medium text-gray-900">{{ label }}</span>
+                        <span class="text-2xl mr-3">{{ icon }}</span>
+                        <span class="text-sm font-bold text-gray-900">{{ label }}</span>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold text-gray-700">
                             {{ stats.meal_counts.get(meal_type, 0) }} / {{ stats.total_days }}
                         </span>
-                        <div class="w-16 h-2 bg-gray-200 rounded-full">
-                            <div 
-                                class="h-2 bg-primary-600 rounded-full" 
+                        <div class="w-20 h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                                class="h-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-500"
                                 style="width: {{ (stats.meal_counts.get(meal_type, 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
                             ></div>
                         </div>
@@ -128,25 +128,25 @@
         </div>
         
         <!-- Quick Actions -->
-        <div class="card">
+        <div class="card border-2 bg-gradient-to-br from-white to-gray-50">
             <div class="card-header">
                 <h2 class="card-title">Schnellzugriff</h2>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-                <a href="/recipes" class="btn btn-secondary justify-center">
-                    📖 Rezepte verwalten
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/recipes" class="btn btn-primary justify-center">
+                    <span class="mr-2">📖</span> Rezepte
                 </a>
-                <a href="/meal-planning" class="btn btn-secondary justify-center">
-                    📅 Mahlzeiten planen
+                <a href="/meal-planning" class="btn btn-accent justify-center">
+                    <span class="mr-2">📅</span> Planen
                 </a>
-                <a href="/shopping-list" class="btn btn-secondary justify-center">
-                    🛒 Einkaufsliste
+                <a href="/shopping-list" class="btn btn-success justify-center">
+                    <span class="mr-2">🛒</span> Einkaufen
                 </a>
-                <button 
+                <button
                     onclick="FreizeitApp.openModal('/export/options')"
                     class="btn btn-secondary justify-center"
                 >
-                    📄 Exportieren
+                    <span class="mr-2">📄</span> Export
                 </button>
             </div>
         </div>

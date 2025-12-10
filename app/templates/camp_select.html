@@ -16,22 +16,22 @@
             
             <!-- Last Selected Camp (if exists) -->
             {% if last_selected_camp %}
-            <div class="card border-primary-200 bg-primary-50">
+            <div class="card border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-indigo-50 shadow-xl">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-semibold text-primary-900">{{ last_selected_camp.name }}</h3>
-                        <p class="text-sm text-primary-700">
+                        <h3 class="text-xl font-bold text-purple-900">{{ last_selected_camp.name }}</h3>
+                        <p class="text-sm font-semibold text-purple-700 mt-1">
                             {{ last_selected_camp.start_date.strftime('%d.%m.%Y') }} - {{ last_selected_camp.end_date.strftime('%d.%m.%Y') }}
                         </p>
-                        <p class="text-sm text-primary-700">{{ last_selected_camp.participant_count }} Teilnehmer</p>
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 mt-2">
+                        <p class="text-sm font-semibold text-purple-700">{{ last_selected_camp.participant_count }} Teilnehmer</p>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-purple-200 text-purple-900 mt-3 border-2 border-purple-300">
                             ⭐ Zuletzt verwendet
                         </span>
                     </div>
                     <div class="flex flex-col space-y-2">
                         <form method="post" action="/api/camps/{{ last_selected_camp.id }}/select">
-                            <button type="submit" class="btn btn-primary">
-                                Fortfahren
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                Fortfahren →
                             </button>
                         </form>
                     </div>
@@ -43,30 +43,30 @@
             <div id="camps-list" class="space-y-4">
                 {% for camp in camps %}
                 {% if not last_selected_camp or camp.id != last_selected_camp.id %}
-                <div class="card hover:shadow-md transition-shadow duration-200">
+                <div class="card-hover border-2">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">{{ camp.name }}</h3>
-                            <p class="text-sm text-gray-600">
+                            <h3 class="text-lg font-bold text-gray-900">{{ camp.name }}</h3>
+                            <p class="text-sm font-semibold text-gray-700 mt-1">
                                 {{ camp.start_date.strftime('%d.%m.%Y') }} - {{ camp.end_date.strftime('%d.%m.%Y') }}
                             </p>
-                            <p class="text-sm text-gray-600">{{ camp.participant_count }} Teilnehmer</p>
-                            <p class="text-xs text-gray-500 mt-1">
+                            <p class="text-sm font-semibold text-gray-700">{{ camp.participant_count }} Teilnehmer</p>
+                            <p class="text-xs text-gray-500 mt-2 font-medium">
                                 Erstellt: {{ camp.created_at.strftime('%d.%m.%Y') }}
                             </p>
                         </div>
                         <div class="flex flex-col space-y-2">
                             <form method="post" action="/api/camps/{{ camp.id }}/select">
-                                <button type="submit" class="btn btn-secondary">
-                                    Auswählen
+                                <button type="submit" class="btn btn-primary">
+                                    Auswählen →
                                 </button>
                             </form>
-                            <button 
+                            <button
                                 hx-delete="/api/camps/{{ camp.id }}"
                                 hx-confirm="Sind Sie sicher, dass Sie die Freizeit '{{ camp.name }}' löschen möchten? Alle Mahlzeitenpläne gehen verloren!"
-                                hx-target="closest .card"
+                                hx-target="closest .card-hover"
                                 hx-swap="outerHTML"
-                                class="btn btn-sm text-red-600 hover:text-red-800 hover:bg-red-50"
+                                class="btn btn-sm btn-danger"
                             >
                                 🗑️ Löschen
                             </button>
@@ -90,80 +90,91 @@
         <div class="space-y-6">
             <h2 class="text-2xl font-semibold text-gray-900">Neue Freizeit erstellen</h2>
             
-            <div class="card">
-                <form 
+            <div class="card border-2 bg-gradient-to-br from-white to-gray-50">
+                <form
                     action="/api/camps"
                     method="post"
-                    class="space-y-4"
+                    class="space-y-5"
                 >
                     <div class="form-group">
                         <label for="name" class="form-label">Name der Freizeit *</label>
-                        <input 
-                            type="text" 
-                            id="name" 
-                            name="name" 
-                            required 
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            required
                             class="form-input"
                             placeholder="z.B. Sommerfreizeit 2024"
                         >
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="form-group">
                             <label for="start_date" class="form-label">Startdatum *</label>
-                            <input 
-                                type="date" 
-                                id="start_date" 
-                                name="start_date" 
-                                required 
+                            <input
+                                type="date"
+                                id="start_date"
+                                name="start_date"
+                                required
                                 class="form-input"
                             >
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="end_date" class="form-label">Enddatum *</label>
-                            <input 
-                                type="date" 
-                                id="end_date" 
-                                name="end_date" 
-                                required 
+                            <input
+                                type="date"
+                                id="end_date"
+                                name="end_date"
+                                required
                                 class="form-input"
                             >
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="participant_count" class="form-label">Anzahl Teilnehmer *</label>
-                        <input 
-                            type="number" 
-                            id="participant_count" 
-                            name="participant_count" 
-                            required 
-                            min="1" 
+                        <input
+                            type="number"
+                            id="participant_count"
+                            name="participant_count"
+                            required
+                            min="1"
                             max="500"
                             class="form-input"
                             placeholder="z.B. 45"
                         >
                     </div>
-                    
-                    <div class="flex items-center justify-between pt-4">
-                        <div class="text-sm text-gray-600">
+
+                    <div class="flex items-center justify-between pt-4 border-t-2 border-gray-200">
+                        <div class="text-sm font-semibold text-gray-600">
                             * Pflichtfelder
                         </div>
-                        <button type="submit" class="btn btn-primary">
-                            Freizeit erstellen
+                        <button type="submit" class="btn btn-success btn-lg">
+                            ➕ Freizeit erstellen
                         </button>
                     </div>
                 </form>
             </div>
             
             <!-- Quick Tips -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 class="text-sm font-semibold text-blue-900 mb-2">💡 Tipps</h3>
-                <ul class="text-sm text-blue-800 space-y-1">
-                    <li>• Die Teilnehmerzahl kann später angepasst werden</li>
-                    <li>• Alle Rezeptmengen werden automatisch skaliert</li>
-                    <li>• Daten werden lokal auf Ihrem Computer gespeichert</li>
+            <div class="info-card info-card-blue">
+                <h3 class="text-base font-bold text-blue-900 mb-3 flex items-center">
+                    <span class="text-2xl mr-2">💡</span> Tipps
+                </h3>
+                <ul class="text-sm text-blue-800 space-y-2 font-medium">
+                    <li class="flex items-start">
+                        <span class="mr-2">✓</span>
+                        <span>Die Teilnehmerzahl kann später angepasst werden</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">✓</span>
+                        <span>Alle Rezeptmengen werden automatisch skaliert</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="mr-2">✓</span>
+                        <span>Daten werden lokal auf Ihrem Computer gespeichert</span>
+                    </li>
                 </ul>
             </div>
         </div>
