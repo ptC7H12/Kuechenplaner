@@ -58,7 +58,7 @@
     <div class="{% if current_camp %}hamburger-layout{% else %}camp-select-layout{% endif %}">
         {% if current_camp %}
         <!-- Hamburger Menu Layout -->
-        <div x-data="{ sidebarOpen: false }" class="flex h-screen bg-gray-50">
+        <div x-data="{ sidebarOpen: true }" class="flex h-screen bg-gray-50">
             <!-- Sidebar - Komplett Blau -->
             <div class="fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-blue-700 to-blue-900 shadow-2xl transform transition-transform duration-300 ease-in-out"
                  :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
@@ -103,7 +103,9 @@
                     <a href="/dashboard"
                        class="sidebar-nav-item group {% if request.url.path == '/dashboard' %}sidebar-nav-item-active{% endif %}"
                        @click="sidebarOpen = false">
-                        <span class="text-2xl">📊</span>
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
                         <span class="flex-1">Dashboard</span>
                         <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -112,7 +114,9 @@
                     <a href="/api/recipes/"
                        class="sidebar-nav-item group {% if '/recipes' in request.url.path %}sidebar-nav-item-active{% endif %}"
                        @click="sidebarOpen = false">
-                        <span class="text-2xl">📖</span>
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
                         <span class="flex-1">Rezepte</span>
                         <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -121,7 +125,9 @@
                     <a href="/meal-planning/"
                        class="sidebar-nav-item group {% if '/meal-planning' in request.url.path %}sidebar-nav-item-active{% endif %}"
                        @click="sidebarOpen = false">
-                        <span class="text-2xl">📅</span>
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
                         <span class="flex-1">Speiseplan</span>
                         <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -130,7 +136,9 @@
                     <a href="/shopping-list/"
                        class="sidebar-nav-item group {% if '/shopping-list' in request.url.path %}sidebar-nav-item-active{% endif %}"
                        @click="sidebarOpen = false">
-                        <span class="text-2xl">🛒</span>
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
                         <span class="flex-1">Einkaufsliste</span>
                         <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -139,7 +147,10 @@
                     <a href="/settings/"
                        class="sidebar-nav-item group {% if '/settings' in request.url.path %}sidebar-nav-item-active{% endif %}"
                        @click="sidebarOpen = false">
-                        <span class="text-2xl">⚙️</span>
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
                         <span class="flex-1">Einstellungen</span>
                         <svg class="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -152,7 +163,9 @@
                     <a href="/select-camp"
                        class="group w-full flex items-center justify-center px-4 py-3 text-sm font-semibold text-blue-900 bg-white rounded-lg hover:bg-blue-50 transition-all duration-200 shadow-lg hover:shadow-xl"
                        @click="sidebarOpen = false">
-                        <span class="mr-2 text-xl">🔄</span>
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
                         Freizeit wechseln
                     </a>
                 </div>
@@ -165,7 +178,8 @@
                  class="fixed inset-0 z-40 bg-black bg-opacity-50 transition-opacity"></div>
 
             <!-- Main Content Area -->
-            <div class="flex-1 flex flex-col overflow-hidden">
+            <div class="flex-1 flex flex-col overflow-hidden transition-all duration-300"
+                 :class="sidebarOpen ? 'ml-72' : 'ml-0'">
                 <!-- Top Bar with Hamburger -->
                 <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6 z-10">
                     <button @click="sidebarOpen = !sidebarOpen"

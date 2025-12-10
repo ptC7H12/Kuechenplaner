@@ -26,8 +26,10 @@
     <div class="info-card info-card-blue">
         <div class="flex items-start space-x-4">
             <div class="flex-shrink-0">
-                <div class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center text-white text-3xl shadow-lg">
-                    📝
+                <div class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
                 </div>
             </div>
             <div class="flex-1">
@@ -43,37 +45,45 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="stat-card bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+        <div class="stat-card bg-green-50">
             <div class="flex items-center justify-center">
                 <div class="text-center">
-                    <div class="text-4xl mb-2">🛒</div>
+                    <svg class="w-12 h-12 mx-auto mb-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
                     <p class="text-3xl font-black text-green-700 mb-1">{{ total_items }}</p>
                     <p class="text-xs font-bold text-green-600 uppercase tracking-wide">Zutaten</p>
                 </div>
             </div>
         </div>
-        <div class="stat-card bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+        <div class="stat-card bg-blue-50">
             <div class="flex items-center justify-center">
                 <div class="text-center">
-                    <div class="text-4xl mb-2">📦</div>
+                    <svg class="w-12 h-12 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
                     <p class="text-3xl font-black text-blue-700 mb-1">{{ categories|length }}</p>
                     <p class="text-xs font-bold text-blue-600 uppercase tracking-wide">Kategorien</p>
                 </div>
             </div>
         </div>
-        <div class="stat-card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+        <div class="stat-card bg-purple-50">
             <div class="flex items-center justify-center">
                 <div class="text-center">
-                    <div class="text-4xl mb-2">📖</div>
+                    <svg class="w-12 h-12 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
                     <p class="text-3xl font-black text-purple-700 mb-1">{{ total_recipes }}</p>
                     <p class="text-xs font-bold text-purple-600 uppercase tracking-wide">Rezepte</p>
                 </div>
             </div>
         </div>
-        <div class="stat-card bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+        <div class="stat-card bg-orange-50">
             <div class="flex items-center justify-center">
                 <div class="text-center">
-                    <div class="text-4xl mb-2">👥</div>
+                    <svg class="w-12 h-12 mx-auto mb-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
                     <p class="text-3xl font-black text-orange-700 mb-1">{{ camp.participant_count }}</p>
                     <p class="text-xs font-bold text-orange-600 uppercase tracking-wide">Personen</p>
                 </div>
@@ -148,7 +158,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-2xl font-black text-green-900 flex items-center">
-                        <span class="text-3xl mr-3">✓</span> Fortschritt
+                        <svg class="w-8 h-8 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Fortschritt
                     </h3>
                     <p class="text-base text-green-800 mt-2 font-bold">
                         <span x-text="checkedItems.length"></span> von {{ total_items }} Artikeln abgehakt
@@ -160,13 +173,16 @@
                     </div>
                     <button @click="clearAll()"
                             class="btn btn-secondary btn-sm">
-                        🔄 Zurücksetzen
+                        <svg class="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Zurücksetzen
                     </button>
                 </div>
             </div>
             <div class="mt-5">
                 <div class="progress-bar h-4">
-                    <div class="progress-bar-fill bg-gradient-to-r from-green-500 to-emerald-600 h-4"
+                    <div class="progress-bar-fill h-4"
                          :style="`width: ${Math.round((checkedItems.length / {{ total_items }}) * 100)}%`">
                     </div>
                 </div>
@@ -175,8 +191,10 @@
     </div>
     {% else %}
     <!-- Empty State -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-        <div class="text-6xl mb-4">🛒</div>
+    <div class="bg-white rounded-xl shadow-md p-12 text-center">
+        <svg class="w-20 h-20 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
         <h3 class="text-xl font-bold text-gray-900 mb-2">Keine Einkaufsliste verfügbar</h3>
         <p class="text-gray-600 mb-6 max-w-md mx-auto">
             Planen Sie erst einige Mahlzeiten, um eine Einkaufsliste zu generieren.
