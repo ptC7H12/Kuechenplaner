@@ -22,16 +22,16 @@
 {% block content %}
 <div class="space-y-6" x-data="mealPlanning()">
     <!-- Info Card -->
-    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-sm">
+    <div class="info-card info-card-purple">
         <div class="flex items-start space-x-4">
             <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white text-2xl shadow-md">
+                <div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center text-white text-3xl shadow-lg">
                     📅
                 </div>
             </div>
             <div class="flex-1">
-                <h3 class="text-lg font-bold text-purple-900">Mahlzeitenplanung</h3>
-                <p class="text-sm text-purple-800 mt-2 leading-relaxed">
+                <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
+                <p class="text-sm text-purple-800 mt-2 leading-relaxed font-medium">
                     Ziehen Sie Rezepte aus der linken Seitenleiste in den Kalender, um Ihre Mahlzeiten zu planen.
                     Der Zeitraum umfasst <strong>{{ days|length }} Tage</strong> ({{ camp.start_date.strftime('%d.%m.%Y') }} - {{ camp.end_date.strftime('%d.%m.%Y') }})
                     für <strong>{{ camp.participant_count }} Personen</strong>.
@@ -44,20 +44,20 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Recipe Sidebar -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 sticky top-4">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-bold text-gray-900">Verfügbare Rezepte</h2>
-                    <p class="text-sm text-gray-600 mt-1">{{ recipes|length }} Rezepte</p>
+            <div class="bg-white rounded-xl shadow-lg border-2 border-gray-200 sticky top-4">
+                <div class="px-6 py-5 border-b-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
+                    <h2 class="text-xl font-black text-gray-900">Verfügbare Rezepte</h2>
+                    <p class="text-sm font-bold text-gray-600 mt-1">{{ recipes|length }} Rezepte</p>
                 </div>
 
                 <!-- Search -->
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b-2 border-gray-200">
                     <input
                         type="text"
                         x-model="searchQuery"
                         @input="filterRecipes()"
                         placeholder="Rezepte suchen..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        class="form-input"
                     >
                 </div>
 
@@ -109,18 +109,18 @@
 
         <!-- Calendar Grid -->
         <div class="lg:col-span-3">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="bg-white rounded-xl shadow-lg border-2 border-gray-200">
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
-                            <tr class="border-b-2 border-gray-200 bg-gray-50">
-                                <th class="text-left py-4 px-4 font-bold text-gray-900 w-32 sticky left-0 bg-gray-50 z-10">
+                            <tr class="border-b-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100">
+                                <th class="text-left py-5 px-4 font-black text-gray-900 w-32 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10">
                                     Mahlzeit
                                 </th>
                                 {% for day in days %}
-                                <th class="text-center py-4 px-3 font-semibold text-gray-900 min-w-[200px]">
+                                <th class="text-center py-5 px-3 font-black text-gray-900 min-w-[200px]">
                                     <div class="text-base">{{ day.strftime('%A') }}</div>
-                                    <div class="text-sm text-gray-600 font-normal">{{ day.strftime('%d.%m.%Y') }}</div>
+                                    <div class="text-sm text-gray-600 font-semibold">{{ day.strftime('%d.%m.%Y') }}</div>
                                 </th>
                                 {% endfor %}
                             </tr>
@@ -133,10 +133,10 @@
                             ] %}
                             {% for meal_type_value, label, icon, color in meal_config %}
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="py-4 px-4 font-medium text-gray-900 bg-{{ color }}-50 sticky left-0 z-10">
+                                <td class="py-4 px-4 font-bold text-gray-900 bg-{{ color }}-50 border-r-2 border-{{ color }}-200 sticky left-0 z-10">
                                     <div class="flex items-center">
-                                        <span class="mr-2 text-xl">{{ icon }}</span>
-                                        <span class="text-sm font-semibold">{{ label }}</span>
+                                        <span class="mr-3 text-2xl">{{ icon }}</span>
+                                        <span class="text-base font-black">{{ label }}</span>
                                     </div>
                                 </td>
                                 {% for day in days %}
@@ -157,21 +157,21 @@
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
-                                            <div class="recipe-card-planned bg-white border border-gray-200 rounded-lg p-3 mb-2 shadow-sm hover:shadow-md transition-shadow cursor-move"
+                                            <div class="recipe-card-planned"
                                                  data-meal-plan-id="{{ meal_plan.id }}"
                                                  data-recipe-id="{{ meal_plan.recipe_id }}">
                                                 <div class="flex items-start justify-between">
                                                     <div class="flex-1 min-w-0">
-                                                        <h4 class="font-medium text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
-                                                        <p class="text-xs text-gray-600">
+                                                        <h4 class="font-bold text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
+                                                        <p class="text-xs text-gray-600 font-medium mt-1">
                                                             {{ meal_plan.recipe.base_servings }} Portionen
                                                         </p>
                                                         {% if meal_plan.notes %}
-                                                        <p class="text-xs text-gray-500 mt-1 italic truncate">{{ meal_plan.notes }}</p>
+                                                        <p class="text-xs text-gray-500 mt-1 italic truncate font-medium">{{ meal_plan.notes }}</p>
                                                         {% endif %}
                                                     </div>
                                                     <button @click="deleteMealPlan({{ meal_plan.id }})"
-                                                            class="ml-2 text-red-500 hover:text-red-700 transition-colors flex-shrink-0">
+                                                            class="ml-2 btn btn-icon text-red-600 hover:bg-red-50 flex-shrink-0">
                                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                                         </svg>
