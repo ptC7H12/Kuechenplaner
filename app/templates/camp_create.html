@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Neue Freizeit erstellen - Freizeit Rezepturverwaltung{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Neue Freizeit erstellen</h1>
+                <p class="text-gray-600 mt-2">Legen Sie eine neue Freizeit mit allen wichtigen Informationen an</p>
+            </div>
+            <a href="/select-camp" class="btn btn-secondary">
+                ← Zurück
+            </a>
+        </div>
+    </div>
+
+    <!-- Create Form -->
+    <div class="card">
+        <form
+            action="/api/camps"
+            method="post"
+            class="space-y-6"
+        >
+            <!-- Name -->
+            <div class="form-group">
+                <label for="name" class="form-label">Name der Freizeit *</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    class="form-input"
+                    placeholder="z.B. Sommerfreizeit 2024"
+                    autofocus
+                >
+                <p class="mt-1 text-sm text-gray-500">
+                    Geben Sie einen aussagekräftigen Namen für die Freizeit ein
+                </p>
+            </div>
+
+            <!-- Dates -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="form-group">
+                    <label for="start_date" class="form-label">Startdatum *</label>
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        required
+                        class="form-input"
+                    >
+                    <p class="mt-1 text-sm text-gray-500">
+                        Erster Tag der Freizeit
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="end_date" class="form-label">Enddatum *</label>
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        required
+                        class="form-input"
+                    >
+                    <p class="mt-1 text-sm text-gray-500">
+                        Letzter Tag der Freizeit
+                    </p>
+                </div>
+            </div>
+
+            <!-- Participant Count -->
+            <div class="form-group">
+                <label for="participant_count" class="form-label">Anzahl Teilnehmer *</label>
+                <input
+                    type="number"
+                    id="participant_count"
+                    name="participant_count"
+                    required
+                    min="1"
+                    max="500"
+                    class="form-input"
+                    placeholder="z.B. 45"
+                >
+                <p class="mt-1 text-sm text-gray-500">
+                    Geben Sie die erwartete Anzahl an Teilnehmern ein. Diese kann später angepasst werden.
+                </p>
+            </div>
+
+            <!-- Tips Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="text-sm font-semibold text-blue-900 mb-2">💡 Hinweise</h3>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• Alle Angaben können später noch bearbeitet werden</li>
+                    <li>• Die Teilnehmerzahl wird für die automatische Rezeptskalierung verwendet</li>
+                    <li>• Nach dem Erstellen können Sie direkt mit der Planung beginnen</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-4 border-t">
+                <div class="text-sm text-gray-600">
+                    * Pflichtfelder
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/select-camp" class="btn btn-secondary">
+                        Abbrechen
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        🏕️ Freizeit erstellen
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Set default dates and validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setDate(today.getDate() + 30);
+
+        const startInput = document.getElementById('start_date');
+        const endInput = document.getElementById('end_date');
+
+        // Set default values
+        if (!startInput.value) {
+            startInput.value = today.toISOString().split('T')[0];
+        }
+
+        if (!endInput.value) {
+            endInput.value = nextMonth.toISOString().split('T')[0];
+        }
+
+        // Validate end date is after start date
+        startInput.addEventListener('change', function() {
+            endInput.min = this.value;
+            if (endInput.value && endInput.value < this.value) {
+                endInput.value = this.value;
+            }
+        });
+
+        // Initialize min date for end date
+        if (startInput.value) {
+            endInput.min = startInput.value;
+        }
+    });
+</script>
+{% endblock %}
