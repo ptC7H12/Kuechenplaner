@@ -25,8 +25,8 @@ def build():
         # Application entry point
         "app/main.py",
 
-        # Output naming
-        "--output-filename=FreizeitRezepturverwaltung",
+        # Output naming (kurzer Name für Windows-Pfadlängen-Limit)
+        "--output-filename=FreizeitApp",
         "--output-dir=dist",
 
         # Include data files (templates, static files)
@@ -84,7 +84,7 @@ def build():
 
         # Optimization - RAM sparen und Stabilität
         "--lto=no",  # Link Time Optimization aus für Stabilität
-        "--jobs=2",  # Reduziert auf 2 Threads für weniger RAM-Nutzung
+        "--jobs=1",  # Nur 1 Thread für maximale Stabilität (verhindert Race Conditions)
         "--remove-output",  # Temporäre Dateien löschen
     ]
 
@@ -120,9 +120,10 @@ def build():
     print(f"Platform: {sys.platform}")
     print()
     print("Build-Optionen:")
-    print(f"  - Jobs: 2 (weniger RAM-Nutzung)")
+    print(f"  - Jobs: 1 (maximale Stabilität)")
     print(f"  - LTO: Nein (für Stabilität)")
     print(f"  - DNS-Module: Ausgeschlossen (verhindert Crash)")
+    print(f"  - Output: FreizeitApp.exe (kurzer Name)")
     print()
 
     # Run Nuitka
