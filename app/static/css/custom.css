@@ -654,6 +654,76 @@ select:focus-visible {
 }
 
 /* ===================================
+   FLOATING ACTION BUTTONS (FAB) - MATERIAL DESIGN
+   =================================== */
+
+.fab {
+    @apply fixed bottom-6 right-6 z-50
+           w-14 h-14 rounded-full shadow-2xl
+           flex items-center justify-center
+           transition-all duration-300
+           hover:shadow-xl hover:scale-110
+           active:scale-95
+           focus:outline-none focus:ring-4;
+}
+
+.fab-primary {
+    @apply bg-indigo-600 text-white
+           hover:bg-indigo-700
+           focus:ring-indigo-300;
+}
+
+.fab-secondary {
+    @apply bg-teal-600 text-white
+           hover:bg-teal-700
+           focus:ring-teal-300;
+}
+
+.fab-success {
+    @apply bg-green-600 text-white
+           hover:bg-green-700
+           focus:ring-green-300;
+}
+
+.fab-danger {
+    @apply bg-red-600 text-white
+           hover:bg-red-700
+           focus:ring-red-300;
+}
+
+/* Large FAB */
+.fab-lg {
+    @apply w-16 h-16;
+}
+
+/* Extended FAB with Text */
+.fab-extended {
+    @apply w-auto px-6 rounded-full;
+}
+
+/* FAB Animation - Ripple Effect */
+@keyframes ripple {
+    0% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(139, 92, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    }
+}
+
+.fab:active {
+    animation: ripple 0.6s ease-out;
+}
+
+/* Mini FABs for multiple actions */
+.fab-mini {
+    @apply w-10 h-10 text-sm;
+}
+
+/* ===================================
    LEGACY COMPATIBILITY
    =================================== */
 
