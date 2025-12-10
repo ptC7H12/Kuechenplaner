@@ -58,3 +58,7 @@ Thumbs.db
 *.build/
 *.dist/
 *.onefile-build/
+
+# Standalone Build
+.download_cache/
+releases/
