@@ -218,7 +218,7 @@
         {% else %}
         <!-- No Camp Selected - Simple Layout -->
         <div class="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-6">
-            {% block content %}{% endblock %}
+            {{ self.content() }}
         </div>
         {% endif %}
     </div>

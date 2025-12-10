@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/participants/{{ participant.id }}" class="text-blue-600 hover:text-blue-800 text-sm">← Zurück</a>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ participant.full_name }} bearbeiten</h2>
+
+    <form method="post" action="/participants/{{ participant.id }}/edit" class="space-y-6">
+        <!-- Persönliche Daten -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Persönliche Daten</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">Vorname *</label>
+                    <input
+                        type="text"
+                        id="first_name"
+                        name="first_name"
+                        value="{{ participant.first_name }}"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">Nachname *</label>
+                    <input
+                        type="text"
+                        id="last_name"
+                        name="last_name"
+                        value="{{ participant.last_name }}"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">Geburtsdatum *</label>
+                    <input
+                        type="date"
+                        id="birth_date"
+                        name="birth_date"
+                        value="{{ participant.birth_date.strftime('%Y-%m-%d') }}"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700 mb-2">Geschlecht</label>
+                    <select
+                        id="gender"
+                        name="gender"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" {% if not participant.gender %}selected{% endif %}>Bitte wählen</option>
+                        <option value="männlich" {% if participant.gender == "männlich" %}selected{% endif %}>Männlich</option>
+                        <option value="weiblich" {% if participant.gender == "weiblich" %}selected{% endif %}>Weiblich</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontaktdaten -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Kontaktdaten</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">E-Mail</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ participant.email if participant.email else '' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value="{{ participant.phone if participant.phone else '' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div class="md:col-span-2">
+                    <label for="address" class="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                    <textarea
+                        id="address"
+                        name="address"
+                        rows="2"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >{{ participant.address if participant.address else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zuordnung -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Zuordnung</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="role_id" class="block text-sm font-medium text-gray-700 mb-2">Rolle</label>
+                    <select
+                        id="role_id"
+                        name="role_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" {% if not participant.role_id %}selected{% endif %}>Keine Rolle</option>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {% if participant.role_id == role.id %}selected{% endif %}>
+                            {{ role.display_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Optional - nur für spezielle Funktionen (z.B. Betreuer, Küche)</p>
+                </div>
+                <div>
+                    <label for="family_id" class="block text-sm font-medium text-gray-700 mb-2">Familie</label>
+                    <select
+                        id="family_id"
+                        name="family_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" {% if not participant.family_id %}selected{% endif %}>Keine Familie</option>
+                        {% for family in families %}
+                        <option value="{{ family.id }}" {% if participant.family_id == family.id %}selected{% endif %}>
+                            {{ family.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zusätzliche Informationen -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Zusätzliche Informationen</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="bildung_teilhabe_id" class="block text-sm font-medium text-gray-700 mb-2">Bildung & Teilhabe ID</label>
+                    <input
+                        type="text"
+                        id="bildung_teilhabe_id"
+                        name="bildung_teilhabe_id"
+                        value="{{ participant.bildung_teilhabe_id if participant.bildung_teilhabe_id else '' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div>
+                    <label for="discount_percent" class="block text-sm font-medium text-gray-700 mb-2">Zusätzlicher Rabatt (%)</label>
+                    <input
+                        type="number"
+                        id="discount_percent"
+                        name="discount_percent"
+                        value="{{ participant.discount_percent }}"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div class="md:col-span-2">
+                    <label for="discount_reason" class="block text-sm font-medium text-gray-700 mb-2">Grund für Rabatt</label>
+                    <input
+                        type="text"
+                        id="discount_reason"
+                        name="discount_reason"
+                        value="{{ participant.discount_reason if participant.discount_reason else '' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div class="md:col-span-2">
+                    <label for="allergies" class="block text-sm font-medium text-gray-700 mb-2">Allergien</label>
+                    <textarea
+                        id="allergies"
+                        name="allergies"
+                        rows="2"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >{{ participant.allergies if participant.allergies else '' }}</textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="medical_notes" class="block text-sm font-medium text-gray-700 mb-2">Medizinische Hinweise</label>
+                    <textarea
+                        id="medical_notes"
+                        name="medical_notes"
+                        rows="2"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >{{ participant.medical_notes if participant.medical_notes else '' }}</textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        rows="3"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >{{ participant.notes if participant.notes else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preis-Überschreibung -->
+        <div class="pb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Preis-Überschreibung (Optional)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="manual_price_override" class="block text-sm font-medium text-gray-700 mb-2">Manueller Preis (€)</label>
+                    <input
+                        type="number"
+                        id="manual_price_override"
+                        name="manual_price_override"
+                        value=""
+                        min="0"
+                        step="0.01"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Leer lassen für automatische Berechnung"
+                    >
+                    <p class="mt-1 text-xs text-gray-500">
+                        Aktueller Preis: {{ "%.2f"|format(participant.calculated_price) }} € (berechnet)
+                        {% if participant.manual_price_override is not none and participant.manual_price_override > 0 %}
+                        <br><span class="text-orange-600 font-medium">Manueller Preis aktiv: {{ "%.2f"|format(participant.manual_price_override) }} € - Feld leer lassen zum Zurücksetzen</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center justify-between pt-6">
+            <button
+                type="button"
+                onclick="if(confirm('Teilnehmer wirklich löschen?')) { fetch('/participants/{{ participant.id }}/delete', { method: 'POST' }).then(() => window.location.href = '/participants'); }"
+                class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+            >
+                Löschen
+            </button>
+            <div class="flex items-center space-x-4">
+                <a href="/participants/{{ participant.id }}" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition">
+                    Abbrechen
+                </a>
+                <button
+                    type="submit"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                >
+                    Änderungen speichern
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

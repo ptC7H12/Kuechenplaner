@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/payments" class="text-blue-600 hover:text-blue-800 text-sm">← Zurück zur Übersicht</a>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Zahlung bearbeiten</h2>
+
+    <form method="post" action="/payments/{{ payment.id }}/edit" class="space-y-6">
+        <!-- Betrag und Datum -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Betrag (€) *</label>
+                <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    step="0.01"
+                    min="0"
+                    value="{{ payment.amount }}"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+            <div>
+                <label for="payment_date" class="block text-sm font-medium text-gray-700 mb-2">Zahlungsdatum *</label>
+                <input
+                    type="date"
+                    id="payment_date"
+                    name="payment_date"
+                    value="{{ payment.payment_date.strftime('%Y-%m-%d') }}"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+        </div>
+
+        <!-- Zahlungsmethode und Referenz -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                <select
+                    id="payment_method"
+                    name="payment_method"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                    <option value="">Bitte wählen</option>
+                    <option value="Bar" {% if payment.payment_method == "Bar" %}selected{% endif %}>Bar</option>
+                    <option value="Überweisung" {% if payment.payment_method == "Überweisung" %}selected{% endif %}>Überweisung</option>
+                    <option value="PayPal" {% if payment.payment_method == "PayPal" %}selected{% endif %}>PayPal</option>
+                    <option value="Lastschrift" {% if payment.payment_method == "Lastschrift" %}selected{% endif %}>Lastschrift</option>
+                </select>
+            </div>
+            <div>
+                <label for="reference" class="block text-sm font-medium text-gray-700 mb-2">Referenz</label>
+                <input
+                    type="text"
+                    id="reference"
+                    name="reference"
+                    value="{{ payment.reference or '' }}"
+                    placeholder="z.B. Rechnungsnummer"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+        </div>
+
+        <!-- Zuordnung: Teilnehmer ODER Familie -->
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Zuordnung</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="participant_id" class="block text-sm font-medium text-gray-700 mb-2">Teilnehmer</label>
+                    <select
+                        id="participant_id"
+                        name="participant_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">Kein Teilnehmer</option>
+                        {% for participant in participants %}
+                        <option value="{{ participant.id }}" {% if payment.participant_id == participant.id %}selected{% endif %}>
+                            {{ participant.first_name }} {{ participant.last_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="family_id" class="block text-sm font-medium text-gray-700 mb-2">Familie</label>
+                    <select
+                        id="family_id"
+                        name="family_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">Keine Familie</option>
+                        {% for family in families %}
+                        <option value="{{ family.id }}" {% if payment.family_id == family.id %}selected{% endif %}>
+                            {{ family.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+                Wählen Sie entweder einen Teilnehmer oder eine Familie aus.
+            </p>
+        </div>
+
+        <!-- Notizen -->
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+            <textarea
+                id="notes"
+                name="notes"
+                rows="3"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            >{{ payment.notes or '' }}</textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center justify-end space-x-4 pt-6">
+            <a href="/payments" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition">
+                Abbrechen
+            </a>
+            <button
+                type="submit"
+                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
+                Änderungen speichern
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Exklusive Auswahl: Nur Teilnehmer ODER Familie
+document.addEventListener('DOMContentLoaded', function() {
+    const participantSelect = document.getElementById('participant_id');
+    const familySelect = document.getElementById('family_id');
+
+    participantSelect.addEventListener('change', function() {
+        if (this.value) {
+            familySelect.value = '';
+        }
+    });
+
+    familySelect.addEventListener('change', function() {
+        if (this.value) {
+            participantSelect.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}

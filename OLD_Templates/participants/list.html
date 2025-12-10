@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <!-- Tab Navigation -->
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px px-6" aria-label="Tabs">
+            <button onclick="switchTab('participants')" id="tab-participants" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                Teilnehmer
+            </button>
+            <button onclick="switchTab('families')" id="tab-families" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                Familien
+            </button>
+        </nav>
+    </div>
+
+    <!-- Tab Content: Teilnehmer -->
+    <div id="content-participants" class="tab-content">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-wrap gap-2 justify-end">
+            <a href="/payments/invoice/bulk" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Alle Rechnungen
+            </a>
+            <a href="/participants/export" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Excel Export
+            </a>
+            <a href="/participants/import" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Import (Excel/CSV)
+            </a>
+            <a href="/participants/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Neuer Teilnehmer
+            </a>
+        </div>
+
+    <!-- Such- und Filterbereich -->
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <form method="get" action="/participants" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <input
+                    type="text"
+                    id="search-input"
+                    name="search"
+                    placeholder="Name oder E-Mail suchen..."
+                    value="{{ search if search else '' }}"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+            <div class="min-w-[150px]">
+                <select name="role_id" id="role-filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Alle Rollen</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}" {% if selected_role_id == role.id %}selected{% endif %}>
+                        {{ role.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="min-w-[150px]">
+                <select name="payment_status" id="payment-status-filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Alle Status</option>
+                    <option value="paid" {% if payment_status == 'paid' %}selected{% endif %}>Bezahlt</option>
+                    <option value="outstanding" {% if payment_status == 'outstanding' %}selected{% endif %}>Offen</option>
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                Filtern
+            </button>
+            <a href="/participants" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                Zurücksetzen
+            </a>
+        </form>
+    </div>
+
+    {% if participant_data %}
+    <div class="overflow-x-auto">
+        <table id="participants-table" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Geburtsdatum</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rolle</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Familie</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preis</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bezahlt</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offen</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for data in participant_data %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ data.participant.full_name }}</div>
+                        {% if data.participant.email %}
+                        <div class="text-sm text-gray-500">{{ data.participant.email }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ data.participant.birth_date.strftime('%d.%m.%Y') }} ({{ data.participant.age_at_event }} Jahre)
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if data.participant.role %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {{ data.participant.role.display_name }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if data.participant.family %}
+                        <a href="/families/{{ data.participant.family.id }}" class="text-blue-600 hover:text-blue-800">
+                            {{ data.participant.family.name }}
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ "%.2f"|format(data.participant.final_price) }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                        {{ "%.2f"|format(data.total_paid) }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <span class="{% if data.outstanding > 0 %}text-orange-600{% else %}text-gray-600{% endif %}">
+                            {{ "%.2f"|format(data.outstanding) }} €
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="/participants/{{ data.participant.id }}" class="text-blue-600 hover:text-blue-800 mr-3">Anzeigen</a>
+                        <a href="/participants/{{ data.participant.id }}/edit" class="text-green-600 hover:text-green-800">Bearbeiten</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Teilnehmer</h3>
+        <p class="mt-1 text-sm text-gray-500">Beginnen Sie, indem Sie einen neuen Teilnehmer hinzufügen.</p>
+        <div class="mt-6">
+            <a href="/participants/create" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                Neuer Teilnehmer
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    </div>
+    <!-- End of Teilnehmer Tab Content -->
+
+    <!-- Tab Content: Familien -->
+    <div id="content-families" class="tab-content hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-end">
+            <a href="/families/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Neue Familie
+            </a>
+        </div>
+
+        <!-- Such- und Filterbereich für Familien -->
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <form method="get" action="/participants#families" class="flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <input
+                        type="text"
+                        id="family-search-input"
+                        name="family_search"
+                        placeholder="Familienname oder Ansprechpartner suchen..."
+                        value="{{ family_search if family_search else '' }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                <div class="min-w-[150px]">
+                    <select name="family_role_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Alle Rollen</option>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {% if family_role_id == role.id %}selected{% endif %}>
+                            {{ role.display_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="min-w-[150px]">
+                    <select name="family_payment_status" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Alle Status</option>
+                        <option value="paid" {% if family_payment_status == 'paid' %}selected{% endif %}>Bezahlt</option>
+                        <option value="outstanding" {% if family_payment_status == 'outstanding' %}selected{% endif %}>Offen</option>
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                    Filtern
+                </button>
+                <a href="/participants#families" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    Zurücksetzen
+                </a>
+            </form>
+        </div>
+
+        {% if family_data %}
+        <div class="overflow-x-auto">
+            <table id="families-table" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ansprechpartner</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teilnehmer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gesamtpreis</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bezahlt</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offen</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for data in family_data %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ data.family.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ data.family.contact_person or '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ data.participant_count }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ "%.2f"|format(data.total_price) }} €
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                            {{ "%.2f"|format(data.total_paid) }} €
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <span class="{% if data.outstanding > 0 %}text-orange-600{% else %}text-gray-600{% endif %}">
+                                {{ "%.2f"|format(data.outstanding) }} €
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="/families/{{ data.family.id }}" class="text-blue-600 hover:text-blue-800">Anzeigen</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Familien</h3>
+            <p class="mt-1 text-sm text-gray-500">Beginnen Sie, indem Sie eine neue Familie hinzufügen.</p>
+            <div class="mt-6">
+                <a href="/families/create" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Neue Familie
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <!-- End of Familien Tab Content -->
+</div>
+
+<script>
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    });
+
+    // Show selected tab content
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+
+    // Add active class to selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+    activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+}
+
+// Live-Filter für Teilnehmer-Suche
+function filterParticipants() {
+    const searchInput = document.getElementById('search-input');
+    const table = document.getElementById('participants-table');
+
+    if (!searchInput || !table) return;
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    let visibleCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const nameCell = row.getElementsByTagName('td')[0];
+
+        if (!nameCell) continue;
+
+        // Suche in Name und E-Mail (beide sind in der ersten Spalte)
+        const textContent = nameCell.textContent || nameCell.innerText;
+
+        if (textContent.toLowerCase().indexOf(searchTerm) > -1) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    }
+
+    // Optional: Zeige Nachricht wenn keine Ergebnisse
+    updateNoResultsMessage(visibleCount);
+}
+
+function updateNoResultsMessage(visibleCount) {
+    const table = document.getElementById('participants-table');
+    if (!table) return;
+
+    const tableContainer = table.parentElement;
+    let noResultsMsg = document.getElementById('no-search-results');
+
+    if (visibleCount === 0) {
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.id = 'no-search-results';
+            noResultsMsg.className = 'px-6 py-8 text-center text-gray-500';
+            noResultsMsg.innerHTML = '<p>Keine Teilnehmer gefunden, die der Suche entsprechen.</p>';
+            tableContainer.appendChild(noResultsMsg);
+        }
+        table.style.display = 'none';
+    } else {
+        if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+        table.style.display = '';
+    }
+}
+
+// Live-Filter für Familien-Suche
+function filterFamilies() {
+    const searchInput = document.getElementById('family-search-input');
+    const table = document.getElementById('families-table');
+
+    if (!searchInput || !table) return;
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    let visibleCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const nameCell = row.getElementsByTagName('td')[0];  // Familienname
+        const contactCell = row.getElementsByTagName('td')[1];  // Ansprechpartner
+
+        if (!nameCell) continue;
+
+        // Suche in Familienname und Ansprechpartner
+        const nameText = nameCell.textContent || nameCell.innerText;
+        const contactText = contactCell ? (contactCell.textContent || contactCell.innerText) : '';
+
+        if (nameText.toLowerCase().indexOf(searchTerm) > -1 ||
+            contactText.toLowerCase().indexOf(searchTerm) > -1) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    }
+
+    // Optional: Zeige Nachricht wenn keine Ergebnisse
+    updateFamilyNoResultsMessage(visibleCount);
+}
+
+function updateFamilyNoResultsMessage(visibleCount) {
+    const table = document.getElementById('families-table');
+    if (!table) return;
+
+    const tableContainer = table.parentElement;
+    let noResultsMsg = document.getElementById('no-family-search-results');
+
+    if (visibleCount === 0) {
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.id = 'no-family-search-results';
+            noResultsMsg.className = 'px-6 py-8 text-center text-gray-500';
+            noResultsMsg.innerHTML = '<p>Keine Familien gefunden, die der Suche entsprechen.</p>';
+            tableContainer.appendChild(noResultsMsg);
+        }
+        table.style.display = 'none';
+    } else {
+        if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+        table.style.display = '';
+    }
+}
+
+// Initialize tabs on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial styling for inactive tabs
+    document.querySelectorAll('.tab-button:not(.active)').forEach(button => {
+        button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    });
+
+    // Set initial styling for active tab
+    const activeTab = document.querySelector('.tab-button.active');
+    if (activeTab) {
+        activeTab.classList.add('border-blue-500', 'text-blue-600');
+    }
+
+    // Check URL hash and switch tab if needed, or if family filters are set
+    const hasFamilyFilters = {{ 'true' if family_search or family_role_id or family_payment_status else 'false' }};
+    if (window.location.hash === '#families' || hasFamilyFilters) {
+        switchTab('families');
+    }
+
+    // Live-Filter aktivieren
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterParticipants);
+    }
+
+    // Live-Filter für Familien aktivieren
+    const familySearchInput = document.getElementById('family-search-input');
+    if (familySearchInput) {
+        familySearchInput.addEventListener('input', filterFamilies);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="/participants" class="text-blue-600 hover:text-blue-800 text-sm">← Zurück zur Übersicht</a>
+</div>
+
+<div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-4 bg-blue-50 border-b border-gray-200">
+        <div class="flex justify-between items-center mb-2">
+            <h2 class="text-2xl font-bold text-gray-900">{{ participant.full_name }}</h2>
+            <a href="/participants/{{ participant.id }}/edit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+                <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
+                    <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
+                </svg>
+                Bearbeiten
+            </a>
+        </div>
+        {% if participant.role %}
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            {{ participant.role.display_name }}
+        </span>
+        {% endif %}
+    </div>
+
+    <div class="px-6 py-4">
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Vorname</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ participant.first_name }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Nachname</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ participant.last_name }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Geburtsdatum</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ participant.birth_date.strftime('%d.%m.%Y') }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Familie</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {% if participant.family %}
+                    <a href="/families/{{ participant.family.id }}" class="text-blue-600 hover:text-blue-800">
+                        {{ participant.family.name }}
+                    </a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </dd>
+            </div>
+            {% if participant.email %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">E-Mail</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ participant.email }}</dd>
+            </div>
+            {% endif %}
+            {% if participant.phone %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Telefon</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ participant.phone }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Finanzübersicht</h3>
+            <div class="flex space-x-2">
+                <a href="/payments/create?participant_id={{ participant.id }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                    </svg>
+                    Zahlung erfassen
+                </a>
+                <a href="/payments/invoice/participant/{{ participant.id }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition">
+                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+                    </svg>
+                    Rechnung herunterladen
+                </a>
+                <button onclick="showQRCode()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">
+                    <svg class="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    QR-Code anzeigen
+                </button>
+            </div>
+        </div>
+
+        <!-- QR-Code Modal -->
+        <div id="qrModal" class="hidden fixed z-10 inset-0 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="document.getElementById('qrModal').classList.add('hidden')"></div>
+                <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all max-w-lg w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-center">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Zahlungs-QR-Code</h3>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Scannen Sie diesen QR-Code mit Ihrer Banking-App für eine einfache SEPA-Überweisung.
+                        </p>
+                        <img src="/participants/{{ participant.id }}/payment-qr" alt="Zahlungs QR-Code" class="mx-auto border-2 border-gray-300 rounded-lg" style="max-width: 300px;">
+                        <p class="text-xs text-gray-500 mt-4">
+                            Betrag: {{ "%.2f"|format(outstanding if outstanding > 0 else participant.final_price) }} €
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <a href="/participants/{{ participant.id }}/payment-qr" download="zahlung_qr_{{ participant.id }}.png" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
+                            QR-Code herunterladen
+                        </a>
+                        <button type="button" onclick="document.getElementById('qrModal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+                            Schließen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function showQRCode() {
+            document.getElementById('qrModal').classList.remove('hidden');
+        }
+        </script>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Preis</p>
+                <p class="text-xl font-bold text-blue-600">{{ "%.2f"|format(participant.final_price) }} €</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Bezahlt</p>
+                <p class="text-xl font-bold text-green-600">{{ "%.2f"|format(total_paid) }} €</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Offen</p>
+                <p class="text-xl font-bold {% if outstanding > 0 %}text-orange-600{% else %}text-gray-600{% endif %}">
+                    {{ "%.2f"|format(outstanding) }} €
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zahlungshistorie -->
+<div class="bg-white shadow rounded-lg mt-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-900">Zahlungshistorie</h3>
+    </div>
+
+    {% if participant.payments %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Betrag</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Methode</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referenz</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for payment in participant.payments %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ payment.payment_date.strftime('%d.%m.%Y') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        {{ "%.2f"|format(payment.amount) }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if payment.payment_method %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {{ payment.payment_method }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        {{ payment.reference if payment.reference else '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <form method="post" action="/payments/{{ payment.id }}/delete"
+                              onsubmit="return confirm('Zahlung wirklich löschen?')" class="inline">
+                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                Löschen
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% if payment.notes %}
+                <tr class="bg-gray-50">
+                    <td colspan="5" class="px-6 py-2 text-sm text-gray-600">
+                        <strong>Notiz:</strong> {{ payment.notes }}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-8 text-center text-gray-500">
+        <p>Noch keine Zahlungen erfasst</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

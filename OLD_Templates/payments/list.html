@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block page_header %}
+<div class="mb-8 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+    <a href="/payments/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+        <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        </svg>
+        Neue Zahlung
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Statistik-Karten -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Zahlungen gesamt</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ payments|length }}</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Gesamtbetrag</dt>
+            <dd class="mt-1 text-3xl font-semibold text-green-600">
+                {{ "%.2f"|format(payments|sum(attribute='amount')) }} €
+            </dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Erwartete Einnahme</dt>
+            <dd class="mt-1 text-3xl font-semibold text-blue-600">
+                {{ "%.2f"|format(expected_income) }} €
+            </dd>
+            {% set total_received = payments|sum(attribute='amount')|float %}
+            {% set difference = expected_income - total_received %}
+            <p class="mt-2 text-sm {% if difference > 0 %}text-red-600{% elif difference < 0 %}text-green-600{% else %}text-gray-500{% endif %}">
+                {% if difference > 0 %}
+                    Noch ausstehend: {{ "%.2f"|format(difference) }} €
+                {% elif difference < 0 %}
+                    Überzahlung: {{ "%.2f"|format(-difference) }} €
+                {% else %}
+                    Vollständig bezahlt
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Zahlungstabelle -->
+<div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Alle Zahlungen</h2>
+    </div>
+
+    <!-- Suchfeld -->
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div class="flex-1 max-w-md">
+            <input
+                type="text"
+                id="payment-search-input"
+                placeholder="Suche nach Name, Referenz oder Methode..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            >
+        </div>
+    </div>
+
+    {% if payments %}
+    <div class="overflow-x-auto">
+        <table id="payments-table" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Betrag</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Methode</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zuordnung</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referenz</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for payment in payments %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ payment.payment_date.strftime('%d.%m.%Y') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        {{ "%.2f"|format(payment.amount) }} €
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if payment.payment_method %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {{ payment.payment_method }}
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        {% if payment.participant %}
+                            <a href="/participants/{{ payment.participant.id }}" class="text-blue-600 hover:text-blue-800">
+                                {{ payment.participant.full_name }}
+                            </a>
+                            <span class="text-gray-500 text-xs block">Teilnehmer</span>
+                        {% elif payment.family %}
+                            <a href="/families/{{ payment.family.id }}" class="text-green-600 hover:text-green-800">
+                                {{ payment.family.name }}
+                            </a>
+                            <span class="text-gray-500 text-xs block">Familie</span>
+                        {% else %}
+                            <span class="text-gray-400">Keine Zuordnung</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        {{ payment.reference if payment.reference else '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3">
+                        <a href="/payments/{{ payment.id }}/edit" class="text-blue-600 hover:text-blue-800">
+                            Bearbeiten
+                        </a>
+                        <form method="post" action="/payments/{{ payment.id }}/delete"
+                              onsubmit="return confirm('Zahlung wirklich löschen?')" class="inline">
+                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                Löschen
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% if payment.notes %}
+                <tr class="bg-gray-50">
+                    <td colspan="6" class="px-6 py-2 text-sm text-gray-600">
+                        <strong>Notiz:</strong> {{ payment.notes }}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Zahlungen</h3>
+        <p class="mt-1 text-sm text-gray-500">Erfassen Sie die erste Zahlung.</p>
+        <div class="mt-6">
+            <a href="/payments/create" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Neue Zahlung
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Live-Filter für Zahlungssuche
+function filterPayments() {
+    const searchInput = document.getElementById('payment-search-input');
+    const table = document.getElementById('payments-table');
+
+    if (!searchInput || !table) return;
+
+    const searchTerm = searchInput.value.toLowerCase();
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = tbody.getElementsByTagName('tr');
+
+    let visibleCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        // Überspringe Notiz-Zeilen (haben bg-gray-50 Klasse)
+        if (row.classList.contains('bg-gray-50')) {
+            continue;
+        }
+
+        const cells = row.getElementsByTagName('td');
+        if (cells.length === 0) continue;
+
+        // Sammle Suchtext aus allen relevanten Spalten:
+        // 0: Datum, 1: Betrag, 2: Methode, 3: Zuordnung (Name), 4: Referenz
+        let searchableText = '';
+
+        // Datum (Spalte 0)
+        if (cells[0]) searchableText += cells[0].textContent || '';
+
+        // Methode (Spalte 2)
+        if (cells[2]) searchableText += ' ' + (cells[2].textContent || '');
+
+        // Zuordnung/Name (Spalte 3)
+        if (cells[3]) searchableText += ' ' + (cells[3].textContent || '');
+
+        // Referenz (Spalte 4)
+        if (cells[4]) searchableText += ' ' + (cells[4].textContent || '');
+
+        searchableText = searchableText.toLowerCase();
+
+        if (searchableText.indexOf(searchTerm) > -1) {
+            row.style.display = '';
+            // Zeige auch zugehörige Notiz-Zeile an
+            if (rows[i + 1] && rows[i + 1].classList.contains('bg-gray-50')) {
+                rows[i + 1].style.display = '';
+            }
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+            // Verstecke auch zugehörige Notiz-Zeile
+            if (rows[i + 1] && rows[i + 1].classList.contains('bg-gray-50')) {
+                rows[i + 1].style.display = 'none';
+            }
+        }
+    }
+
+    // Optional: Zeige Nachricht wenn keine Ergebnisse
+    updateNoResultsMessage(visibleCount);
+}
+
+function updateNoResultsMessage(visibleCount) {
+    const table = document.getElementById('payments-table');
+    if (!table) return;
+
+    const tableContainer = table.parentElement;
+    let noResultsMsg = document.getElementById('no-payment-search-results');
+
+    if (visibleCount === 0) {
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.id = 'no-payment-search-results';
+            noResultsMsg.className = 'px-6 py-8 text-center text-gray-500';
+            noResultsMsg.innerHTML = '<p>Keine Zahlungen gefunden, die der Suche entsprechen.</p>';
+            tableContainer.appendChild(noResultsMsg);
+        }
+        table.style.display = 'none';
+    } else {
+        if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+        table.style.display = '';
+    }
+}
+
+// Live-Filter aktivieren
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('payment-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterPayments);
+    }
+});
+</script>
+{% endblock %}

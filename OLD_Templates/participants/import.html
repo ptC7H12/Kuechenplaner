@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white shadow rounded-lg max-w-4xl mx-auto">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Teilnehmer importieren (Excel/CSV)</h2>
+    </div>
+
+    <div class="px-6 py-6">
+        <!-- Info-Box -->
+        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div class="flex">
+                <svg class="h-5 w-5 text-blue-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <h3 class="text-sm font-medium text-blue-800">So funktioniert der Import</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ol class="list-decimal list-inside space-y-1">
+                            <li>Laden Sie die Excel- oder CSV-Vorlage herunter</li>
+                            <li>Füllen Sie die Daten aus (Vorname, Nachname, Geburtsdatum sind Pflichtfelder)</li>
+                            <li>Optional: Vergeben Sie gleiche Familien-Nummern für Familienmitglieder</li>
+                            <li>Laden Sie die ausgefüllte Datei hoch</li>
+                            <li>Prüfen Sie die Vorschau und bestätigen Sie den Import</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Templates -->
+        <div class="mb-6">
+            <h3 class="text-sm font-medium text-gray-700 mb-2">Vorlage herunterladen:</h3>
+            <div class="flex gap-3">
+                <a href="/participants/import/template?format=xlsx"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                    Excel-Vorlage (.xlsx)
+                </a>
+                <a href="/participants/import/template?format=csv"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                    CSV-Vorlage (.csv)
+                </a>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+                💡 Tipp: CSV-Dateien können mit jedem Texteditor oder Tabellenkalkulationsprogramm bearbeitet werden
+            </p>
+        </div>
+
+        <!-- Upload Form -->
+        <form method="post" action="/participants/import" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <label for="file" class="block text-sm font-medium text-gray-700 mb-2">
+                    Datei auswählen
+                </label>
+                <input
+                    type="file"
+                    id="file"
+                    name="file"
+                    accept=".xlsx,.xls,.csv"
+                    required
+                    class="block w-full text-sm text-gray-500
+                           file:mr-4 file:py-2 file:px-4
+                           file:rounded-md file:border-0
+                           file:text-sm file:font-semibold
+                           file:bg-blue-50 file:text-blue-700
+                           hover:file:bg-blue-100
+                           cursor-pointer"
+                >
+                <p class="mt-1 text-sm text-gray-500">Excel (.xlsx, .xls) oder CSV (.csv)</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                    Datei hochladen und Vorschau anzeigen
+                </button>
+                <a href="/participants" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">
+                    Abbrechen
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
