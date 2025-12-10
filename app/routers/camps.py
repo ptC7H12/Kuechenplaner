@@ -13,6 +13,14 @@ from app.services.calculation import get_camp_statistics
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+@router.get("/create", response_class=HTMLResponse)
+async def create_camp_form(
+    request: Request,
+    context: dict = Depends(get_template_context)
+):
+    """Show create camp form"""
+    return templates.TemplateResponse("camp_create.html", context)
+
 @router.post("/", response_class=RedirectResponse)
 async def create_camp(
     name: str = Form(...),
