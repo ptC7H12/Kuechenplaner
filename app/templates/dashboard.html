@@ -15,14 +15,20 @@
             </p>
         </div>
         <div class="flex space-x-3">
-            <button 
+            <button
                 onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
                 class="btn btn-secondary"
             >
-                ✏️ Bearbeiten
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Bearbeiten
             </button>
             <a href="/select-camp" class="btn btn-secondary">
-                🔄 Freizeit wechseln
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Freizeit wechseln
             </a>
         </div>
     </div>
@@ -30,8 +36,10 @@
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 stat-grid">
         <!-- Planned Meals -->
-        <div class="stat-card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
-            <div class="stat-icon">📅</div>
+        <div class="stat-card bg-purple-50">
+            <svg class="w-12 h-12 mx-auto mb-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
             <div class="stat-number text-purple-700">{{ stats.planned_meals }}</div>
             <div class="stat-label text-purple-600">Geplante Mahlzeiten</div>
             <div class="text-xs text-purple-500 mt-2 font-semibold">
@@ -40,33 +48,45 @@
         </div>
 
         <!-- Unique Recipes -->
-        <div class="stat-card bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
-            <div class="stat-icon">📖</div>
+        <div class="stat-card bg-teal-50">
+            <svg class="w-12 h-12 mx-auto mb-3 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
             <div class="stat-number text-teal-700">{{ stats.unique_recipes }}</div>
             <div class="stat-label text-teal-600">Verschiedene Rezepte</div>
         </div>
 
         <!-- Completion Percentage -->
-        <div class="stat-card bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-            <div class="stat-icon">
-                {% if stats.completion_percentage >= 100 %}✅
-                {% elif stats.completion_percentage >= 75 %}🟡
-                {% else %}🔴{% endif %}
-            </div>
+        <div class="stat-card bg-green-50">
+            {% if stats.completion_percentage >= 100 %}
+            <svg class="w-12 h-12 mx-auto mb-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {% elif stats.completion_percentage >= 75 %}
+            <svg class="w-12 h-12 mx-auto mb-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {% else %}
+            <svg class="w-12 h-12 mx-auto mb-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            {% endif %}
             <div class="stat-number text-green-700">{{ stats.completion_percentage }}%</div>
             <div class="stat-label text-green-600">Vollständigkeit</div>
         </div>
 
         <!-- Days Remaining -->
-        <div class="stat-card bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
-            <div class="stat-icon">⏰</div>
+        <div class="stat-card bg-orange-50">
+            <svg class="w-12 h-12 mx-auto mb-3 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
             <div class="stat-number text-orange-700">{{ stats.total_days }}</div>
             <div class="stat-label text-orange-600">Tage insgesamt</div>
         </div>
     </div>
     
     <!-- Progress Bar -->
-    <div class="card border-2">
+    <div class="card">
         <div class="card-header">
             <h2 class="card-title">Planungsfortschritt</h2>
         </div>
@@ -79,74 +99,130 @@
             </div>
             <div class="flex justify-between text-sm font-semibold text-gray-700">
                 <span>{{ stats.planned_meals }} von {{ stats.expected_meals }} Mahlzeiten geplant</span>
-                <span class="text-purple-600">{{ stats.completion_percentage }}%</span>
+                <span class="text-indigo-600">{{ stats.completion_percentage }}%</span>
             </div>
         </div>
     </div>
-    
+
     <!-- Warnings -->
     {% if stats.warnings %}
     <div class="alert alert-warning">
-        <h3 class="font-semibold mb-2">⚠️ Hinweise</h3>
-        <ul class="list-disc list-inside space-y-1">
-            {% for warning in stats.warnings %}
-            <li>{{ warning }}</li>
-            {% endfor %}
-        </ul>
+        <div class="flex items-start">
+            <svg class="w-6 h-6 text-yellow-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <h3 class="font-semibold mb-2">Hinweise</h3>
+                <ul class="list-disc list-inside space-y-1">
+                    {% for warning in stats.warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
     {% endif %}
     
     <!-- Meal Type Breakdown -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Meal Distribution -->
-        <div class="card border-2 bg-gradient-to-br from-white to-gray-50">
+        <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Mahlzeiten-Verteilung</h2>
             </div>
             <div class="space-y-4">
-                {% set meal_types = [('BREAKFAST', 'Frühstück', '🌅'), ('LUNCH', 'Mittagessen', '🍽️'), ('DINNER', 'Abendessen', '🌙')] %}
-                {% for meal_type, label, icon in meal_types %}
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <span class="text-2xl mr-3">{{ icon }}</span>
-                        <span class="text-sm font-bold text-gray-900">{{ label }}</span>
+                        <svg class="w-7 h-7 mr-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <span class="text-sm font-bold text-gray-900">Frühstück</span>
                     </div>
                     <div class="flex items-center space-x-3">
                         <span class="text-sm font-bold text-gray-700">
-                            {{ stats.meal_counts.get(meal_type, 0) }} / {{ stats.total_days }}
+                            {{ stats.meal_counts.get('BREAKFAST', 0) }} / {{ stats.total_days }}
                         </span>
                         <div class="w-20 h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
                             <div
-                                class="h-3 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-500"
-                                style="width: {{ (stats.meal_counts.get(meal_type, 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
+                                class="h-3 bg-indigo-600 rounded-full transition-all duration-500"
+                                style="width: {{ (stats.meal_counts.get('BREAKFAST', 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
                             ></div>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-7 h-7 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                        </svg>
+                        <span class="text-sm font-bold text-gray-900">Mittagessen</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold text-gray-700">
+                            {{ stats.meal_counts.get('LUNCH', 0) }} / {{ stats.total_days }}
+                        </span>
+                        <div class="w-20 h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                                class="h-3 bg-indigo-600 rounded-full transition-all duration-500"
+                                style="width: {{ (stats.meal_counts.get('LUNCH', 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="w-7 h-7 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                        <span class="text-sm font-bold text-gray-900">Abendessen</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold text-gray-700">
+                            {{ stats.meal_counts.get('DINNER', 0) }} / {{ stats.total_days }}
+                        </span>
+                        <div class="w-20 h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+                            <div
+                                class="h-3 bg-indigo-600 rounded-full transition-all duration-500"
+                                style="width: {{ (stats.meal_counts.get('DINNER', 0) / stats.total_days * 100) if stats.total_days > 0 else 0 }}%"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
         <!-- Quick Actions -->
-        <div class="card border-2 bg-gradient-to-br from-white to-gray-50">
+        <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Schnellzugriff</h2>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <a href="/recipes" class="btn btn-primary justify-center">
-                    <span class="mr-2">📖</span> Rezepte
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    Rezepte
                 </a>
                 <a href="/meal-planning" class="btn btn-accent justify-center">
-                    <span class="mr-2">📅</span> Planen
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Planen
                 </a>
                 <a href="/shopping-list" class="btn btn-success justify-center">
-                    <span class="mr-2">🛒</span> Einkaufen
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Einkaufen
                 </a>
                 <button
                     onclick="FreizeitApp.openModal('/export/options')"
                     class="btn btn-secondary justify-center"
                 >
-                    <span class="mr-2">📄</span> Export
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Export
                 </button>
             </div>
         </div>
@@ -167,9 +243,21 @@
                 <thead>
                     <tr class="border-b border-gray-200">
                         <th class="text-left py-2 px-3 text-sm font-medium text-gray-900">Tag</th>
-                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🌅</th>
-                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🍽️</th>
-                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">🌙</th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">
+                            <svg class="w-5 h-5 inline-block text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                        </th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">
+                            <svg class="w-5 h-5 inline-block text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                            </svg>
+                        </th>
+                        <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">
+                            <svg class="w-5 h-5 inline-block text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                        </th>
                         <th class="text-center py-2 px-3 text-sm font-medium text-gray-900">Status</th>
                     </tr>
                 </thead>
@@ -180,13 +268,19 @@
                             Tag {{ day + 1 }}
                         </td>
                         <td class="text-center py-2 px-3">
-                            <span class="text-xs">⭕</span>
+                            <svg class="w-4 h-4 inline-block text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path>
+                            </svg>
                         </td>
                         <td class="text-center py-2 px-3">
-                            <span class="text-xs">⭕</span>
+                            <svg class="w-4 h-4 inline-block text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path>
+                            </svg>
                         </td>
                         <td class="text-center py-2 px-3">
-                            <span class="text-xs">⭕</span>
+                            <svg class="w-4 h-4 inline-block text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path>
+                            </svg>
                         </td>
                         <td class="text-center py-2 px-3">
                             <span class="text-xs text-gray-500">0/3</span>
@@ -196,10 +290,13 @@
                 </tbody>
             </table>
         </div>
-        
+
         <div class="mt-4 text-center">
             <a href="/meal-planning" class="btn btn-primary">
-                📅 Zur detaillierten Planung
+                <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Zur detaillierten Planung
             </a>
         </div>
     </div>

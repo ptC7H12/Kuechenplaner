@@ -25,8 +25,10 @@
     <div class="info-card info-card-purple">
         <div class="flex items-start space-x-4">
             <div class="flex-shrink-0">
-                <div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center text-white text-3xl shadow-lg">
-                    📅
+                <div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
                 </div>
             </div>
             <div class="flex-1">
@@ -70,8 +72,10 @@
                              data-recipe-name="{{ recipe.name }}"
                              x-show="filteredRecipes.includes({{ recipe.id }})">
                             <div class="flex items-start">
-                                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-lg mr-2">
-                                    🍽️
+                                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded flex items-center justify-center mr-2">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                    </svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-medium text-sm text-gray-900 truncate">{{ recipe.name }}</h4>
@@ -96,7 +100,9 @@
                         {% endfor %}
                     {% else %}
                         <div class="text-center py-8 text-gray-500">
-                            <div class="text-4xl mb-2">📋</div>
+                            <svg class="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
                             <p class="text-sm">Keine Rezepte vorhanden</p>
                             <a href="/recipes/create" class="text-blue-600 hover:text-blue-700 text-sm underline mt-2 inline-block">
                                 Rezept erstellen
@@ -127,15 +133,27 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             {% set meal_config = [
-                                ('BREAKFAST', 'Frühstück', '🌅', 'yellow'),
-                                ('LUNCH', 'Mittagessen', '🍽️', 'green'),
-                                ('DINNER', 'Abendessen', '🌙', 'indigo')
+                                ('BREAKFAST', 'Frühstück', 'yellow'),
+                                ('LUNCH', 'Mittagessen', 'green'),
+                                ('DINNER', 'Abendessen', 'indigo')
                             ] %}
-                            {% for meal_type_value, label, icon, color in meal_config %}
+                            {% for meal_type_value, label, color in meal_config %}
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="py-4 px-4 font-bold text-gray-900 bg-{{ color }}-50 border-r-2 border-{{ color }}-200 sticky left-0 z-10">
                                     <div class="flex items-center">
-                                        <span class="mr-3 text-2xl">{{ icon }}</span>
+                                        {% if meal_type_value == 'BREAKFAST' %}
+                                        <svg class="w-6 h-6 mr-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                        </svg>
+                                        {% elif meal_type_value == 'LUNCH' %}
+                                        <svg class="w-6 h-6 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-6 h-6 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                        </svg>
+                                        {% endif %}
                                         <span class="text-base font-black">{{ label }}</span>
                                     </div>
                                 </td>

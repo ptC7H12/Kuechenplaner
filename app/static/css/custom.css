@@ -105,48 +105,48 @@
     letter-spacing: 0.025em;
 }
 
-/* Primary Button - Gradient with Shadow */
+/* Primary Button - Material Design Solid */
 .btn-primary {
-    @apply px-5 py-2.5 text-white bg-gradient-to-r from-purple-600 to-indigo-600
-           hover:from-purple-700 hover:to-indigo-700
-           active:from-purple-800 active:to-indigo-800
-           focus:ring-purple-300 shadow-lg hover:shadow-xl
-           transform hover:scale-105 active:scale-100;
+    @apply px-5 py-2.5 text-white bg-indigo-600
+           hover:bg-indigo-700 hover:shadow-lg
+           active:bg-indigo-800
+           focus:ring-indigo-300 shadow-md
+           transform hover:translate-y-[-2px] active:translate-y-0;
 }
 
-/* Secondary Button - Modern Outline */
+/* Secondary Button - Material Design */
 .btn-secondary {
-    @apply px-5 py-2.5 text-gray-700 bg-white border-2 border-gray-300
-           hover:bg-gray-50 hover:border-gray-400
+    @apply px-5 py-2.5 text-gray-700 bg-white
+           hover:bg-gray-50 hover:shadow-md
            active:bg-gray-100 focus:ring-gray-200
-           shadow-md hover:shadow-lg transform hover:scale-105 active:scale-100;
+           shadow-sm transform hover:translate-y-[-2px] active:translate-y-0;
 }
 
-/* Success Button */
+/* Success Button - Material Design */
 .btn-success {
-    @apply px-5 py-2.5 text-white bg-gradient-to-r from-green-500 to-emerald-600
-           hover:from-green-600 hover:to-emerald-700
-           active:from-green-700 active:to-emerald-800
-           focus:ring-green-300 shadow-lg hover:shadow-xl
-           transform hover:scale-105 active:scale-100;
+    @apply px-5 py-2.5 text-white bg-green-600
+           hover:bg-green-700 hover:shadow-lg
+           active:bg-green-800
+           focus:ring-green-300 shadow-md
+           transform hover:translate-y-[-2px] active:translate-y-0;
 }
 
-/* Danger Button */
+/* Danger Button - Material Design */
 .btn-danger {
-    @apply px-5 py-2.5 text-white bg-gradient-to-r from-red-500 to-rose-600
-           hover:from-red-600 hover:to-rose-700
-           active:from-red-700 active:to-rose-800
-           focus:ring-red-300 shadow-lg hover:shadow-xl
-           transform hover:scale-105 active:scale-100;
+    @apply px-5 py-2.5 text-white bg-red-600
+           hover:bg-red-700 hover:shadow-lg
+           active:bg-red-800
+           focus:ring-red-300 shadow-md
+           transform hover:translate-y-[-2px] active:translate-y-0;
 }
 
-/* Accent Button - Turquoise */
+/* Accent Button - Material Design */
 .btn-accent {
-    @apply px-5 py-2.5 text-white bg-gradient-to-r from-teal-500 to-cyan-600
-           hover:from-teal-600 hover:to-cyan-700
-           active:from-teal-700 active:to-cyan-800
-           focus:ring-teal-300 shadow-lg hover:shadow-xl
-           transform hover:scale-105 active:scale-100;
+    @apply px-5 py-2.5 text-white bg-teal-600
+           hover:bg-teal-700 hover:shadow-lg
+           active:bg-teal-800
+           focus:ring-teal-300 shadow-md
+           transform hover:translate-y-[-2px] active:translate-y-0;
 }
 
 /* Ghost Button - Minimal */
@@ -247,13 +247,13 @@
    =================================== */
 
 .card {
-    @apply bg-white rounded-xl shadow-md border border-gray-200 p-6
+    @apply bg-white rounded-xl shadow-md p-6
            transition-all duration-300 hover:shadow-lg;
 }
 
 .card-hover {
-    @apply bg-white rounded-xl shadow-md border border-gray-200 p-6
-           transition-all duration-300 hover:shadow-xl hover:scale-[1.02]
+    @apply bg-white rounded-xl shadow-md p-6
+           transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px]
            cursor-pointer;
 }
 
@@ -282,8 +282,8 @@
 }
 
 .sidebar-nav-item-active {
-    @apply bg-white bg-opacity-20 text-white shadow-lg
-           border-l-4 border-blue-300 translate-x-1;
+    @apply bg-indigo-600 text-white shadow-lg
+           border-l-4 border-indigo-400 translate-x-1 font-bold;
 }
 
 /* ===================================
@@ -291,14 +291,14 @@
    =================================== */
 
 .recipe-card {
-    @apply bg-white rounded-xl shadow-md border-2 border-gray-200
+    @apply bg-white rounded-xl shadow-md
            overflow-hidden transition-all duration-300
-           hover:shadow-2xl hover:border-purple-300 hover:scale-105
+           hover:shadow-2xl hover:translate-y-[-4px]
            cursor-pointer;
 }
 
 .recipe-card-image {
-    @apply w-full h-52 bg-gradient-to-br from-purple-400 via-indigo-500 to-blue-500
+    @apply w-full h-52 bg-indigo-600
            flex items-center justify-center text-white text-6xl;
 }
 
@@ -344,9 +344,9 @@
 }
 
 .recipe-card-draggable {
-    @apply bg-white rounded-lg shadow-md border-2 border-gray-200
+    @apply bg-white rounded-lg shadow-md
            p-3 mb-2 cursor-move transition-all duration-200
-           hover:shadow-lg hover:border-purple-300 hover:scale-105;
+           hover:shadow-lg hover:translate-y-[-2px];
 }
 
 .recipe-card-draggable:hover {
@@ -362,10 +362,9 @@
 }
 
 .recipe-card-planned {
-    @apply bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200
-           rounded-lg p-3 mb-2 shadow-md hover:shadow-xl
+    @apply bg-white rounded-lg p-3 mb-2 shadow-md hover:shadow-xl
            transition-all duration-200 cursor-move
-           hover:border-purple-300 hover:scale-105;
+           hover:translate-y-[-2px];
 }
 
 /* ===================================
@@ -378,9 +377,9 @@
 
 .shopping-category-header {
     @apply flex items-center justify-between py-4 px-6
-           bg-gradient-to-r from-gray-50 to-gray-100
+           bg-gray-50
            rounded-xl cursor-pointer transition-all duration-200
-           hover:from-gray-100 hover:to-gray-200 hover:shadow-md;
+           hover:bg-gray-100 hover:shadow-md;
 }
 
 .shopping-category-title {
@@ -412,9 +411,9 @@
    =================================== */
 
 .stat-card {
-    @apply bg-gradient-to-br from-white to-gray-50 rounded-xl
-           shadow-md border-2 border-gray-200 p-6 text-center
-           transition-all duration-300 hover:shadow-xl hover:scale-105;
+    @apply bg-white rounded-xl
+           shadow-md p-6 text-center
+           transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px];
 }
 
 .stat-number {
@@ -440,8 +439,8 @@
 
 .progress-bar-fill {
     @apply h-3 rounded-full transition-all duration-500
-           bg-gradient-to-r from-purple-500 to-indigo-600
-           shadow-lg;
+           bg-indigo-600
+           shadow-md;
 }
 
 /* ===================================
@@ -502,17 +501,19 @@
    =================================== */
 
 .tab-list {
-    @apply flex space-x-1 rounded-xl bg-gray-100 p-1 border-2 border-gray-200;
+    @apply flex space-x-2 bg-white p-2 border-2 border-gray-300 rounded-lg shadow-sm;
 }
 
 .tab-button {
-    @apply w-full rounded-lg py-3 text-sm font-bold leading-5
-           text-gray-700 transition-all duration-200
-           hover:bg-white/50;
+    @apply w-full rounded-lg py-3 px-4 text-sm font-bold leading-5
+           text-gray-600 transition-all duration-200
+           border-2 border-transparent
+           hover:bg-gray-100 hover:text-gray-900;
 }
 
 .tab-button.active {
-    @apply bg-white text-purple-700 shadow-md;
+    @apply bg-indigo-600 text-white
+           shadow-lg border-2 border-indigo-700 transform scale-105;
 }
 
 /* ===================================
@@ -551,25 +552,25 @@
     overflow: hidden;
 }
 
-/* Info Cards - Gradient Headers */
+/* Info Cards - Material Design */
 .info-card {
-    @apply bg-gradient-to-br rounded-xl p-6 border-2 shadow-lg;
+    @apply rounded-xl p-6 shadow-md;
 }
 
 .info-card-orange {
-    @apply from-orange-50 to-orange-100 border-orange-300;
+    @apply bg-orange-50;
 }
 
 .info-card-purple {
-    @apply from-purple-50 to-purple-100 border-purple-300;
+    @apply bg-purple-50;
 }
 
 .info-card-blue {
-    @apply from-blue-50 to-blue-100 border-blue-300;
+    @apply bg-blue-50;
 }
 
 .info-card-green {
-    @apply from-green-50 to-green-100 border-green-300;
+    @apply bg-green-50;
 }
 
 /* ===================================
