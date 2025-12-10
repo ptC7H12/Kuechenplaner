@@ -43,8 +43,31 @@ xcode-select --install
 
 Die Anwendung kann in verschiedenen Modi kompiliert werden:
 
-### Standalone (Standard)
-Erstellt eine einzelne ausführbare Datei mit allen Abhängigkeiten.
+### Windows Standalone (Schnellste Option für Windows)
+**NEU:** Erstellt ein ZIP-Archiv mit embedded Python - KEINE Kompilierung erforderlich!
+
+**Vorteile:**
+- ✅ Sehr schneller Build (Minuten statt Stunden)
+- ✅ Keine C-Compiler Installation nötig
+- ✅ Perfekt für schnelles Testen
+- ✅ Vollständig portable
+
+**Windows:**
+```bash
+python build_windows_standalone.py
+```
+
+Das Skript:
+1. Lädt embedded Python herunter (~25 MB)
+2. Installiert alle Dependencies
+3. Erstellt ein ZIP-Archiv im `releases/` Ordner
+
+**Ausgabe:** `releases/Kuechenplaner-1.0.0-windows-standalone-YYYYMMDD.zip`
+
+Benutzer müssen nur das ZIP entpacken und `start.bat` ausführen!
+
+### Nuitka Standalone (Kompiliert)
+Erstellt eine einzelne ausführbare Datei mit allen Abhängigkeiten (dauert länger).
 
 **Windows:**
 ```bash
