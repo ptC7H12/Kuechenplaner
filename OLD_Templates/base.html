@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }} - Freizeitkasse{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    {% include "components/navbar.html" %}
+
+    <!-- Main Content Area (shifts right on desktop to accommodate sidebar) -->
+    <div class="lg:pl-64">
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 lg:pt-8">
+            <!-- Page Header -->
+            {% block page_header %}
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+                {% block breadcrumb %}{% endblock %}
+            </div>
+            {% endblock %}
+
+            <!-- Flash Messages -->
+            {% block messages %}
+            {% include "components/flash_messages.html" %}
+            {% endblock %}
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <p class="text-center text-gray-500 text-sm">
+                    &copy; 2024 Freizeitkasse {{ app_version }}
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

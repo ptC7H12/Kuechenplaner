@@ -1,7 +1,7 @@
 @echo off
 echo Starte Build-Prozess...
 echo.
-python build_standalone_windows.py
+python build_windows_standalone.py
 echo.
 echo.
 pause

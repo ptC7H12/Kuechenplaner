@@ -1,0 +1,27 @@
+/* Custom CSS für Freizeit-Kassen-System */
+
+/* Hier können weitere benutzerdefinierte Styles hinzugefügt werden */
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Smooth Transitions */
+a, button {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Print Styles */
+@media print {
+    nav, footer, .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+    }
+}

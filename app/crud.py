@@ -214,8 +214,10 @@ def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
             models.MealPlan.meal_type == meal_plan.meal_type
         )
     ).count()
-    
-    db_meal_plan = models.MealPlan(**meal_plan.dict(), position=existing_count)
+
+    # Exclude position from the dict to avoid duplicate keyword argument
+    meal_plan_data = meal_plan.dict(exclude={'position'})
+    db_meal_plan = models.MealPlan(**meal_plan_data, position=existing_count)
     db.add(db_meal_plan)
     db.commit()
     db.refresh(db_meal_plan)

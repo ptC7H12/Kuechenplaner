@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Statistik-Karte: Teilnehmer -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                    </svg>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Teilnehmer
+                        </dt>
+                        <dd class="text-2xl font-semibold text-gray-900">
+                            {{ stats.total_participants if stats else 0 }}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <a href="/participants" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                Zur Übersicht &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistik-Karte: Familien -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-5 w-0 flex-1">
+                    <dl>
+                        <dt class="text-sm font-medium text-gray-500 truncate">
+                            Familien
+                        </dt>
+                        <dd class="text-2xl font-semibold text-gray-900">
+                            {{ stats.total_families if stats else 0 }}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="bg-gray-50 px-5 py-3">
+            <a href="/families" class="text-sm text-green-600 hover:text-green-800 font-medium">
+                Zur Übersicht &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Finanzübersicht -->
+<div class="bg-white shadow rounded-lg p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Finanzübersicht</h2>
+
+    <!-- Einnahmen -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Einnahmen</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-emerald-50 p-4 rounded-lg">
+                <p class="text-sm font-medium text-gray-700">Soll Einnahmen (Gesamt)</p>
+                <p class="text-2xl font-bold text-emerald-600">{{ "%.2f"|format(stats.soll_einnahmen_gesamt if stats else 0) }} €</p>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">Soll Zahlungseingänge</p>
+                <p class="text-xl font-bold text-blue-600">{{ "%.2f"|format(stats.soll_zahlungseingaenge if stats else 0) }} €</p>
+                <p class="text-xs text-gray-500 mt-1">Teilnahmegebühren</p>
+            </div>
+            <div class="bg-teal-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600">Soll Sonstige Einnahmen</p>
+                <p class="text-xl font-bold text-teal-600">{{ "%.2f"|format(stats.soll_sonstige_einnahmen if stats else 0) }} €</p>
+                <p class="text-xs text-gray-500 mt-1">Zuschüsse</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg border-2 border-green-400">
+                <p class="text-sm font-medium text-gray-700">Ist Einnahmen (Gesamt)</p>
+                <p class="text-2xl font-bold text-green-600">{{ "%.2f"|format(stats.ist_einnahmen_gesamt if stats else 0) }} €</p>
+                <p class="text-xs text-gray-500 mt-1">Zahlungen + Sonstige</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ausgaben -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Ausgaben</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-red-50 p-4 rounded-lg">
+                <p class="text-sm font-medium text-gray-700">Soll Ausgaben (Gesamt)</p>
+                <p class="text-2xl font-bold text-red-600">{{ "%.2f"|format(stats.soll_ausgaben_gesamt if stats else 0) }} €</p>
+            </div>
+            <div class="bg-pink-50 p-4 rounded-lg border-2 border-pink-400">
+                <p class="text-sm font-medium text-gray-700">Beglichene Ausgaben</p>
+                <p class="text-2xl font-bold text-pink-600">{{ "%.2f"|format(stats.ausgaben_beglichen if stats else 0) }} €</p>
+                <p class="text-xs text-gray-500 mt-1">Tatsächlich gezahlt</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saldo -->
+    <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Saldo</h3>
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <p class="text-sm font-medium text-gray-700">Saldo (Gesamt)</p>
+            <p class="text-3xl font-bold {% if stats and stats.saldo_gesamt >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ "%.2f"|format(stats.saldo_gesamt if stats else 0) }} €
+            </p>
+            <p class="text-xs text-gray-500 mt-1">Einnahmen - Ausgaben</p>
+        </div>
+    </div>
+</div>
+
+<!-- Zahlungsquoten -->
+<div class="bg-white shadow rounded-lg p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Zahlungsquoten</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <p class="text-sm text-gray-600 mb-2">Zahlungsquote Zahlungseingänge</p>
+            <div class="flex items-end gap-3">
+                <p class="text-3xl font-bold text-blue-600">
+                    {{ "%.1f"|format(stats.zahlungsquote_eingaenge if stats else 0) }}%
+                </p>
+                <p class="text-sm text-gray-500 mb-1">
+                    {{ "%.2f"|format(stats.ist_zahlungseingaenge if stats else 0) }} € / {{ "%.2f"|format(stats.soll_zahlungseingaenge if stats else 0) }} €
+                </p>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ stats.zahlungsquote_eingaenge if stats else 0 }}%"></div>
+            </div>
+        </div>
+        <div>
+            <p class="text-sm text-gray-600 mb-2">Zahlungsquote beglichene Ausgaben</p>
+            <div class="flex items-end gap-3">
+                <p class="text-3xl font-bold text-green-600">
+                    {{ "%.1f"|format(stats.zahlungsquote_ausgaben if stats else 0) }}%
+                </p>
+                <p class="text-sm text-gray-500 mb-1">
+                    {{ "%.2f"|format(stats.ausgaben_beglichen if stats else 0) }} € / {{ "%.2f"|format(stats.soll_ausgaben_gesamt if stats else 0) }} €
+                </p>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div class="bg-green-600 h-2.5 rounded-full" style="width: {{ stats.zahlungsquote_ausgaben if stats else 0 }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white shadow rounded-lg p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Schnellzugriff</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <a href="/participants/create" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Neuer Teilnehmer
+        </a>
+        <a href="/families/create" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Neue Familie
+        </a>
+        <a href="/payments/create" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Zahlung erfassen
+        </a>
+        <a href="/incomes/create" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Sonstige Einnahme
+        </a>
+        <a href="/expenses/create" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Ausgabe erfassen
+        </a>
+        <a href="/payments/invoice/bulk" class="flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition">
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            Rechnungen
+        </a>
+    </div>
+</div>
+
+<!-- Statistik-Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Altersverteilung -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Altersverteilung</h3>
+        <div style="position: relative; height: 300px;">
+            <canvas id="ageChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Rollen-Verteilung -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Verteilung nach Rollen</h3>
+        <div style="position: relative; height: 300px;">
+            <canvas id="roleChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Zahlungsverlauf -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Zahlungsverlauf (kumulativ)</h3>
+        <div style="position: relative; height: 300px;">
+            <canvas id="paymentTimelineChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Ausgaben nach Kategorien -->
+    <div class="bg-white shadow rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Ausgaben nach Kategorien</h3>
+        <div style="position: relative; height: 300px;">
+            <canvas id="expenseChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart-Instanzen speichern, um Duplikate zu vermeiden
+    const charts = {};
+
+    const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    };
+
+    // Hilfsfunktion zum Erstellen oder Aktualisieren eines Charts
+    function createOrUpdateChart(canvasId, config) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        // Zerstöre existierenden Chart, falls vorhanden
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+
+        // Erstelle neuen Chart
+        charts[canvasId] = new Chart(canvas, config);
+    }
+
+    // Altersverteilung Chart
+    fetch('/dashboard/api/age-distribution')
+        .then(res => res.json())
+        .then(data => {
+            createOrUpdateChart('ageChart', {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Anzahl Teilnehmer',
+                        data: data.data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Error loading age distribution:', err));
+
+    // Rollen-Verteilung Chart
+    fetch('/dashboard/api/role-distribution')
+        .then(res => res.json())
+        .then(data => {
+            createOrUpdateChart('roleChart', {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.data,
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(139, 92, 246, 0.7)'
+                        ]
+                    }]
+                },
+                options: chartDefaults
+            });
+        })
+        .catch(err => console.error('Error loading role distribution:', err));
+
+    // Zahlungsverlauf Chart
+    fetch('/dashboard/api/payment-timeline')
+        .then(res => res.json())
+        .then(data => {
+            createOrUpdateChart('paymentTimelineChart', {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Kumulierte Zahlungen (€)',
+                        data: data.data,
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error('Error loading payment timeline:', err));
+
+    // Ausgaben Chart
+    fetch('/dashboard/api/expense-categories')
+        .then(res => res.json())
+        .then(data => {
+            createOrUpdateChart('expenseChart', {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.data,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.7)'
+                        ]
+                    }]
+                },
+                options: chartDefaults
+            });
+        })
+        .catch(err => console.error('Error loading expense categories:', err));
+});
+</script>
+{% endblock %}

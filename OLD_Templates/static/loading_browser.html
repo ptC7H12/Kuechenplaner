@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MGBFreizeitplaner - Wird geladen...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-bottom: 0.5rem;
+        }
+
+        .dots {
+            display: inline-block;
+        }
+
+        .dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        .version {
+            position: absolute;
+            bottom: 1rem;
+            opacity: 0.6;
+            font-size: 0.875rem;
+        }
+
+        .error {
+            background: rgba(220, 38, 38, 0.9);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .retry-btn {
+            background: white;
+            color: #1e3a8a;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .retry-btn:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">MGBFreizeitplaner</div>
+        <div class="subtitle">Freizeit-Kassen-System</div>
+        <div class="loader"></div>
+        <div class="status" id="status">Server wird gestartet<span class="dots"></span></div>
+        <div class="error" id="error">
+            <p>Server konnte nicht erreicht werden.</p>
+            <button class="retry-btn" onclick="startPolling()">Erneut versuchen</button>
+        </div>
+    </div>
+    <div class="version" id="version">Initialisiere Datenbank und Dienste...</div>
+
+    <script>
+        // Konfiguration
+        const SERVER_URL = 'http://localhost:8000';
+        const POLL_INTERVAL = 500; // ms
+        const MAX_ATTEMPTS = 120; // 60 Sekunden Timeout
+
+        let attempts = 0;
+        let pollTimer = null;
+        window.serverReady = false;
+
+        function tryLoadScript() {
+            // Entferne vorherige Script-Tags
+            const oldScript = document.getElementById('ready-script');
+            if (oldScript) {
+                oldScript.remove();
+            }
+
+            // Erstelle neues Script-Tag
+            const script = document.createElement('script');
+            script.id = 'ready-script';
+            script.src = SERVER_URL + '/ready.js?t=' + Date.now();
+
+            script.onerror = function() {
+                // Server noch nicht bereit, weiter versuchen
+                attempts++;
+
+                // Status aktualisieren
+                if (attempts > 10) {
+                    document.getElementById('version').textContent =
+                        'Warte auf Server... (' + Math.floor(attempts * POLL_INTERVAL / 1000) + 's)';
+                }
+
+                // Timeout erreicht
+                if (attempts >= MAX_ATTEMPTS) {
+                    if (pollTimer) {
+                        clearInterval(pollTimer);
+                        pollTimer = null;
+                    }
+                    document.getElementById('error').classList.add('show');
+                    document.getElementById('status').textContent = 'Timeout beim Warten auf Server';
+                    document.getElementById('version').textContent = '';
+                }
+            };
+
+            document.head.appendChild(script);
+        }
+
+        function startPolling() {
+            attempts = 0;
+            window.serverReady = false;
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('status').innerHTML = 'Server wird gestartet<span class="dots"></span>';
+            document.getElementById('version').textContent = 'Initialisiere Datenbank und Dienste...';
+
+            if (pollTimer) {
+                clearInterval(pollTimer);
+            }
+
+            // Sofort einmal versuchen
+            tryLoadScript();
+
+            // Dann regelmäßig
+            pollTimer = setInterval(function() {
+                if (!window.serverReady) {
+                    tryLoadScript();
+                }
+            }, POLL_INTERVAL);
+        }
+
+        // Starte Polling wenn Seite geladen
+        window.onload = startPolling;
+    </script>
+</body>
+</html>

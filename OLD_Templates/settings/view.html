@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <!-- Tab Navigation -->
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px px-6" aria-label="Tabs">
+            <button onclick="switchTab('general')" id="tab-general" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                Allgemein
+            </button>
+            <button onclick="switchTab('ruleset')" id="tab-ruleset" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                Regelwerk
+            </button>
+            <button onclick="switchTab('categories')" id="tab-categories" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                Ausgabenkategorien
+            </button>
+        </nav>
+    </div>
+
+    <!-- Tab Content: Allgemein -->
+    <div id="content-general" class="tab-content px-6 py-6 space-y-6">
+        <div class="flex justify-end mb-4">
+            <a href="/settings/edit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                </svg>
+                Bearbeiten
+            </a>
+        </div>
+
+        <!-- Organisation -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Organisation</h3>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Name:</span>
+                    <p class="text-sm text-gray-900 mt-1">{{ setting.organization_name }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Adresse:</span>
+                    <p class="text-sm text-gray-900 mt-1 whitespace-pre-line">{{ setting.organization_address or 'Nicht angegeben' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bankdaten -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Bankdaten</h3>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Kontoinhaber:</span>
+                    <p class="text-sm text-gray-900 mt-1">{{ setting.bank_account_holder }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">IBAN:</span>
+                    <p class="text-sm text-gray-900 mt-1 font-mono">{{ setting.bank_iban }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">BIC:</span>
+                    <p class="text-sm text-gray-900 mt-1 font-mono">{{ setting.bank_bic or 'Nicht angegeben' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rechnungs-Einstellungen -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Rechnungs-Einstellungen</h3>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Betreff-Präfix:</span>
+                    <p class="text-sm text-gray-900 mt-1">{{ setting.invoice_subject_prefix or 'Teilnahme an' }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Fußzeilen-Text:</span>
+                    <p class="text-sm text-gray-900 mt-1">{{ setting.invoice_footer_text or 'Vielen Dank für Ihre Zahlung!' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hinweis -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-700">
+                        Diese Einstellungen gelten für <strong>{{ event.name }}</strong> und werden auf allen generierten Rechnungen angezeigt.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Regelwerk -->
+    <div id="content-ruleset" class="tab-content hidden px-6 py-6 space-y-6">
+        <div class="flex justify-end gap-2 mb-4">
+            <a href="/rulesets/import?source=settings" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Regelwerk importieren
+            </a>
+            <a href="/settings/edit#ruleset" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
+                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                </svg>
+                Bearbeiten
+            </a>
+        </div>
+
+        <!-- Regelwerk-Einstellungen -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Regelwerk-Einstellungen</h3>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div>
+                    <span class="text-sm font-medium text-gray-500">Standard GitHub-Repository:</span>
+                    <p class="text-sm text-gray-900 mt-1 font-mono break-all">{{ setting.default_github_repo or 'Nicht konfiguriert' }}</p>
+                    {% if not setting.default_github_repo %}
+                    <p class="text-xs text-gray-500 mt-1">Wird beim Regelwerk-Import automatisch vorausgefüllt</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Hinweis -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-purple-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-purple-700">
+                        Regelwerk-Einstellungen erleichtern den Import von Preis- und Rollenstrukturen. Konfigurieren Sie ein Standard-Repository für schnelleren Zugriff.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Ausgabenkategorien -->
+    <div id="content-categories" class="tab-content hidden px-6 py-6 space-y-6">
+        <div class="mb-4">
+            <p class="text-sm text-gray-600">Verwalten Sie hier Ihre Ausgabenkategorien. Sie können Kategorien hinzufügen, umbenennen oder löschen.</p>
+        </div>
+
+        <!-- Neue Kategorie hinzufügen -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-900 mb-3">Neue Kategorie hinzufügen</h3>
+            <form id="add-category-form" class="flex gap-2">
+                <input
+                    type="text"
+                    id="new-category-name"
+                    placeholder="Kategoriename eingeben..."
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    required
+                >
+                <button
+                    type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition"
+                >
+                    <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Hinzufügen
+                </button>
+            </form>
+        </div>
+
+        {% if categories %}
+        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Anzahl Ausgaben</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for cat in categories %}
+                    <tr id="category-row-{{ loop.index }}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium text-gray-900" id="category-name-{{ loop.index }}">{{ cat.name }}</span>
+                            <input type="text" id="category-edit-{{ loop.index }}" value="{{ cat.name }}" class="hidden w-full px-3 py-1 border border-gray-300 rounded-md text-sm">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ cat.count }} Ausgabe{{ 'n' if cat.count != 1 else '' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div id="category-actions-{{ loop.index }}" class="space-x-2">
+                                <button onclick="editCategory('{{ loop.index }}', '{{ cat.name }}')" class="text-blue-600 hover:text-blue-900">
+                                    Umbenennen
+                                </button>
+                                <button onclick="deleteCategory('{{ cat.name }}', {{ cat.count }})" class="text-red-600 hover:text-red-900">
+                                    Löschen
+                                </button>
+                            </div>
+                            <div id="category-edit-actions-{{ loop.index }}" class="hidden space-x-2">
+                                <button onclick="saveCategory('{{ loop.index }}', '{{ cat.name }}')" class="text-green-600 hover:text-green-900">
+                                    Speichern
+                                </button>
+                                <button onclick="cancelEdit('{{ loop.index }}')" class="text-gray-600 hover:text-gray-900">
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12 bg-gray-50 rounded-lg">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Kategorien vorhanden</h3>
+            <p class="mt-1 text-sm text-gray-500">Kategorien werden automatisch erstellt, wenn Sie Ausgaben mit neuen Kategorien erfassen.</p>
+        </div>
+        {% endif %}
+
+        <!-- Hinweis -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Hinweis:</strong> Beim Umbenennen einer Kategorie werden alle zugehörigen Ausgaben automatisch aktualisiert. Das Löschen einer Kategorie entfernt nur die Kategoriezuordnung, nicht die Ausgaben selbst.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editCategory(index, currentName) {
+    // Zeige Edit-Feld und verstecke Name
+    document.getElementById('category-name-' + index).classList.add('hidden');
+    document.getElementById('category-edit-' + index).classList.remove('hidden');
+
+    // Tausche Aktionen
+    document.getElementById('category-actions-' + index).classList.add('hidden');
+    document.getElementById('category-edit-actions-' + index).classList.remove('hidden');
+}
+
+function cancelEdit(index) {
+    // Verstecke Edit-Feld und zeige Name
+    document.getElementById('category-name-' + index).classList.remove('hidden');
+    document.getElementById('category-edit-' + index).classList.add('hidden');
+
+    // Tausche Aktionen zurück
+    document.getElementById('category-actions-' + index).classList.remove('hidden');
+    document.getElementById('category-edit-actions-' + index).classList.add('hidden');
+}
+
+async function saveCategory(index, oldName) {
+    const newName = document.getElementById('category-edit-' + index).value.trim();
+
+    if (!newName) {
+        alert('Bitte geben Sie einen Kategorienamen ein.');
+        return;
+    }
+
+    if (newName === oldName) {
+        cancelEdit(index);
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('old_name', oldName);
+        formData.append('new_name', newName);
+
+        const response = await fetch('/settings/categories/rename', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert('Fehler beim Umbenennen: ' + (data.detail || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Umbenennen der Kategorie: ' + error.message);
+    }
+}
+
+async function deleteCategory(name, count) {
+    let confirmMsg = `Möchten Sie die Kategorie "${name}" wirklich löschen?`;
+    if (count > 0) {
+        confirmMsg += `\n\nDie Kategorie wird von ${count} Ausgabe${count != 1 ? 'n' : ''} verwendet. Bei diesen Ausgaben wird die Kategorie auf leer gesetzt.`;
+    }
+
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('name', name);
+
+        const response = await fetch('/settings/categories/delete', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert('Fehler beim Löschen: ' + (data.detail || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Löschen der Kategorie: ' + error.message);
+    }
+}
+
+async function addCategory(event) {
+    event.preventDefault();
+
+    const nameInput = document.getElementById('new-category-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('Bitte geben Sie einen Kategorienamen ein.');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('name', name);
+
+        const response = await fetch('/settings/categories/add', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            // Erfolgreich - Seite neu laden und im Kategorien-Tab bleiben
+            window.location.href = '/settings#categories';
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert('Fehler beim Hinzufügen: ' + (data.detail || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Hinzufügen der Kategorie: ' + error.message);
+    }
+}
+
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    });
+
+    // Show selected tab content
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+
+    // Add active class to selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+    activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+}
+
+// Initialize tabs on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Prüfe zuerst ob URL einen Hash hat und öffne entsprechenden Tab
+    const hash = window.location.hash;
+    if (hash === '#categories') {
+        switchTab('categories');
+    } else if (hash === '#ruleset') {
+        switchTab('ruleset');
+    } else {
+        // Nur wenn kein Hash vorhanden, setze Standard-Tab-Styling
+        // Set initial styling for inactive tabs
+        document.querySelectorAll('.tab-button:not(.active)').forEach(button => {
+            button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        });
+
+        // Set initial styling for active tab
+        const activeTab = document.querySelector('.tab-button.active');
+        if (activeTab) {
+            activeTab.classList.add('border-blue-500', 'text-blue-600');
+        }
+    }
+
+    // Event Listener für "Neue Kategorie hinzufügen" Formular
+    const addCategoryForm = document.getElementById('add-category-form');
+    if (addCategoryForm) {
+        addCategoryForm.addEventListener('submit', addCategory);
+    }
+});
+</script>
+{% endblock %}

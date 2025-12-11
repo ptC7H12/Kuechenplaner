@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800 text-sm">← Zurück</a>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Zahlung erfassen</h2>
+
+    <form method="post" action="/payments/create" class="space-y-6">
+        <!-- Betrag und Datum -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Betrag (€) *</label>
+                <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    step="0.01"
+                    min="0"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+            <div>
+                <label for="payment_date" class="block text-sm font-medium text-gray-700 mb-2">Zahlungsdatum *</label>
+                <input
+                    type="date"
+                    id="payment_date"
+                    name="payment_date"
+                    value="{{ today }}"
+                    required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+        </div>
+
+        <!-- Zahlungsmethode und Referenz -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">Zahlungsmethode</label>
+                <select
+                    id="payment_method"
+                    name="payment_method"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                    <option value="">Bitte wählen</option>
+                    <option value="Bar">Bar</option>
+                    <option value="Überweisung">Überweisung</option>
+                    <option value="PayPal">PayPal</option>
+                    <option value="Lastschrift">Lastschrift</option>
+                </select>
+            </div>
+            <div>
+                <label for="reference" class="block text-sm font-medium text-gray-700 mb-2">Referenz</label>
+                <input
+                    type="text"
+                    id="reference"
+                    name="reference"
+                    placeholder="z.B. Rechnungsnummer"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+            </div>
+        </div>
+
+        <!-- Zuordnung: Teilnehmer ODER Familie -->
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Zuordnung</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="participant_id" class="block text-sm font-medium text-gray-700 mb-2">Teilnehmer</label>
+                    <select
+                        id="participant_id"
+                        name="participant_id"
+                        {% if preselected_participant_id %}disabled{% endif %}
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">Kein Teilnehmer</option>
+                        {% for participant in participants %}
+                        <option value="{{ participant.id }}" {% if preselected_participant_id == participant.id %}selected{% endif %}>
+                            {{ participant.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if preselected_participant_id %}
+                    <input type="hidden" name="participant_id" value="{{ preselected_participant_id }}">
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="family_id" class="block text-sm font-medium text-gray-700 mb-2">Familie</label>
+                    <select
+                        id="family_id"
+                        name="family_id"
+                        {% if preselected_family_id %}disabled{% endif %}
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="">Keine Familie</option>
+                        {% for family in families %}
+                        <option value="{{ family.id }}" {% if preselected_family_id == family.id %}selected{% endif %}>
+                            {{ family.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if preselected_family_id %}
+                    <input type="hidden" name="family_id" value="{{ preselected_family_id }}">
+                    {% endif %}
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500">
+                Wählen Sie entweder einen Teilnehmer oder eine Familie aus.
+            </p>
+        </div>
+
+        <!-- Notizen -->
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notizen</label>
+            <textarea
+                id="notes"
+                name="notes"
+                rows="3"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center justify-end space-x-4 pt-6">
+            <a href="javascript:history.back()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition">
+                Abbrechen
+            </a>
+            <button
+                type="submit"
+                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
+                Zahlung erfassen
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Automatisches Heute-Datum setzen
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('payment_date');
+    if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+
+    // Exklusive Auswahl: Nur Teilnehmer ODER Familie
+    const participantSelect = document.getElementById('participant_id');
+    const familySelect = document.getElementById('family_id');
+
+    participantSelect.addEventListener('change', function() {
+        if (this.value) {
+            familySelect.value = '';
+        }
+    });
+
+    familySelect.addEventListener('change', function() {
+        if (this.value) {
+            participantSelect.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}
