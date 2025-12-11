@@ -118,7 +118,7 @@
                                        class="shopping-item-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
                                        @change="toggleItem('{{ item.ingredient.name }}')"
                                        :checked="checkedItems.includes('{{ item.ingredient.name }}')">
-                                <span class="shopping-item-name ml-3 text-sm text-gray-900 font-medium group-hover:text-blue-600 transition-colors"
+                                <span class="shopping-item-name ml-3 text-sm text-gray-900 font-normal group-hover:text-blue-600 transition-colors"
                                       :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'line-through opacity-60' : ''">
                                     {{ item.ingredient.name }}
                                 </span>
