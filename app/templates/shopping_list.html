@@ -26,49 +26,68 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="stat-card bg-green-50">
-            <div class="flex items-center justify-center">
-                <div class="text-center">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Zutaten Card -->
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
-                    <p class="text-2xl font-black text-green-700 mb-1">{{ total_items }}</p>
-                    <p class="text-xs font-bold text-green-600 uppercase tracking-wide">Zutaten</p>
                 </div>
             </div>
+            <div class="text-2xl font-bold text-green-900 mb-1">{{ total_items }}</div>
+            <div class="text-sm font-medium text-green-700 mb-2">Zutaten</div>
+            <div class="text-xs text-green-600">
+                in der Einkaufsliste
+            </div>
         </div>
-        <div class="stat-card bg-blue-50">
-            <div class="flex items-center justify-center">
-                <div class="text-center">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+        <!-- Kategorien Card -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                     </svg>
-                    <p class="text-2xl font-black text-blue-700 mb-1">{{ categories|length }}</p>
-                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wide">Kategorien</p>
                 </div>
             </div>
+            <div class="text-2xl font-bold text-blue-900 mb-1">{{ categories|length }}</div>
+            <div class="text-sm font-medium text-blue-700 mb-2">Kategorien</div>
+            <div class="text-xs text-blue-600">
+                sortiert nach Gruppen
+            </div>
         </div>
-        <div class="stat-card bg-purple-50">
-            <div class="flex items-center justify-center">
-                <div class="text-center">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+        <!-- Rezepte Card -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
-                    <p class="text-2xl font-black text-purple-700 mb-1">{{ total_recipes }}</p>
-                    <p class="text-xs font-bold text-purple-600 uppercase tracking-wide">Rezepte</p>
                 </div>
             </div>
+            <div class="text-2xl font-bold text-purple-900 mb-1">{{ total_recipes }}</div>
+            <div class="text-sm font-medium text-purple-700 mb-2">Rezepte</div>
+            <div class="text-xs text-purple-600">
+                im Speiseplan
+            </div>
         </div>
-        <div class="stat-card bg-orange-50">
-            <div class="flex items-center justify-center">
-                <div class="text-center">
-                    <svg class="w-10 h-10 mx-auto mb-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+        <!-- Personen Card -->
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
-                    <p class="text-2xl font-black text-orange-700 mb-1">{{ camp.participant_count }}</p>
-                    <p class="text-xs font-bold text-orange-600 uppercase tracking-wide">Personen</p>
                 </div>
+            </div>
+            <div class="text-2xl font-bold text-orange-900 mb-1">{{ camp.participant_count }}</div>
+            <div class="text-sm font-medium text-orange-700 mb-2">Personen</div>
+            <div class="text-xs text-orange-600">
+                {{ camp.name }}
             </div>
         </div>
     </div>
