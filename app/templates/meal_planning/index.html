@@ -2,23 +2,6 @@
 
 {% block title %}Mahlzeitenplanung - {{ current_camp.name }}{% endblock %}
 
-{% block header_actions %}
-<div class="flex items-center space-x-2">
-    <a href="/export/meal-plan/pdf/{{ camp.id }}" class="btn btn-primary btn-sm">
-        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
-        </svg>
-        Plan exportieren (PDF)
-    </a>
-    <a href="/export/recipe-book/pdf/{{ camp.id }}" class="btn btn-secondary btn-sm">
-        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
-        </svg>
-        Rezeptbuch (PDF)
-    </a>
-</div>
-{% endblock %}
-
 {% block content %}
 <div class="space-y-6" x-data="mealPlanning()">
     <!-- Info Card -->
@@ -32,11 +15,25 @@
                 </div>
             </div>
             <div class="flex-1">
-                <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
-                <p class="text-sm text-purple-800 mt-2 leading-relaxed font-medium">
-                    Ziehen Sie Rezepte aus der linken Seitenleiste in den Kalender, um Ihre Mahlzeiten zu planen.
-                    Der Zeitraum umfasst <strong>{{ days|length }} Tage</strong> ({{ camp.start_date.strftime('%d.%m.%Y') }} - {{ camp.end_date.strftime('%d.%m.%Y') }})
-                    für <strong>{{ camp.participant_count }} Personen</strong>.
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
+                    <div class="flex items-center space-x-2">
+                        <a href="/export/meal-plan/pdf/{{ camp.id }}" class="btn btn-primary btn-sm">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
+                            </svg>
+                            Plan exportieren (PDF)
+                        </a>
+                        <a href="/export/recipe-book/pdf/{{ camp.id }}" class="btn btn-secondary btn-sm">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                            </svg>
+                            Rezeptbuch (PDF)
+                        </a>
+                    </div>
+                </div>
+                <p class="text-sm text-purple-700 mt-2 leading-relaxed">
+                    Ziehen Sie Rezepte per Drag & Drop in den Kalender.
                 </p>
             </div>
         </div>
@@ -65,6 +62,23 @@
 
                 <!-- Recipe List -->
                 <div id="recipe-sidebar" class="p-4 space-y-2 max-h-[600px] overflow-y-auto">
+                    <!-- "Kein Essen" Option -->
+                    <div class="recipe-card-draggable bg-gray-100 border-2 border-gray-300"
+                         data-recipe-id="0"
+                         data-recipe-name="Kein Essen">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded flex items-center justify-center mr-2">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-medium text-sm text-gray-700 truncate">Kein Essen</h4>
+                                <p class="text-xs text-gray-500">Keine Mahlzeit geplant</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {% if recipes %}
                         {% for recipe in recipes %}
                         <div class="recipe-card-draggable"
@@ -79,12 +93,11 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-medium text-sm text-gray-900 truncate">{{ recipe.name }}</h4>
+                                    {% if recipe.preparation_time %}
                                     <p class="text-xs text-gray-600">
-                                        {{ recipe.base_servings }} Portionen
-                                        {% if recipe.preparation_time %}
-                                        • {{ recipe.preparation_time + (recipe.cooking_time or 0) }} min
-                                        {% endif %}
+                                        {{ recipe.preparation_time + (recipe.cooking_time or 0) }} min
                                     </p>
+                                    {% endif %}
                                     {% if recipe.tags %}
                                     <div class="flex flex-wrap gap-1 mt-1">
                                         {% for tag in recipe.tags[:2] %}
@@ -175,17 +188,23 @@
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
-                                            <div class="recipe-card-planned"
+                                            <div class="recipe-card-planned {% if not meal_plan.recipe_id %}bg-gray-100 border-2 border-gray-300{% endif %}"
                                                  data-meal-plan-id="{{ meal_plan.id }}"
-                                                 data-recipe-id="{{ meal_plan.recipe_id }}">
+                                                 data-recipe-id="{{ meal_plan.recipe_id or 0 }}">
                                                 <div class="flex items-start justify-between">
                                                     <div class="flex-1 min-w-0">
-                                                        <h4 class="font-bold text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
-                                                        <p class="text-xs text-gray-600 font-medium mt-1">
-                                                            {{ meal_plan.recipe.base_servings }} Portionen
-                                                        </p>
-                                                        {% if meal_plan.notes %}
-                                                        <p class="text-xs text-gray-500 mt-1 italic truncate font-medium">{{ meal_plan.notes }}</p>
+                                                        {% if meal_plan.recipe_id %}
+                                                            <h4 class="font-bold text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
+                                                            {% if meal_plan.notes %}
+                                                            <p class="text-xs text-gray-500 mt-1 italic truncate font-medium">{{ meal_plan.notes }}</p>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <div class="flex items-center">
+                                                                <svg class="w-4 h-4 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                </svg>
+                                                                <h4 class="font-bold text-sm text-gray-700 truncate">Kein Essen</h4>
+                                                            </div>
                                                         {% endif %}
                                                     </div>
                                                     <button @click="deleteMealPlan({{ meal_plan.id }})"
@@ -291,18 +310,20 @@ function mealPlanning() {
 
                             // Make API call to save meal plan
                             try {
+                                const requestBody = {
+                                    camp_id: parseInt(campId),
+                                    recipe_id: recipeId === '0' ? null : parseInt(recipeId),
+                                    meal_date: mealDate + 'T00:00:00',
+                                    meal_type: mealType,
+                                    position: position
+                                };
+
                                 const response = await fetch('/meal-planning/api/meal-plans', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify({
-                                        camp_id: parseInt(campId),
-                                        recipe_id: parseInt(recipeId),
-                                        meal_date: mealDate + 'T00:00:00',
-                                        meal_type: mealType,
-                                        position: position
-                                    })
+                                    body: JSON.stringify(requestBody)
                                 });
 
                                 if (response.ok) {

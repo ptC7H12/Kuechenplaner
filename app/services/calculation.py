@@ -45,20 +45,24 @@ def calculate_shopping_list(db: Session, camp_id: int) -> Dict[str, Any]:
     aggregated = defaultdict(lambda: {'quantity': 0, 'ingredient': None, 'unit': None})
     
     for meal_plan in meal_plans:
+        # Skip "no meal" entries (recipe_id is NULL)
+        if not meal_plan.recipe_id or not meal_plan.recipe:
+            continue
+
         scaled = scale_recipe(meal_plan.recipe, camp.participant_count)
-        
+
         for ingredient_data in scaled['ingredients']:
             ingredient = ingredient_data['ingredient']
             quantity = ingredient_data['quantity']
             unit = ingredient_data['unit']
-            
+
             # Use ingredient ID and unit as key for aggregation
             key = (ingredient.id, unit)
-            
+
             if aggregated[key]['ingredient'] is None:
                 aggregated[key]['ingredient'] = ingredient
                 aggregated[key]['unit'] = unit
-            
+
             aggregated[key]['quantity'] += quantity
     
     # Convert to list and apply unit conversions
@@ -108,10 +112,12 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
     # Count meals by type
     meal_counts = defaultdict(int)
     recipe_ids = set()
-    
+
     for meal_plan in meal_plans:
         meal_counts[meal_plan.meal_type.value] += 1
-        recipe_ids.add(meal_plan.recipe_id)
+        # Only count actual recipes (not "no meal" entries)
+        if meal_plan.recipe_id:
+            recipe_ids.add(meal_plan.recipe_id)
     
     # Calculate total days
     total_days = (camp.end_date - camp.start_date).days + 1
