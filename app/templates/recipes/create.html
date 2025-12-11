@@ -1,0 +1,846 @@
+{% extends "base.html" %}
+
+{% block title %}Rezept erstellen - {{ current_camp.name }}{% endblock %}
+
+{% block page_title %}Neues Rezept erstellen{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="/recipes/" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Zurück zur Rezeptliste
+        </a>
+    </div>
+
+    <!-- Recipe Form -->
+    <form
+        id="recipe-form"
+        x-data="recipeForm()"
+        x-init="init()"
+        @submit.prevent="submitForm"
+        class="space-y-6"
+    >
+        <!-- Section 1: Grundinformationen -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title flex items-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold mr-3 text-sm">1</span>
+                    Grundinformationen
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Name -->
+                <div class="form-group">
+                    <label for="name" class="form-label">
+                        Name des Rezepts <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        x-model="formData.name"
+                        @input="saveToLocalStorage"
+                        class="form-input"
+                        placeholder="z.B. Spaghetti Bolognese"
+                        required
+                    >
+                    <p x-show="errors.name" x-text="errors.name" class="form-error"></p>
+                </div>
+
+                <!-- Beschreibung -->
+                <div class="form-group">
+                    <label for="description" class="form-label">Beschreibung</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        x-model="formData.description"
+                        @input="saveToLocalStorage"
+                        class="form-textarea"
+                        rows="3"
+                        placeholder="Kurze Beschreibung des Rezepts..."
+                    ></textarea>
+                </div>
+
+                <!-- Portionen -->
+                <div class="form-group">
+                    <label for="base_servings" class="form-label">
+                        Anzahl Portionen (Standard) <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="number"
+                        id="base_servings"
+                        name="base_servings"
+                        x-model.number="formData.base_servings"
+                        @input="saveToLocalStorage"
+                        class="form-input"
+                        min="1"
+                        value="30"
+                        required
+                    >
+                    <p class="form-help">Für wie viele Personen ist dieses Rezept ausgelegt?</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Zeiten -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title flex items-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold mr-3 text-sm">2</span>
+                    Zeiten
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Vorbereitungszeit -->
+                <div class="form-group">
+                    <label for="preparation_time" class="form-label">Vorbereitungszeit (Minuten)</label>
+                    <input
+                        type="number"
+                        id="preparation_time"
+                        name="preparation_time"
+                        x-model.number="formData.preparation_time"
+                        @input="saveToLocalStorage"
+                        class="form-input"
+                        min="0"
+                        placeholder="z.B. 15"
+                    >
+                </div>
+
+                <!-- Kochzeit -->
+                <div class="form-group">
+                    <label for="cooking_time" class="form-label">Kochzeit (Minuten)</label>
+                    <input
+                        type="number"
+                        id="cooking_time"
+                        name="cooking_time"
+                        x-model.number="formData.cooking_time"
+                        @input="saveToLocalStorage"
+                        class="form-input"
+                        min="0"
+                        placeholder="z.B. 30"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Zutaten -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title flex items-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold mr-3 text-sm">3</span>
+                    Zutaten <span class="text-red-500">*</span>
+                </h2>
+            </div>
+
+            <!-- Ingredient Add Form -->
+            <div class="bg-gray-50 rounded-xl p-6 mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Zutat hinzufügen</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <!-- Zutat (Autocomplete) -->
+                    <div class="md:col-span-5 relative" x-data="ingredientAutocomplete()">
+                        <label class="form-label">Zutat <span class="text-red-500">*</span></label>
+                        <input
+                            type="text"
+                            x-model="search"
+                            @input.debounce.300ms="searchIngredients"
+                            @focus="showSuggestions = search.length >= 1"
+                            @keydown.down.prevent="navigateDown"
+                            @keydown.up.prevent="navigateUp"
+                            @keydown.enter.prevent="selectCurrent"
+                            @keydown.escape="showSuggestions = false"
+                            class="form-input"
+                            placeholder="Zutat eingeben..."
+                        >
+
+                        <!-- Autocomplete Dropdown -->
+                        <div
+                            x-show="showSuggestions && suggestions.length > 0"
+                            x-cloak
+                            @click.away="showSuggestions = false"
+                            class="absolute z-50 w-full mt-2 bg-white border-2 border-gray-300 rounded-lg shadow-xl max-h-80 overflow-auto"
+                        >
+                            <template x-for="(suggestion, index) in suggestions" :key="suggestion.id">
+                                <div
+                                    @click="selectSuggestion(suggestion)"
+                                    :class="selectedIndex === index ? 'bg-indigo-100' : 'hover:bg-gray-50'"
+                                    class="px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="font-bold text-gray-900" x-text="suggestion.name"></p>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                <span class="inline-flex items-center">
+                                                    <span class="font-semibold" x-text="suggestion.category"></span>
+                                                    <span class="mx-2">•</span>
+                                                    <span x-text="suggestion.usage_count + 'x verwendet'"></span>
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <span class="text-sm text-gray-600 ml-4" x-text="suggestion.unit"></span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Option: New Ingredient -->
+                            <div
+                                @click="openNewIngredientModal"
+                                class="px-4 py-3 cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors border-t-2 border-indigo-200"
+                            >
+                                <p class="text-indigo-700 font-bold flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    "<span x-text="search"></span>" als neue Zutat hinzufügen
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menge -->
+                    <div class="md:col-span-3">
+                        <label class="form-label">Menge <span class="text-red-500">*</span></label>
+                        <input
+                            type="number"
+                            x-model.number="currentIngredient.quantity"
+                            class="form-input"
+                            step="0.1"
+                            min="0"
+                            placeholder="500"
+                        >
+                    </div>
+
+                    <!-- Einheit -->
+                    <div class="md:col-span-3">
+                        <label class="form-label">Einheit <span class="text-red-500">*</span></label>
+                        <select
+                            x-model="currentIngredient.unit"
+                            @change="if ($event.target.value === 'custom') { currentIngredient.unit = ''; $nextTick(() => $refs.customUnit.focus()); }"
+                            class="form-select"
+                        >
+                            <option value="">Bitte wählen...</option>
+                            <option value="g">g (Gramm)</option>
+                            <option value="kg">kg (Kilogramm)</option>
+                            <option value="ml">ml (Milliliter)</option>
+                            <option value="L">L (Liter)</option>
+                            <option value="Stück">Stück</option>
+                            <option value="EL">EL (Esslöffel)</option>
+                            <option value="TL">TL (Teelöffel)</option>
+                            <option value="Prise">Prise</option>
+                            <option value="Bund">Bund</option>
+                            <option value="Dose">Dose</option>
+                            <option value="Packung">Packung</option>
+                            <option value="custom">➕ Eigene Einheit...</option>
+                        </select>
+                        <!-- Custom Unit Input -->
+                        <input
+                            x-show="currentIngredient.unit === ''"
+                            x-ref="customUnit"
+                            type="text"
+                            @input="currentIngredient.customUnit = $event.target.value"
+                            class="form-input mt-2"
+                            placeholder="Eigene Einheit eingeben"
+                        >
+                    </div>
+
+                    <!-- Add Button -->
+                    <div class="md:col-span-1 flex items-end">
+                        <button
+                            type="button"
+                            @click="addIngredient"
+                            class="btn btn-primary w-full h-12"
+                            :disabled="!canAddIngredient()"
+                        >
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ingredients List (Sortable) -->
+            <div x-show="formData.ingredients.length > 0" x-cloak>
+                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                    </svg>
+                    Zutatenliste (<span x-text="formData.ingredients.length"></span>)
+                </h3>
+
+                <!-- Grouped by Category -->
+                <div id="ingredients-container" class="space-y-4">
+                    <template x-for="category in getIngredientCategories()" :key="category">
+                        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200">
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide" x-text="category"></h4>
+                            <div class="space-y-2" :data-category="category">
+                                <template x-for="(ingredient, index) in getIngredientsByCategory(category)" :key="index">
+                                    <div
+                                        class="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-indigo-300 transition-all cursor-move flex items-center justify-between shadow-sm hover:shadow-md"
+                                        :data-ingredient-index="formData.ingredients.indexOf(ingredient)"
+                                    >
+                                        <div class="flex items-center flex-1">
+                                            <!-- Drag Handle -->
+                                            <svg class="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                                            </svg>
+
+                                            <!-- Ingredient Info -->
+                                            <div class="flex-1">
+                                                <p class="font-bold text-gray-900" x-text="ingredient.name"></p>
+                                                <p class="text-sm text-gray-600" x-text="ingredient.quantity + ' ' + ingredient.unit"></p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Delete Button -->
+                                        <button
+                                            type="button"
+                                            @click="removeIngredient(formData.ingredients.indexOf(ingredient))"
+                                            class="ml-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- No Ingredients Message -->
+            <div x-show="formData.ingredients.length === 0" x-cloak class="alert alert-info">
+                <p class="text-sm">Noch keine Zutaten hinzugefügt. Fügen Sie mindestens eine Zutat hinzu.</p>
+            </div>
+
+            <p x-show="errors.ingredients" x-text="errors.ingredients" class="form-error mt-4"></p>
+        </div>
+
+        <!-- Section 4: Zubereitung -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title flex items-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold mr-3 text-sm">4</span>
+                    Zubereitung <span class="text-red-500">*</span>
+                </h2>
+            </div>
+
+            <div class="form-group">
+                <label for="instructions" class="form-label">Anleitung</label>
+                <textarea
+                    id="instructions"
+                    name="instructions"
+                    x-model="formData.instructions"
+                    @input="saveToLocalStorage"
+                    class="form-textarea"
+                    rows="10"
+                    placeholder="Beschreiben Sie die Zubereitungsschritte..."
+                    required
+                ></textarea>
+                <p class="form-help">Geben Sie eine detaillierte Schritt-für-Schritt-Anleitung ein.</p>
+                <p x-show="errors.instructions" x-text="errors.instructions" class="form-error"></p>
+            </div>
+        </div>
+
+        <!-- Section 5: Zusätzliche Informationen -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title flex items-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 font-bold mr-3 text-sm">5</span>
+                    Zusätzliche Informationen
+                </h2>
+            </div>
+
+            <div class="space-y-6">
+                <!-- Tags -->
+                <div class="form-group">
+                    <label class="form-label">Tags & Kategorien</label>
+                    <div class="flex flex-wrap gap-3">
+                        {% for tag in tags %}
+                        <label class="flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="tags"
+                                value="{{ tag.id }}"
+                                x-model="formData.tag_ids"
+                                @change="saveToLocalStorage"
+                                class="form-checkbox mr-2"
+                            >
+                            <span class="badge" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border-color: {{ tag.color }}40;">
+                                {{ tag.name }}
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Allergen Notes -->
+                <div class="form-group">
+                    <label for="allergen_notes" class="form-label">Allergen-Hinweise</label>
+                    <textarea
+                        id="allergen_notes"
+                        name="allergen_notes"
+                        x-model="formData.allergen_notes"
+                        @input="saveToLocalStorage"
+                        class="form-textarea"
+                        rows="3"
+                        placeholder="Hinweise zu Allergenen..."
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">
+                        <span class="text-red-500">*</span> Pflichtfelder
+                    </p>
+                    <p x-show="autoSaveStatus" x-text="autoSaveStatus" class="text-xs text-gray-500 mt-1"></p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/recipes/" class="btn btn-secondary">
+                        Abbrechen
+                    </a>
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        :disabled="isSubmitting"
+                    >
+                        <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span x-show="!isSubmitting">Rezept speichern</span>
+                        <span x-show="isSubmitting">Speichern...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- New Ingredient Modal -->
+    <div
+        x-data="{ showModal: false }"
+        @open-new-ingredient-modal.window="showModal = true"
+        @close-new-ingredient-modal.window="showModal = false"
+        x-show="showModal"
+        x-cloak
+        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        @click.self="showModal = false"
+    >
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" @click.stop>
+            <div class="modal-header">
+                <h3 class="modal-title">Neue Zutat erstellen</h3>
+                <button @click="showModal = false" class="modal-close">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form @submit.prevent="createNewIngredient" x-data="newIngredientForm()">
+                <div class="space-y-4">
+                    <div class="form-group">
+                        <label class="form-label">Name <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="newIngredient.name" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Einheit <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="newIngredient.unit" class="form-input" placeholder="z.B. kg, g, L..." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Kategorie <span class="text-red-500">*</span></label>
+                        <select x-model="newIngredient.category" class="form-select" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="Gemüse">Gemüse</option>
+                            <option value="Obst">Obst</option>
+                            <option value="Fleisch">Fleisch</option>
+                            <option value="Fisch">Fisch</option>
+                            <option value="Milchprodukte">Milchprodukte</option>
+                            <option value="Backwaren">Backwaren</option>
+                            <option value="Getreide">Getreide</option>
+                            <option value="Gewürze">Gewürze</option>
+                            <option value="Öle & Fette">Öle & Fette</option>
+                            <option value="Sonstiges">Sonstiges</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" @click="showModal = false" class="btn btn-secondary">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Erstellen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Autocomplete Component
+function ingredientAutocomplete() {
+    return {
+        search: '',
+        suggestions: [],
+        showSuggestions: false,
+        selectedIndex: -1,
+
+        async searchIngredients() {
+            if (this.search.length < 1) {
+                this.suggestions = [];
+                this.showSuggestions = false;
+                return;
+            }
+
+            try {
+                const response = await fetch(`/recipes/api/ingredients/search?q=${encodeURIComponent(this.search)}`);
+                this.suggestions = await response.json();
+                this.showSuggestions = true;
+                this.selectedIndex = -1;
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        },
+
+        selectSuggestion(suggestion) {
+            Alpine.store('recipeForm').selectIngredient(suggestion);
+            this.search = '';
+            this.suggestions = [];
+            this.showSuggestions = false;
+        },
+
+        navigateDown() {
+            if (this.selectedIndex < this.suggestions.length - 1) {
+                this.selectedIndex++;
+            }
+        },
+
+        navigateUp() {
+            if (this.selectedIndex > 0) {
+                this.selectedIndex--;
+            }
+        },
+
+        selectCurrent() {
+            if (this.selectedIndex >= 0 && this.selectedIndex < this.suggestions.length) {
+                this.selectSuggestion(this.suggestions[this.selectedIndex]);
+            }
+        },
+
+        openNewIngredientModal() {
+            window.dispatchEvent(new CustomEvent('open-new-ingredient-modal', {
+                detail: { name: this.search }
+            }));
+        }
+    };
+}
+
+// New Ingredient Form
+function newIngredientForm() {
+    return {
+        newIngredient: {
+            name: '',
+            unit: '',
+            category: ''
+        },
+
+        init() {
+            window.addEventListener('open-new-ingredient-modal', (e) => {
+                this.newIngredient.name = e.detail?.name || '';
+            });
+        },
+
+        async createNewIngredient() {
+            try {
+                const formData = new FormData();
+                formData.append('name', this.newIngredient.name);
+                formData.append('unit', this.newIngredient.unit);
+                formData.append('category', this.newIngredient.category);
+
+                const response = await fetch('/recipes/api/ingredients/quick-create', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const ingredient = await response.json();
+                    Alpine.store('recipeForm').selectIngredient(ingredient);
+
+                    // Close modal
+                    window.dispatchEvent(new CustomEvent('close-new-ingredient-modal'));
+
+                    // Reset form
+                    this.newIngredient = { name: '', unit: '', category: '' };
+
+                    FreizeitApp.showToast('Zutat erfolgreich erstellt!', 'success');
+                } else {
+                    const error = await response.json();
+                    FreizeitApp.showToast(error.error || 'Fehler beim Erstellen der Zutat', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating ingredient:', error);
+                FreizeitApp.showToast('Fehler beim Erstellen der Zutat', 'error');
+            }
+        }
+    };
+}
+
+// Main Recipe Form
+function recipeForm() {
+    return {
+        formData: {
+            name: '',
+            description: '',
+            base_servings: 30,
+            preparation_time: null,
+            cooking_time: null,
+            instructions: '',
+            ingredients: [],
+            tag_ids: [],
+            allergen_notes: ''
+        },
+        currentIngredient: {
+            id: null,
+            name: '',
+            quantity: null,
+            unit: '',
+            customUnit: '',
+            category: ''
+        },
+        errors: {},
+        isSubmitting: false,
+        autoSaveStatus: '',
+        sortable: null,
+
+        init() {
+            // Load from LocalStorage
+            this.loadFromLocalStorage();
+
+            // Initialize Sortable.js for drag & drop
+            this.$nextTick(() => {
+                this.initializeSortable();
+            });
+
+            // Watch for ingredient changes to re-init sortable
+            this.$watch('formData.ingredients', () => {
+                this.$nextTick(() => {
+                    this.initializeSortable();
+                });
+            });
+        },
+
+        initializeSortable() {
+            const categories = this.getIngredientCategories();
+
+            categories.forEach(category => {
+                const container = document.querySelector(`[data-category="${category}"]`);
+                if (container && !container.sortableInstance) {
+                    const sortableInstance = Sortable.create(container, {
+                        animation: 200,
+                        handle: 'svg',
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        onEnd: (evt) => {
+                            // Get all ingredients in this category
+                            const categoryIngredients = this.getIngredientsByCategory(category);
+
+                            // Reorder
+                            const [movedItem] = categoryIngredients.splice(evt.oldIndex, 1);
+                            categoryIngredients.splice(evt.newIndex, 0, movedItem);
+
+                            // Update main array
+                            this.formData.ingredients = this.formData.ingredients.filter(
+                                ing => ing.category !== category
+                            ).concat(categoryIngredients);
+
+                            this.saveToLocalStorage();
+                        }
+                    });
+                    container.sortableInstance = sortableInstance;
+                }
+            });
+        },
+
+        selectIngredient(ingredient) {
+            this.currentIngredient = {
+                id: ingredient.id,
+                name: ingredient.name,
+                quantity: null,
+                unit: ingredient.unit,
+                customUnit: '',
+                category: ingredient.category
+            };
+        },
+
+        canAddIngredient() {
+            return this.currentIngredient.id &&
+                   this.currentIngredient.quantity > 0 &&
+                   (this.currentIngredient.unit !== '' || this.currentIngredient.customUnit !== '');
+        },
+
+        addIngredient() {
+            if (!this.canAddIngredient()) return;
+
+            const finalUnit = this.currentIngredient.unit === ''
+                ? this.currentIngredient.customUnit
+                : this.currentIngredient.unit;
+
+            this.formData.ingredients.push({
+                ingredient_id: this.currentIngredient.id,
+                name: this.currentIngredient.name,
+                quantity: this.currentIngredient.quantity,
+                unit: finalUnit,
+                category: this.currentIngredient.category
+            });
+
+            // Reset current ingredient
+            this.currentIngredient = {
+                id: null,
+                name: '',
+                quantity: null,
+                unit: '',
+                customUnit: '',
+                category: ''
+            };
+
+            this.saveToLocalStorage();
+        },
+
+        removeIngredient(index) {
+            this.formData.ingredients.splice(index, 1);
+            this.saveToLocalStorage();
+        },
+
+        getIngredientCategories() {
+            const categories = [...new Set(this.formData.ingredients.map(i => i.category))];
+            return categories.sort();
+        },
+
+        getIngredientsByCategory(category) {
+            return this.formData.ingredients.filter(i => i.category === category);
+        },
+
+        validateForm() {
+            this.errors = {};
+
+            if (!this.formData.name || this.formData.name.trim() === '') {
+                this.errors.name = 'Name ist erforderlich';
+            }
+
+            if (this.formData.ingredients.length === 0) {
+                this.errors.ingredients = 'Mindestens eine Zutat ist erforderlich';
+            }
+
+            if (!this.formData.instructions || this.formData.instructions.trim() === '') {
+                this.errors.instructions = 'Anleitung ist erforderlich';
+            }
+
+            return Object.keys(this.errors).length === 0;
+        },
+
+        async submitForm() {
+            if (!this.validateForm()) {
+                FreizeitApp.showToast('Bitte füllen Sie alle Pflichtfelder aus', 'error');
+                return;
+            }
+
+            this.isSubmitting = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('name', this.formData.name);
+                formData.append('description', this.formData.description || '');
+                formData.append('base_servings', this.formData.base_servings);
+                formData.append('preparation_time', this.formData.preparation_time || '');
+                formData.append('cooking_time', this.formData.cooking_time || '');
+                formData.append('instructions', this.formData.instructions);
+                formData.append('allergen_notes', this.formData.allergen_notes || '');
+
+                // Add ingredients as JSON
+                formData.append('ingredients', JSON.stringify(
+                    this.formData.ingredients.map(ing => ({
+                        ingredient_id: ing.ingredient_id,
+                        quantity: ing.quantity,
+                        unit: ing.unit
+                    }))
+                ));
+
+                // Add tags
+                formData.append('tag_ids', JSON.stringify(this.formData.tag_ids));
+
+                const response = await fetch('/recipes/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    FreizeitApp.showToast('Rezept erfolgreich erstellt!', 'success');
+
+                    // Clear localStorage
+                    localStorage.removeItem('recipe_draft');
+
+                    // Redirect to recipe list
+                    setTimeout(() => {
+                        window.location.href = '/recipes/';
+                    }, 1000);
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (error) {
+                console.error('Submit failed:', error);
+                FreizeitApp.showToast('Fehler beim Speichern des Rezepts', 'error');
+            } finally {
+                this.isSubmitting = false;
+            }
+        },
+
+        saveToLocalStorage() {
+            localStorage.setItem('recipe_draft', JSON.stringify(this.formData));
+            this.autoSaveStatus = 'Entwurf gespeichert um ' + new Date().toLocaleTimeString();
+
+            setTimeout(() => {
+                this.autoSaveStatus = '';
+            }, 3000);
+        },
+
+        loadFromLocalStorage() {
+            const draft = localStorage.getItem('recipe_draft');
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft);
+                    if (confirm('Es wurde ein Entwurf gefunden. Möchten Sie diesen wiederherstellen?')) {
+                        this.formData = parsed;
+                    } else {
+                        localStorage.removeItem('recipe_draft');
+                    }
+                } catch (error) {
+                    console.error('Failed to load draft:', error);
+                }
+            }
+        }
+    };
+}
+
+// Make recipeForm available globally for ingredient autocomplete
+Alpine.store('recipeForm', {
+    selectIngredient(ingredient) {
+        const formComponent = document.querySelector('[x-data*="recipeForm"]').__x.$data;
+        formComponent.selectIngredient(ingredient);
+    }
+});
+</script>
+{% endblock %}

@@ -13,6 +13,8 @@ qrcode[pil]==8.2
 openpyxl==3.1.5
 pyyaml==6.0.2
 python-dotenv==1.0.1
+thefuzz==0.22.1
+python-Levenshtein==0.27.3
 nuitka>=2.0
 ordered-set
 zstandard
