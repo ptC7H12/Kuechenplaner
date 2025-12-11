@@ -117,7 +117,7 @@ class MealPlan(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     camp_id = Column(Integer, ForeignKey('camps.id'), nullable=False, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'), nullable=False, index=True)
+    recipe_id = Column(Integer, ForeignKey('recipes.id'), nullable=True, index=True)  # nullable for "no meal" entries
     meal_date = Column(DateTime, nullable=False, index=True)
     meal_type = Column(Enum(MealType), nullable=False, index=True)
     position = Column(Integer, default=0)  # for multiple recipes per slot

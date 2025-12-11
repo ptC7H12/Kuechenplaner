@@ -136,7 +136,7 @@ class Recipe(RecipeBase):
 
 # Meal Plan schemas
 class MealPlanBase(BaseModel):
-    recipe_id: int
+    recipe_id: Optional[int] = None  # Optional for "no meal" entries
     meal_date: datetime
     meal_type: MealType
     position: int = 0
@@ -152,7 +152,7 @@ class MealPlanUpdate(BaseModel):
 class MealPlan(MealPlanBase):
     id: int
     camp_id: int
-    recipe: Recipe
+    recipe: Optional[Recipe] = None  # Optional for "no meal" entries
     created_at: datetime
     updated_at: datetime
 

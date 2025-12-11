@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 import os
+import locale
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -37,8 +38,22 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 # Create database tables on startup
 @app.on_event("startup")
 async def startup_event():
+    # Set German locale for date formatting
+    try:
+        locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
+    except locale.Error:
+        try:
+            # Try alternative German locale names
+            locale.setlocale(locale.LC_TIME, 'de_DE')
+        except locale.Error:
+            try:
+                locale.setlocale(locale.LC_TIME, 'German')
+            except locale.Error:
+                # If all fail, continue without locale (will fall back to English)
+                pass
+
     create_tables()
-    
+
     # Initialize default settings and sample data
     db = next(get_db())
     try:
