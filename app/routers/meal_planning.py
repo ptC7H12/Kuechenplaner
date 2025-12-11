@@ -87,10 +87,11 @@ async def create_meal_plan(
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
 
-    # Verify recipe exists
-    recipe = crud.get_recipe(db, meal_plan.recipe_id)
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
+    # Verify recipe exists (only if recipe_id is provided)
+    if meal_plan.recipe_id is not None:
+        recipe = crud.get_recipe(db, meal_plan.recipe_id)
+        if not recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
 
     return crud.create_meal_plan(db, meal_plan)
 
