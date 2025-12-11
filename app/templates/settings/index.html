@@ -55,35 +55,36 @@
                             </p>
                         </div>
 
-                        <!-- Current Camp -->
-                        <div class="border border-primary-200 bg-primary-50 rounded-lg p-4">
+                        <!-- Current Camp Card -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-md">
                             <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-primary-900">{{ current_camp.name }}</h3>
-                                    <p class="text-sm text-primary-700">Aktuelle Freizeit</p>
+                                <div class="flex items-center space-x-4">
+                                    <div class="p-3 bg-white rounded-xl shadow-sm">
+                                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-blue-900">{{ current_camp.name }}</h3>
+                                        <p class="text-sm text-blue-700 mt-1">
+                                            <span class="inline-flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                </svg>
+                                                {{ current_camp.participant_count }} Teilnehmer
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
-                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition"
+                                    class="btn btn-primary"
                                 >
                                     <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                     </svg>
                                     Bearbeiten
                                 </button>
-                            </div>
-                        </div>
-
-                        <!-- Other Camps -->
-                        <div class="space-y-3">
-                            <h4 class="font-medium text-gray-900">Andere Freizeiten</h4>
-                            <div class="text-center py-8 text-gray-500">
-                                <a href="/select-camp" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 transition">
-                                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                                    </svg>
-                                    Zur Freizeitauswahl
-                                </a>
                             </div>
                         </div>
                     </div>
