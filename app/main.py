@@ -152,7 +152,7 @@ async def dashboard(context = Depends(get_template_context)):
 
 # Include routers
 app.include_router(camps.router, prefix="/api/camps", tags=["camps"])
-app.include_router(recipes_router.router, prefix="/api/recipes", tags=["recipes"])
+app.include_router(recipes_router.router, prefix="/recipes", tags=["recipes"])
 app.include_router(allergens.router, prefix="/api/allergens", tags=["allergens"])
 app.include_router(meal_planning.router, prefix="/meal-planning", tags=["meal-planning"])
 app.include_router(shopping_list.router, prefix="/shopping-list", tags=["shopping-list"])

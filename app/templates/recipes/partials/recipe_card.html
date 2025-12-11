@@ -9,8 +9,8 @@
             >
                 👁️
             </button>
-            <button 
-                hx-delete="/api/recipes/{{ recipe.id }}"
+            <button
+                hx-delete="/recipes/{{ recipe.id }}"
                 hx-confirm="Sind Sie sicher, dass Sie das Rezept '{{ recipe.name }}' löschen möchten?"
                 hx-target="closest .recipe-card"
                 hx-swap="outerHTML"
