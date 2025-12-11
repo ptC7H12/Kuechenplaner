@@ -174,6 +174,53 @@ def get_or_create_ingredient(db: Session, name: str, unit: str, category: str):
         db_ingredient = create_ingredient(db, ingredient_data)
     return db_ingredient
 
+def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10):
+    """Search ingredients using fuzzy matching with usage count"""
+    from thefuzz import fuzz
+    from sqlalchemy import func
+
+    if not query or len(query) < 1:
+        return []
+
+    # Get all ingredients with usage count
+    ingredients_with_count = db.query(
+        models.Ingredient,
+        func.count(models.RecipeIngredient.id).label('usage_count')
+    ).outerjoin(
+        models.RecipeIngredient,
+        models.Ingredient.id == models.RecipeIngredient.ingredient_id
+    ).group_by(models.Ingredient.id).all()
+
+    # Calculate fuzzy scores
+    results = []
+    query_lower = query.lower()
+
+    for ingredient, usage_count in ingredients_with_count:
+        name_lower = ingredient.name.lower()
+
+        # Calculate different match scores
+        exact_match = 100 if query_lower == name_lower else 0
+        starts_with = 95 if name_lower.startswith(query_lower) else 0
+        contains = 85 if query_lower in name_lower else 0
+        fuzzy_score = fuzz.partial_ratio(query_lower, name_lower)
+
+        # Best score wins
+        best_score = max(exact_match, starts_with, contains, fuzzy_score)
+
+        # Only include if score is reasonable
+        if best_score >= 60:
+            results.append({
+                'ingredient': ingredient,
+                'score': best_score,
+                'usage_count': usage_count or 0
+            })
+
+    # Sort by score (desc), then by usage_count (desc), then by name (asc)
+    results.sort(key=lambda x: (-x['score'], -x['usage_count'], x['ingredient'].name))
+
+    # Return top N ingredients
+    return [r['ingredient'] for r in results[:limit]]
+
 # Tag CRUD operations
 def get_tag(db: Session, tag_id: int):
     return db.query(models.Tag).filter(models.Tag.id == tag_id).first()

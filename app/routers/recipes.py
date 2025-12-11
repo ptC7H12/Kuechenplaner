@@ -63,17 +63,30 @@ async def create_recipe(
     name: str = Form(...),
     description: Optional[str] = Form(None),
     base_servings: int = Form(...),
-    instructions: Optional[str] = Form(None),
+    instructions: str = Form(...),
     preparation_time: Optional[int] = Form(None),
     cooking_time: Optional[int] = Form(None),
-    allergens: Optional[str] = Form(None),
     allergen_notes: Optional[str] = Form(None),
+    ingredients: str = Form(...),  # JSON string
+    tag_ids: str = Form("[]"),  # JSON string
     context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
     """Create a new recipe"""
-    
+
     try:
+        import json
+
+        # Parse JSON strings
+        ingredients_list = json.loads(ingredients)
+        tag_ids_list = json.loads(tag_ids)
+
+        # Convert ingredients to RecipeIngredientCreate objects
+        ingredient_objects = [
+            schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
+        ]
+
+        # Create recipe data
         recipe_data = schemas.RecipeCreate(
             name=name,
             description=description,
@@ -81,16 +94,20 @@ async def create_recipe(
             instructions=instructions,
             preparation_time=preparation_time,
             cooking_time=cooking_time,
-            allergens=allergens,
-            allergen_notes=allergen_notes
+            allergen_notes=allergen_notes,
+            ingredients=ingredient_objects,
+            tag_ids=tag_ids_list
         )
-        
+
+        # Create recipe in database
         recipe = crud.create_recipe(db, recipe_data)
-        
-        # Return the new recipe card HTML
-        context.update({"recipe": recipe})
-        return templates.TemplateResponse("recipes/partials/recipe_card.html", context)
-        
+
+        # Redirect to recipe detail page
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=303)
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON data: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -201,3 +218,83 @@ async def search_recipes(
         ]
 
     return recipes
+
+@router.get("/api/ingredients/search")
+async def search_ingredients(
+    q: str,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """Search ingredients with fuzzy matching for autocomplete"""
+
+    if not q or len(q) < 1:
+        return []
+
+    # Use fuzzy search from crud
+    ingredients = crud.search_ingredients_fuzzy(db, q, limit=limit)
+
+    # Calculate usage count for each ingredient
+    from sqlalchemy import func
+    usage_counts = {}
+    for ingredient in ingredients:
+        count = db.query(func.count(models.RecipeIngredient.id)).filter(
+            models.RecipeIngredient.ingredient_id == ingredient.id
+        ).scalar()
+        usage_counts[ingredient.id] = count
+
+    # Return formatted results
+    return [
+        {
+            "id": ingredient.id,
+            "name": ingredient.name,
+            "unit": ingredient.unit,
+            "category": ingredient.category,
+            "usage_count": usage_counts.get(ingredient.id, 0)
+        }
+        for ingredient in ingredients
+    ]
+
+@router.post("/api/ingredients/quick-create")
+async def quick_create_ingredient(
+    name: str = Form(...),
+    unit: str = Form(...),
+    category: str = Form("Sonstiges"),
+    db: Session = Depends(get_db)
+):
+    """Quick create a new ingredient during recipe creation"""
+
+    try:
+        # Check if ingredient already exists
+        existing = db.query(models.Ingredient).filter(
+            models.Ingredient.name == name
+        ).first()
+
+        if existing:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Zutat existiert bereits", "ingredient": {
+                    "id": existing.id,
+                    "name": existing.name,
+                    "unit": existing.unit,
+                    "category": existing.category
+                }}
+            )
+
+        # Create new ingredient
+        ingredient_data = schemas.IngredientCreate(
+            name=name,
+            unit=unit,
+            category=category
+        )
+        new_ingredient = crud.create_ingredient(db, ingredient_data)
+
+        return {
+            "id": new_ingredient.id,
+            "name": new_ingredient.name,
+            "unit": new_ingredient.unit,
+            "category": new_ingredient.category,
+            "usage_count": 0
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
