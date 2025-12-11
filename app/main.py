@@ -1,12 +1,15 @@
 import uvicorn
-import webview
 from threading import Thread
+import os
+
+# Only import webview if not in development mode
+if not os.environ.get("DEVELOPMENT"):
+    import webview
 from fastapi import FastAPI, Request, Depends, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-import os
 import locale
 from pathlib import Path
 from datetime import datetime, timedelta

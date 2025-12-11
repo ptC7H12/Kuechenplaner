@@ -5,6 +5,7 @@ from datetime import datetime
 from io import BytesIO
 import os
 from pathlib import Path
+import locale
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -13,6 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
@@ -23,9 +25,19 @@ from app.services.calculation import calculate_shopping_list, get_camp_statistic
 
 router = APIRouter()
 
-# Register fonts for PDF (for German umlauts support)
-# Note: In production, you'd want to use a proper font file
-# For now, we'll use the default fonts which have limited Unicode support
+# Helper function to get German weekday names
+def get_german_weekday(date):
+    """Get German weekday name for a date"""
+    weekdays = {
+        0: "Montag",
+        1: "Dienstag",
+        2: "Mittwoch",
+        3: "Donnerstag",
+        4: "Freitag",
+        5: "Samstag",
+        6: "Sonntag"
+    }
+    return weekdays.get(date.weekday(), date.strftime('%A'))
 
 @router.get("/shopping-list/pdf/{camp_id}")
 async def export_shopping_list_pdf(
@@ -264,9 +276,10 @@ async def export_meal_plan_pdf(
     while current_date <= camp.end_date:
         date_key = current_date.date()
 
-        # Date heading
+        # Date heading with German weekday
+        weekday = get_german_weekday(current_date)
         date_heading = Paragraph(
-            f"<b>{current_date.strftime('%A, %d.%m.%Y')}</b>",
+            f"<b>{weekday}, {current_date.strftime('%d.%m.%Y')}</b>",
             styles['Heading2']
         )
         elements.append(date_heading)
@@ -426,6 +439,204 @@ async def export_recipe_book_pdf(
 
     buffer.seek(0)
     filename = f"rezeptbuch_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.get("/recipes/pdf")
+async def export_all_recipes_pdf(
+    db: Session = Depends(get_db)
+):
+    """Export all recipes as PDF with improved formatting"""
+
+    # Get all recipes
+    recipes = crud.get_recipes(db, skip=0, limit=10000)
+
+    if not recipes:
+        raise HTTPException(status_code=404, detail="No recipes found")
+
+    # Create PDF in memory
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=28,
+        textColor=colors.HexColor('#1F2937'),
+        spaceAfter=30,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Normal'],
+        fontSize=14,
+        textColor=colors.HexColor('#6B7280'),
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+
+    recipe_title_style = ParagraphStyle(
+        'RecipeTitle',
+        parent=styles['Heading1'],
+        fontSize=22,
+        textColor=colors.HexColor('#1F2937'),
+        spaceAfter=15,
+        fontName='Helvetica-Bold'
+    )
+
+    section_heading_style = ParagraphStyle(
+        'SectionHeading',
+        parent=styles['Heading3'],
+        fontSize=14,
+        textColor=colors.HexColor('#374151'),
+        spaceAfter=10,
+        fontName='Helvetica-Bold'
+    )
+
+    # Title page
+    title = Paragraph("Rezeptsammlung", title_style)
+    elements.append(title)
+
+    subtitle = Paragraph(f"{len(recipes)} Rezepte | {datetime.now().strftime('%d.%m.%Y')}", subtitle_style)
+    elements.append(subtitle)
+    elements.append(Spacer(1, 30))
+
+    # Table of contents
+    toc_heading = Paragraph("<b>Inhaltsverzeichnis</b>", styles['Heading2'])
+    elements.append(toc_heading)
+    elements.append(Spacer(1, 10))
+
+    toc_data = [["Nr.", "Rezeptname", "Portionen"]]
+    for idx, recipe in enumerate(recipes, 1):
+        toc_data.append([
+            str(idx),
+            recipe.name,
+            str(recipe.base_servings)
+        ])
+
+    toc_table = Table(toc_data, colWidths=[1.5*cm, 11*cm, 3*cm])
+    toc_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D1D5DB')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
+    ]))
+
+    elements.append(toc_table)
+    elements.append(PageBreak())
+
+    # Each recipe on its own page
+    for idx, recipe in enumerate(recipes, 1):
+        # Recipe number and name
+        recipe_header = Paragraph(f"{idx}. {recipe.name}", recipe_title_style)
+        elements.append(recipe_header)
+
+        # Description
+        if recipe.description:
+            desc = Paragraph(f"<i>{recipe.description}</i>", styles['Normal'])
+            elements.append(desc)
+            elements.append(Spacer(1, 10))
+
+        # Recipe info in a colored box
+        info_parts = [f"<b>Portionen:</b> {recipe.base_servings}"]
+        if recipe.preparation_time:
+            info_parts.append(f"<b>Vorbereitung:</b> {recipe.preparation_time} min")
+        if recipe.cooking_time:
+            info_parts.append(f"<b>Kochzeit:</b> {recipe.cooking_time} min")
+
+        info_data = [info_parts]
+
+        info_table = Table(info_data, colWidths=[5*cm] * len(info_parts))
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#EEF2FF')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1F2937')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+
+        elements.append(info_table)
+        elements.append(Spacer(1, 15))
+
+        # Tags and allergens
+        if recipe.tags or recipe.allergens:
+            tag_allergen_text = []
+            if recipe.tags:
+                tags_str = ", ".join([tag.name for tag in recipe.tags])
+                tag_allergen_text.append(f"<b>Tags:</b> {tags_str}")
+            if recipe.allergens:
+                allergens_str = ", ".join([a.name for a in recipe.allergens])
+                tag_allergen_text.append(f"<b>Allergene:</b> {allergens_str}")
+
+            tag_allergen_para = Paragraph(" | ".join(tag_allergen_text), styles['Normal'])
+            elements.append(tag_allergen_para)
+            elements.append(Spacer(1, 15))
+
+        # Ingredients section
+        elements.append(Paragraph("Zutaten", section_heading_style))
+
+        if recipe.ingredients:
+            ingredient_data = [["Zutat", "Menge", "Einheit"]]
+            for ri in recipe.ingredients:
+                ingredient_data.append([
+                    ri.ingredient.name,
+                    f"{ri.quantity:.1f}",
+                    ri.unit
+                ])
+
+            ing_table = Table(ingredient_data, colWidths=[10*cm, 3*cm, 3*cm])
+            ing_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (1, 0), (2, -1), 'RIGHT'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D1D5DB')),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
+            ]))
+
+            elements.append(ing_table)
+            elements.append(Spacer(1, 15))
+
+        # Instructions section
+        if recipe.instructions:
+            elements.append(Paragraph("Zubereitung", section_heading_style))
+
+            # Split instructions by newlines and create formatted text
+            instructions_text = recipe.instructions.replace('\n', '<br/>')
+            instructions = Paragraph(instructions_text, styles['Normal'])
+            elements.append(instructions)
+
+        # Add page break except for the last recipe
+        if idx < len(recipes):
+            elements.append(PageBreak())
+
+    # Build PDF
+    doc.build(elements)
+
+    buffer.seek(0)
+    filename = f"rezeptsammlung_{datetime.now().strftime('%Y%m%d')}.pdf"
 
     return StreamingResponse(
         buffer,
