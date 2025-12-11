@@ -83,11 +83,15 @@ Camp 1───N MealPlan N───1 Recipe
 - `POST /api/camps/{id}/select` - Freizeit auswählen (setzt Cookie)
 
 ### Recipes (`/recipes/`)
-- `GET /recipes/` - Rezept-Liste (HTML)
-- `POST /recipes/create` - Neues Rezept
-- `PUT /recipes/{id}` - Rezept bearbeiten (**erstellt neue Version**)
+- `GET /recipes/` - Rezept-Liste (HTML, mit Statistiken, Sortierung, Filter)
+- `GET /recipes/create` - Rezept-Formular (Material Design, Autocomplete)
+- `POST /recipes/` - Neues Rezept erstellen (JSON: ingredients, tag_ids)
+- `GET /recipes/{id}/edit` - Rezept bearbeiten (vorausgefüllt)
+- `POST /recipes/{id}` - Rezept aktualisieren (**erstellt neue Version**)
 - `DELETE /recipes/{id}` - Rezept löschen
-- `GET /recipes/search` - Suche & Filter (`?search=...&tag_ids=...`)
+- `GET /recipes/api/search` - Suche & Filter (`?search=...&tag_ids=...`)
+- `GET /recipes/api/ingredients/search?q=` - **NEU:** Fuzzy-Search für Autocomplete
+- `POST /recipes/api/ingredients/quick-create` - **NEU:** Zutat während Rezept-Erstellung
 
 ### Meal Planning (`/meal-planning/`)
 - `GET /meal-planning/` - Kalender-Ansicht
@@ -125,6 +129,12 @@ Camp 1───N MealPlan N───1 Recipe
   - TL ↔ EL (3:1)
 - **Best-Unit-Auswahl:** `>= 1000g` → `kg`, `>= 1000ml` → `L`
 
+### `crud.py` - Neue Funktionen
+- `search_ingredients_fuzzy(db, query, limit=10)` - **NEU:** Fuzzy-Matching für Zutaten
+  - Verwendet `thefuzz.fuzz.partial_ratio()`
+  - Scores: Exact=100, Starts-with=95, Contains=85, Fuzzy=0-100
+  - Sortiert nach Score + Usage-Count
+
 ## 🎨 Frontend-Architektur
 
 ### Technologien
@@ -140,13 +150,20 @@ templates/
 ├── dashboard.html           # Startseite mit Statistiken
 ├── camp_select.html         # Freizeit-Auswahl
 ├── recipes/
-│   ├── list.html           # Rezept-Übersicht
-│   ├── create.html         # Rezept-Formular
+│   ├── list.html           # Rezept-Liste (Statistiken, Sortierung, Livesearch)
+│   ├── create.html         # Rezept-Formular (Autocomplete, Drag & Drop)
+│   ├── edit.html           # Rezept bearbeiten (wie create.html)
+│   ├── detail.html         # Rezept-Detailansicht
 │   └── partials/           # HTMX-Fragmente
 ├── meal_planning/
-│   └── index.html          # Kalender-Grid (Drag & Drop TODO)
+│   └── index.html          # Kalender-Grid (SortableJS Drag & Drop)
 └── components/             # Wiederverwendbare UI-Komponenten
 ```
+
+### Alpine.js Components
+- `recipeForm()` - Rezept-Formular mit Validierung, Autosave (LocalStorage)
+- `ingredientAutocomplete()` - Fuzzy-Search für Zutaten (300ms Debounce)
+- `recipeList()` - Filter, Sortierung, Livesearch
 
 ### HTMX-Muster
 ```html
@@ -186,6 +203,7 @@ scaled_quantity = ingredient.quantity * scaling_factor
 ```bash
 # Dependencies installieren
 pip install -r requirements.txt
+# Neue Dependencies: thefuzz==0.22.1, python-Levenshtein==0.27.3
 
 # Dev-Server starten (Port 12000)
 DEVELOPMENT=1 python -m app.main
@@ -233,22 +251,22 @@ python excel_import.py recipes.xlsx
 ### ✅ Implementiert
 - Camp-Verwaltung (CRUD)
 - Rezept-Verwaltung (CRUD + Versionierung)
+- **Rezept-Create/Edit UI** (Material Design, Autocomplete, Drag & Drop)
+- **Rezept-Liste** (Statistiken, Sortierung, Livesearch, Filter)
+- **Fuzzy-Search** für Zutaten (verhindert Duplikate)
 - Dashboard mit Statistiken
 - Einkaufslisten-Berechnung (Backend)
 - Allergen- & Tag-System
 - Unit-Konvertierung
 
 ### 🟡 Teilweise
-- Meal-Planning (Backend OK, Drag & Drop UI fehlt)
-- Shopping-List (Berechnung OK, UI fehlt)
-- Export (PDFs/Excel TODO)
+- Meal-Planning (Backend OK, SortableJS implementiert)
+- Shopping-List (Berechnung OK, UI vorhanden)
+- Export (PDFs/Excel teilweise)
 
 ### ❌ TODO
-- Drag & Drop UI für Meal-Planning
-- Export-Funktionen (PDFs, Excel)
-- Recipe-Edit UI (Backend vorhanden)
-- Settings-UI
-- Rezept-Bilder
+- Rezept-Bilder Upload
+- Settings-UI erweitern
 - Alembic-Migrations nutzen
 
 Siehe **ANALYSE.md** für detaillierte Roadmap!
