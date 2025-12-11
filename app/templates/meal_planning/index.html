@@ -15,23 +15,7 @@
                 </div>
             </div>
             <div class="flex-1">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
-                    <div class="flex items-center space-x-2">
-                        <a href="/export/meal-plan/pdf/{{ camp.id }}" class="btn btn-primary btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
-                            </svg>
-                            Plan exportieren (PDF)
-                        </a>
-                        <a href="/export/recipe-book/pdf/{{ camp.id }}" class="btn btn-secondary btn-sm">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
-                            </svg>
-                            Rezeptbuch (PDF)
-                        </a>
-                    </div>
-                </div>
+                <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
                 <p class="text-sm text-purple-700 mt-2 leading-relaxed">
                     Ziehen Sie Rezepte per Drag & Drop in den Kalender.
                 </p>
@@ -63,18 +47,18 @@
                 <!-- Recipe List -->
                 <div id="recipe-sidebar" class="p-4 space-y-2 max-h-[600px] overflow-y-auto">
                     <!-- "Kein Essen" Option -->
-                    <div class="recipe-card-draggable bg-gray-100 border-2 border-gray-300"
+                    <div class="recipe-card-draggable"
                          data-recipe-id="0"
                          data-recipe-name="Kein Essen">
                         <div class="flex items-start">
-                            <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded flex items-center justify-center mr-2">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex-shrink-0 w-8 h-8 bg-red-100 rounded flex items-center justify-center mr-2">
+                                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h4 class="font-medium text-sm text-gray-700 truncate">Kein Essen</h4>
-                                <p class="text-xs text-gray-500">Keine Mahlzeit geplant</p>
+                                <h4 class="font-medium text-sm text-gray-900 truncate">Kein Essen</h4>
+                                <p class="text-xs text-gray-600">Keine Mahlzeit geplant</p>
                             </div>
                         </div>
                     </div>
@@ -133,45 +117,53 @@
                     <table class="min-w-full">
                         <thead>
                             <tr class="border-b-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100">
-                                <th class="text-left py-5 px-4 font-black text-gray-900 w-32 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10">
-                                    Mahlzeit
+                                <th class="text-left py-5 px-4 font-black text-gray-900 w-48 sticky left-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10">
+                                    Tag
                                 </th>
-                                {% for day in days %}
-                                <th class="text-center py-5 px-3 font-black text-gray-900 min-w-[200px]">
-                                    <div class="text-base">{{ day.strftime('%A') }}</div>
-                                    <div class="text-sm text-gray-600 font-semibold">{{ day.strftime('%d.%m.%Y') }}</div>
+                                <!-- Frühstück -->
+                                <th class="text-center py-5 px-3 font-black text-gray-900 min-w-[200px] bg-yellow-50">
+                                    <div class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                        </svg>
+                                        <span>Frühstück</span>
+                                    </div>
                                 </th>
-                                {% endfor %}
+                                <!-- Mittagessen -->
+                                <th class="text-center py-5 px-3 font-black text-gray-900 min-w-[200px] bg-green-50">
+                                    <div class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                                        </svg>
+                                        <span>Mittagessen</span>
+                                    </div>
+                                </th>
+                                <!-- Abendessen -->
+                                <th class="text-center py-5 px-3 font-black text-gray-900 min-w-[200px] bg-indigo-50">
+                                    <div class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                        </svg>
+                                        <span>Abendessen</span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            {% set meal_config = [
-                                ('BREAKFAST', 'Frühstück', 'yellow'),
-                                ('LUNCH', 'Mittagessen', 'green'),
-                                ('DINNER', 'Abendessen', 'indigo')
-                            ] %}
-                            {% for meal_type_value, label, color in meal_config %}
+                            {% for day in days %}
+                            {% set date_key = day.date() %}
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="py-4 px-4 font-bold text-gray-900 bg-{{ color }}-50 border-r-2 border-{{ color }}-200 sticky left-0 z-10">
-                                    <div class="flex items-center">
-                                        {% if meal_type_value == 'BREAKFAST' %}
-                                        <svg class="w-6 h-6 mr-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                        </svg>
-                                        {% elif meal_type_value == 'LUNCH' %}
-                                        <svg class="w-6 h-6 mr-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
-                                        </svg>
-                                        {% else %}
-                                        <svg class="w-6 h-6 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                                        </svg>
-                                        {% endif %}
-                                        <span class="text-base font-black">{{ label }}</span>
-                                    </div>
+                                <td class="py-4 px-4 font-bold text-gray-900 border-r-2 border-gray-200 sticky left-0 bg-white z-10">
+                                    <div class="text-base">{{ day.strftime('%A') }}</div>
+                                    <div class="text-sm text-gray-600 font-semibold">{{ day.strftime('%d.%m.%Y') }}</div>
                                 </td>
-                                {% for day in days %}
-                                {% set date_key = day.date() %}
+
+                                {% set meal_config = [
+                                    ('BREAKFAST', 'Frühstück', 'yellow'),
+                                    ('LUNCH', 'Mittagessen', 'green'),
+                                    ('DINNER', 'Abendessen', 'indigo')
+                                ] %}
+                                {% for meal_type_value, label, color in meal_config %}
                                 {% set meal_type = namespace(enum=None) %}
                                 {% for mt in meal_types %}
                                     {% if mt.value == meal_type_value %}
@@ -179,7 +171,7 @@
                                     {% endif %}
                                 {% endfor %}
                                 {% set meals = meal_grid.get(date_key, {}).get(meal_type.enum, []) %}
-                                <td class="py-2 px-2 align-top">
+                                <td class="py-2 px-2 align-top bg-{{ color }}-50">
                                     <div
                                         class="meal-cell-dropzone min-h-[120px] rounded-lg"
                                         data-meal-date="{{ day.strftime('%Y-%m-%d') }}"
@@ -188,7 +180,7 @@
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
-                                            <div class="recipe-card-planned {% if not meal_plan.recipe_id %}bg-gray-100 border-2 border-gray-300{% endif %}"
+                                            <div class="recipe-card-planned"
                                                  data-meal-plan-id="{{ meal_plan.id }}"
                                                  data-recipe-id="{{ meal_plan.recipe_id or 0 }}">
                                                 <div class="flex items-start justify-between">
@@ -200,10 +192,10 @@
                                                             {% endif %}
                                                         {% else %}
                                                             <div class="flex items-center">
-                                                                <svg class="w-4 h-4 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <svg class="w-4 h-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                                 </svg>
-                                                                <h4 class="font-bold text-sm text-gray-700 truncate">Kein Essen</h4>
+                                                                <h4 class="font-bold text-sm text-gray-900 truncate">Kein Essen</h4>
                                                             </div>
                                                         {% endif %}
                                                     </div>
@@ -231,6 +223,29 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Floating Action Buttons (FABs) -->
+    <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+        <!-- Plan exportieren (PDF) - Primary FAB -->
+        <a href="/export/meal-plan/pdf/{{ camp.id }}"
+           class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-full shadow-2xl hover:bg-indigo-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+           title="Plan exportieren (PDF)">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-sm font-semibold">Plan exportieren</span>
+        </a>
+
+        <!-- Rezeptbuch (PDF) - Secondary FAB -->
+        <a href="/export/recipe-book/pdf/{{ camp.id }}"
+           class="flex items-center px-4 py-3 bg-teal-600 text-white rounded-full shadow-2xl hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
+           title="Rezeptbuch (PDF)">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+            </svg>
+            <span class="text-sm font-semibold">Rezeptbuch</span>
+        </a>
     </div>
 </div>
 
