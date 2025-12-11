@@ -2,17 +2,6 @@
 
 {% block title %}Rezepte - {{ current_camp.name }}{% endblock %}
 
-{% block header_actions %}
-<div class="flex items-center space-x-2">
-    <a href="/recipes/create" class="btn btn-primary btn-sm inline-flex items-center whitespace-nowrap">
-        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-        </svg>
-        Neues Rezept
-    </a>
-</div>
-{% endblock %}
-
 {% block content %}
 <div class="space-y-6" x-data="recipeList()">
     <!-- Info Card -->
@@ -325,6 +314,18 @@
                 Filter zurücksetzen
             </button>
         </div>
+    </div>
+
+    <!-- Floating Action Button (FAB) -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <a href="/recipes/create"
+           class="flex items-center px-4 py-3 bg-orange-600 text-white rounded-full shadow-2xl hover:bg-orange-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-orange-300"
+           title="Neues Rezept erstellen">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-sm font-semibold">Neues Rezept</span>
+        </a>
     </div>
 </div>
 
