@@ -158,14 +158,8 @@
             <!-- Main Content Area -->
             <div class="flex-1 flex flex-col overflow-hidden lg:ml-64"
                  :class="sidebarOpen ? 'ml-64' : 'ml-0'">
-                <!-- Top Bar with Hamburger -->
+                <!-- Top Bar -->
                 <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6 z-10">
-                    <button @click="sidebarOpen = !sidebarOpen"
-                            class="text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg p-2 transition-colors mr-4">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                        </svg>
-                    </button>
                     <div class="flex-1">
                         <h2 class="text-xl font-bold text-gray-900">
                             {% block page_title %}
@@ -187,7 +181,7 @@
 
                 <!-- Page Content -->
                 <main class="flex-1 overflow-auto bg-gray-50">
-                    <div class="max-w-7xl mx-auto p-6">
+                    <div class="{% if '/meal-planning' in request.url.path %}w-full{% else %}max-w-7xl mx-auto{% endif %} p-6">
                         {% block content %}{% endblock %}
                     </div>
                 </main>

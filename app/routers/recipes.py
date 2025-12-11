@@ -102,13 +102,31 @@ async def get_recipe(
     db: Session = Depends(get_db)
 ):
     """Get recipe details"""
-    
+
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    
+
     context.update({"recipe": recipe})
     return templates.TemplateResponse("recipes/detail.html", context)
+
+@router.get("/{recipe_id}/edit", response_class=HTMLResponse)
+async def edit_recipe_form(
+    recipe_id: int,
+    request: Request,
+    context: dict = Depends(get_template_context),
+    db: Session = Depends(get_db)
+):
+    """Show edit recipe form (redirects to detail for now)"""
+
+    recipe = crud.get_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    # For now, redirect to detail page
+    # TODO: Implement proper edit form
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=302)
 
 @router.put("/{recipe_id}")
 async def update_recipe(
