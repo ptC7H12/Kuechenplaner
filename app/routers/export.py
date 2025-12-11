@@ -278,7 +278,17 @@ async def export_meal_plan_pdf(
             meal_name = {"BREAKFAST": "Frühstück", "LUNCH": "Mittagessen", "DINNER": "Abendessen"}[meal_type.value]
             recipes = meal_grid[date_key][meal_type]
 
-            recipe_names = ", ".join([mp.recipe.name for mp in recipes]) if recipes else "-"
+            # Build recipe names list, handling None recipes (no meal planned)
+            if recipes:
+                names = []
+                for mp in recipes:
+                    if mp.recipe:
+                        names.append(mp.recipe.name)
+                    else:
+                        names.append("Kein Essen")
+                recipe_names = ", ".join(names) if names else "-"
+            else:
+                recipe_names = "-"
 
             table_data.append([meal_name, recipe_names])
 
