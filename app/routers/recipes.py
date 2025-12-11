@@ -134,30 +134,81 @@ async def edit_recipe_form(
     context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
-    """Show edit recipe form (redirects to detail for now)"""
+    """Show edit recipe form"""
 
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    # For now, redirect to detail page
-    # TODO: Implement proper edit form
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=302)
+    # Get all tags for the form
+    tags = crud.get_tags(db)
 
-@router.put("/{recipe_id}")
+    context.update({
+        "recipe": recipe,
+        "tags": tags
+    })
+
+    return templates.TemplateResponse("recipes/edit.html", context)
+
+@router.post("/{recipe_id}", response_class=HTMLResponse)
 async def update_recipe(
     recipe_id: int,
-    recipe_update: schemas.RecipeUpdate,
+    request: Request,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    base_servings: int = Form(...),
+    instructions: str = Form(...),
+    preparation_time: Optional[int] = Form(None),
+    cooking_time: Optional[int] = Form(None),
+    allergen_notes: Optional[str] = Form(None),
+    ingredients: str = Form(...),  # JSON string
+    tag_ids: str = Form("[]"),  # JSON string
+    context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
-    """Update a recipe (API endpoint)"""
+    """Update an existing recipe"""
 
-    recipe = crud.update_recipe(db, recipe_id, recipe_update)
-    if not recipe:
-        raise HTTPException(status_code=404, detail="Recipe not found")
+    try:
+        import json
 
-    return recipe
+        # Check if recipe exists
+        existing_recipe = crud.get_recipe(db, recipe_id)
+        if not existing_recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+
+        # Parse JSON strings
+        ingredients_list = json.loads(ingredients)
+        tag_ids_list = json.loads(tag_ids)
+
+        # Convert ingredients to RecipeIngredientCreate objects
+        ingredient_objects = [
+            schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
+        ]
+
+        # Create update data
+        recipe_update = schemas.RecipeUpdate(
+            name=name,
+            description=description,
+            base_servings=base_servings,
+            instructions=instructions,
+            preparation_time=preparation_time,
+            cooking_time=cooking_time,
+            allergen_notes=allergen_notes,
+            ingredients=ingredient_objects,
+            tag_ids=tag_ids_list
+        )
+
+        # Update recipe in database
+        updated_recipe = crud.update_recipe(db, recipe_id, recipe_update)
+
+        # Redirect to recipe detail page
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=303)
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON data: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{recipe_id}/versions")
 async def get_recipe_versions(
