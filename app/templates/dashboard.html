@@ -17,85 +17,97 @@
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <!-- Planned Meals -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 hover:shadow-lg transition-all">
             <div class="flex items-center justify-between mb-3">
-                <div class="p-2 bg-indigo-50 rounded-lg">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
                     <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl font-bold text-gray-900 mb-1">{{ stats.planned_meals }}</div>
-            <div class="text-sm text-gray-600 mb-2">Geplante Mahlzeiten</div>
-            <div class="text-xs text-gray-500">
+            <div class="text-2xl font-bold text-indigo-900 mb-1">{{ stats.planned_meals }}</div>
+            <div class="text-sm font-medium text-indigo-700 mb-2">Geplante Mahlzeiten</div>
+            <div class="text-xs text-indigo-600">
                 von {{ stats.expected_meals }} benötigt
             </div>
         </div>
 
         <!-- Unique Recipes -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-6 hover:shadow-lg transition-all">
             <div class="flex items-center justify-between mb-3">
-                <div class="p-2 bg-emerald-50 rounded-lg">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
                     <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl font-bold text-gray-900 mb-1">{{ stats.unique_recipes }}</div>
-            <div class="text-sm text-gray-600 mb-2">Verschiedene Rezepte</div>
-            <div class="text-xs text-gray-500">
+            <div class="text-2xl font-bold text-emerald-900 mb-1">{{ stats.unique_recipes }}</div>
+            <div class="text-sm font-medium text-emerald-700 mb-2">Verschiedene Rezepte</div>
+            <div class="text-xs text-emerald-600">
                 im Speiseplan
             </div>
         </div>
 
         <!-- Completion Percentage -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        {% if stats.completion_percentage >= 100 %}
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 hover:shadow-lg transition-all">
             <div class="flex items-center justify-between mb-3">
-                {% if stats.completion_percentage >= 100 %}
-                <div class="p-2 bg-green-50 rounded-lg">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
-                {% elif stats.completion_percentage >= 50 %}
-                <div class="p-2 bg-amber-50 rounded-lg">
+            </div>
+            <div class="text-2xl font-bold text-green-900 mb-1">{{ stats.completion_percentage }}%</div>
+            <div class="text-sm font-medium text-green-700 mb-2">Planungsstand</div>
+            <div class="text-xs text-green-600">
+                Vollständig geplant
+            </div>
+        </div>
+        {% elif stats.completion_percentage >= 50 %}
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
                     <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
-                {% else %}
-                <div class="p-2 bg-red-50 rounded-lg">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            </div>
+            <div class="text-2xl font-bold text-amber-900 mb-1">{{ stats.completion_percentage }}%</div>
+            <div class="text-sm font-medium text-amber-700 mb-2">Planungsstand</div>
+            <div class="text-xs text-amber-600">
+                In Arbeit
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
                 </div>
-                {% endif %}
             </div>
-            <div class="text-2xl font-bold text-gray-900 mb-1">{{ stats.completion_percentage }}%</div>
-            <div class="text-sm text-gray-600 mb-2">Planungsstand</div>
-            <div class="text-xs text-gray-500">
-                {% if stats.completion_percentage >= 100 %}
-                    Vollständig geplant
-                {% elif stats.completion_percentage >= 50 %}
-                    In Arbeit
-                {% else %}
-                    Noch zu planen
-                {% endif %}
+            <div class="text-2xl font-bold text-rose-900 mb-1">{{ stats.completion_percentage }}%</div>
+            <div class="text-sm font-medium text-rose-700 mb-2">Planungsstand</div>
+            <div class="text-xs text-rose-600">
+                Noch zu planen
             </div>
         </div>
+        {% endif %}
 
         <!-- Days Total -->
-        <div class="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 hover:shadow-lg transition-all">
             <div class="flex items-center justify-between mb-3">
-                <div class="p-2 bg-slate-50 rounded-lg">
-                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
             </div>
-            <div class="text-2xl font-bold text-gray-900 mb-1">{{ stats.total_days }}</div>
-            <div class="text-sm text-gray-600 mb-2">Tage Freizeit</div>
-            <div class="text-xs text-gray-500">
+            <div class="text-2xl font-bold text-blue-900 mb-1">{{ stats.total_days }}</div>
+            <div class="text-sm font-medium text-blue-700 mb-2">Tage Freizeit</div>
+            <div class="text-xs text-blue-600">
                 {{ current_camp.participant_count }} Teilnehmer
             </div>
         </div>
