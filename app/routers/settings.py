@@ -120,3 +120,69 @@ async def update_unit_conversions(
 
     crud.set_setting_value(db, "unit_conversions", conversions)
     return {"success": True, "conversions": conversions}
+
+# Tag management endpoints
+@router.post("/api/tags")
+async def create_tag(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a new tag"""
+    from fastapi.responses import HTMLResponse
+
+    form_data = await request.form()
+    name = form_data.get("name")
+    icon = form_data.get("icon", "🏷️")
+    color = form_data.get("color", "#3B82F6")
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Tag name is required")
+
+    # Check if tag already exists
+    existing_tag = db.query(models.Tag).filter(models.Tag.name == name).first()
+    if existing_tag:
+        raise HTTPException(status_code=400, detail="Tag already exists")
+
+    # Create tag
+    tag = models.Tag(name=name, icon=icon, color=color)
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+
+    # Return HTML for the new tag card
+    html = f"""
+    <div class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl bg-white hover:shadow-lg transition-all" id="tag-{tag.id}">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl">{tag.icon or '🏷️'}</span>
+            <span class="font-semibold text-gray-900">{tag.name}</span>
+            <div class="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm" style="background-color: {tag.color}"></div>
+        </div>
+        <button hx-delete="/api/tags/{tag.id}"
+                hx-confirm="Tag '{tag.name}' wirklich löschen?"
+                hx-target="#tag-{tag.id}"
+                hx-swap="outerHTML swap:0.3s"
+                class="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-all">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+        </button>
+    </div>
+    """
+
+    return HTMLResponse(content=html, status_code=201)
+
+@router.delete("/api/tags/{tag_id}")
+async def delete_tag(
+    tag_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a tag"""
+
+    tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+
+    db.delete(tag)
+    db.commit()
+
+    return {"success": True, "message": f"Tag '{tag.name}' deleted"}
