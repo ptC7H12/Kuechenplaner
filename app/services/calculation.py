@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from app import models, crud
 from app.services.unit_converter import convert_unit
@@ -109,7 +110,7 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
     recipe_ids = set()
     
     for meal_plan in meal_plans:
-        meal_counts[meal_plan.meal_type] += 1
+        meal_counts[meal_plan.meal_type.value] += 1
         recipe_ids.add(meal_plan.recipe_id)
     
     # Calculate total days
@@ -133,7 +134,39 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
     
     if recipes_without_allergens > 0:
         warnings.append(f"{recipes_without_allergens} Rezepte ohne Allergen-Informationen")
-    
+
+    # Create daily overview
+    daily_overview = []
+    current_date = camp.start_date
+
+    for day_num in range(total_days):
+        day_date = current_date + timedelta(days=day_num)
+
+        # Get meals for this day
+        day_meals = {
+            'BREAKFAST': None,
+            'LUNCH': None,
+            'DINNER': None
+        }
+
+        for meal_plan in meal_plans:
+            # Compare only the date part
+            if meal_plan.meal_date.date() == day_date.date():
+                meal_type_str = meal_plan.meal_type.value
+                if day_meals[meal_type_str] is None:
+                    day_meals[meal_type_str] = []
+                day_meals[meal_type_str].append(meal_plan)
+
+        # Count planned meals for this day
+        meals_planned = sum(1 for meals in day_meals.values() if meals is not None and len(meals) > 0)
+
+        daily_overview.append({
+            'day_number': day_num + 1,
+            'date': day_date,
+            'meals': day_meals,
+            'meals_planned': meals_planned
+        })
+
     return {
         'camp': camp,
         'total_days': total_days,
@@ -142,5 +175,6 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
         'unique_recipes': len(recipe_ids),
         'meal_counts': dict(meal_counts),
         'completion_percentage': round((planned_meals / expected_meals) * 100, 1) if expected_meals > 0 else 0,
-        'warnings': warnings
+        'warnings': warnings,
+        'daily_overview': daily_overview
     }
