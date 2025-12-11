@@ -4,11 +4,6 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-gray-900">Einstellungen</h1>
-    </div>
-
     <!-- Tabs -->
     <div x-data="{ activeTab: 'camps' }" class="space-y-6">
         <!-- Tab Navigation -->
@@ -60,35 +55,36 @@
                             </p>
                         </div>
 
-                        <!-- Current Camp -->
-                        <div class="border border-primary-200 bg-primary-50 rounded-lg p-4">
+                        <!-- Current Camp Card -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-md">
                             <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-primary-900">{{ current_camp.name }}</h3>
-                                    <p class="text-sm text-primary-700">Aktuelle Freizeit</p>
+                                <div class="flex items-center space-x-4">
+                                    <div class="p-3 bg-white rounded-xl shadow-sm">
+                                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-blue-900">{{ current_camp.name }}</h3>
+                                        <p class="text-sm text-blue-700 mt-1">
+                                            <span class="inline-flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                </svg>
+                                                {{ current_camp.participant_count }} Teilnehmer
+                                            </span>
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
-                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition"
+                                    class="btn btn-primary"
                                 >
                                     <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                     </svg>
                                     Bearbeiten
                                 </button>
-                            </div>
-                        </div>
-
-                        <!-- Other Camps -->
-                        <div class="space-y-3">
-                            <h4 class="font-medium text-gray-900">Andere Freizeiten</h4>
-                            <div class="text-center py-8 text-gray-500">
-                                <a href="/select-camp" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 transition">
-                                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
-                                    </svg>
-                                    Zur Freizeitauswahl
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -178,24 +174,30 @@
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Tags & Kategorien</h2>
+                        <span class="badge badge-primary">{{ tags|length }} Tags</span>
                     </div>
-                    
-                    <div class="space-y-6">
+
+                    <div class="space-y-8">
                         <!-- Tags -->
                         <div>
-                            <h3 class="font-medium text-gray-900 mb-3">Rezept-Tags</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-900">Rezept-Tags</h3>
+                            </div>
+
+                            <!-- Tags Grid -->
+                            <div id="tags-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
                                 {% for tag in tags %}
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div class="flex items-center space-x-2">
-                                        <span>{{ tag.icon or '🏷️' }}</span>
-                                        <span class="font-medium">{{ tag.name }}</span>
-                                        <div 
-                                            class="w-4 h-4 rounded-full" 
-                                            style="background-color: {{ tag.color }}"
-                                        ></div>
+                                <div class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl bg-white hover:shadow-lg transition-all" id="tag-{{ tag.id }}">
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-2xl">{{ tag.icon or '🏷️' }}</span>
+                                        <span class="font-semibold text-gray-900">{{ tag.name }}</span>
+                                        <div class="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm" style="background-color: {{ tag.color }}"></div>
                                     </div>
-                                    <button class="text-red-600 hover:text-red-800 text-sm p-1">
+                                    <button hx-delete="/api/tags/{{ tag.id }}"
+                                            hx-confirm="Tag '{{ tag.name }}' wirklich löschen?"
+                                            hx-target="#tag-{{ tag.id }}"
+                                            hx-swap="outerHTML swap:0.3s"
+                                            class="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-all">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                         </svg>
@@ -203,45 +205,76 @@
                                 </div>
                                 {% endfor %}
                             </div>
-                            
-                            <div class="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                                    <div>
-                                        <label class="form-label">Name</label>
-                                        <input type="text" class="form-input" placeholder="z.B. Dessert">
+
+                            <!-- Add New Tag Form -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border-2 border-blue-200 shadow-md">
+                                <h4 class="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Neuen Tag erstellen
+                                </h4>
+                                <form hx-post="/api/tags"
+                                      hx-target="#tags-grid"
+                                      hx-swap="afterbegin"
+                                      hx-on::after-request="if(event.detail.successful) this.reset()">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                        <div>
+                                            <label class="form-label text-xs">Name *</label>
+                                            <input type="text"
+                                                   name="name"
+                                                   class="form-input text-sm"
+                                                   placeholder="z.B. Dessert"
+                                                   required>
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-xs">Icon</label>
+                                            <input type="text"
+                                                   name="icon"
+                                                   class="form-input text-sm text-center text-xl"
+                                                   placeholder="🍰"
+                                                   maxlength="2">
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-xs">Farbe</label>
+                                            <input type="color"
+                                                   name="color"
+                                                   class="form-input h-12"
+                                                   value="#3B82F6">
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary w-full">
+                                                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Hinzufügen
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="form-label">Icon</label>
-                                        <input type="text" class="form-input" placeholder="🍰">
-                                    </div>
-                                    <div>
-                                        <label class="form-label">Farbe</label>
-                                        <input type="color" class="form-input" value="#3B82F6">
-                                    </div>
-                                    <div>
-                                        <button class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">
-                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Tag hinzufügen
-                                        </button>
-                                    </div>
-                                </div>
+                                </form>
                             </div>
                         </div>
-                        
+
                         <!-- Ingredient Categories -->
-                        <div>
-                            <h3 class="font-medium text-gray-900 mb-3">Zutaten-Kategorien</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Gemüse</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Obst</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Milchprodukte</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Fleisch</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Getreide</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Gewürze</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Öle & Fette</span>
-                                <span class="px-3 py-1 bg-gray-100 rounded-full text-sm">Backwaren</span>
+                        <div class="pt-6 border-t-2 border-gray-200">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">Zutaten-Kategorien</h3>
+                            <div class="alert alert-info mb-4">
+                                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm">
+                                    Diese Kategorien werden automatisch aus den Zutaten generiert und können nicht bearbeitet werden.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                <span class="px-4 py-2 bg-gradient-to-br from-green-100 to-green-200 text-green-800 rounded-lg text-sm font-semibold shadow-sm">🥬 Gemüse</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-red-100 to-red-200 text-red-800 rounded-lg text-sm font-semibold shadow-sm">🍎 Obst</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 rounded-lg text-sm font-semibold shadow-sm">🥛 Milchprodukte</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-pink-100 to-pink-200 text-pink-800 rounded-lg text-sm font-semibold shadow-sm">🥩 Fleisch</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-800 rounded-lg text-sm font-semibold shadow-sm">🌾 Getreide</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-800 rounded-lg text-sm font-semibold shadow-sm">🧂 Gewürze</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-amber-100 to-amber-200 text-amber-800 rounded-lg text-sm font-semibold shadow-sm">🫒 Öle & Fette</span>
+                                <span class="px-4 py-2 bg-gradient-to-br from-stone-100 to-stone-200 text-stone-800 rounded-lg text-sm font-semibold shadow-sm">🍞 Backwaren</span>
                             </div>
                         </div>
                     </div>
