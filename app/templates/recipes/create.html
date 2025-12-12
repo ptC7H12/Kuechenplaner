@@ -96,7 +96,7 @@
                 </h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 gap-6">
                 <!-- Vorbereitungszeit -->
                 <div class="form-group">
                     <label for="preparation_time" class="form-label">Vorbereitungszeit (Minuten)</label>
@@ -142,9 +142,9 @@
             <div class="bg-gray-50 rounded-xl p-6 mb-6">
                 <h3 class="text-lg font-bold text-gray-900 mb-4">Zutat hinzufügen</h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     <!-- Zutat (Autocomplete) -->
-                    <div class="md:col-span-5 relative" x-data="ingredientAutocomplete()">
+                    <div class="relative" x-data="ingredientAutocomplete()">
                         <label class="form-label">Zutat <span class="text-red-500">*</span></label>
                         <input
                             type="text"
@@ -204,7 +204,7 @@
                     </div>
 
                     <!-- Menge -->
-                    <div class="md:col-span-3">
+                    <div>
                         <label class="form-label">Menge <span class="text-red-500">*</span></label>
                         <input
                             type="number"
@@ -217,7 +217,7 @@
                     </div>
 
                     <!-- Einheit -->
-                    <div class="md:col-span-3">
+                    <div>
                         <label class="form-label">Einheit <span class="text-red-500">*</span></label>
                         <select
                             x-model="currentIngredient.unit"
@@ -249,15 +249,17 @@
                         >
                     </div>
 
-                    <!-- Add Button -->
-                    <div class="md:col-span-1 flex items-end">
+                    <!-- Add Button - FAB Style -->
+                    <div class="flex justify-center mt-4">
                         <button
                             type="button"
                             @click="addIngredient"
-                            class="btn btn-primary w-full h-12"
+                            class="fab fab-primary fab-lg"
                             :disabled="!canAddIngredient()"
+                            :class="{ 'opacity-50 cursor-not-allowed': !canAddIngredient() }"
+                            title="Zutat hinzufügen"
                         >
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/>
                             </svg>
                         </button>
@@ -708,7 +710,17 @@ function recipeForm() {
         },
 
         addIngredient() {
-            if (!this.canAddIngredient()) return;
+            console.log('addIngredient called', this.currentIngredient);
+
+            if (!this.canAddIngredient()) {
+                console.log('Cannot add ingredient:', {
+                    hasId: !!this.currentIngredient.id,
+                    hasQuantity: this.currentIngredient.quantity > 0,
+                    hasUnit: this.currentIngredient.unit !== '' || this.currentIngredient.customUnit !== ''
+                });
+                FreizeitApp.showToast('Bitte alle Felder ausfüllen', 'warning');
+                return;
+            }
 
             const finalUnit = this.currentIngredient.unit === ''
                 ? this.currentIngredient.customUnit
@@ -721,6 +733,9 @@ function recipeForm() {
                 unit: finalUnit,
                 category: this.currentIngredient.category
             });
+
+            console.log('Ingredient added successfully');
+            FreizeitApp.showToast('Zutat hinzugefügt!', 'success');
 
             // Reset current ingredient
             this.currentIngredient = {
