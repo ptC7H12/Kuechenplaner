@@ -424,6 +424,9 @@ async def export_recipe_book_pdf(
         if i > 0:
             elements.append(PageBreak())
 
+        # Calculate scaling factor for this camp
+        scaling_factor = camp.participant_count / recipe.base_servings
+
         # Recipe name
         recipe_title = Paragraph(recipe.name, styles['Heading1'])
         elements.append(recipe_title)
@@ -434,8 +437,8 @@ async def export_recipe_book_pdf(
             elements.append(desc)
             elements.append(Spacer(1, 10))
 
-        # Basic info
-        info_text = f"Portionen: {recipe.base_servings} | "
+        # Basic info with scaled portions
+        info_text = f"Portionen: {camp.participant_count} (Originalrezept: {recipe.base_servings}) | "
         if recipe.preparation_time:
             info_text += f"Vorbereitung: {recipe.preparation_time} min | "
         if recipe.cooking_time:
@@ -452,14 +455,15 @@ async def export_recipe_book_pdf(
             elements.append(allergen_text)
             elements.append(Spacer(1, 10))
 
-        # Ingredients
+        # Ingredients with scaled quantities
         elements.append(Paragraph("<b>Zutaten:</b>", styles['Heading3']))
 
         ingredient_data = [["Zutat", "Menge", "Einheit"]]
         for ri in recipe.ingredients:
+            scaled_quantity = ri.quantity * scaling_factor
             ingredient_data.append([
                 ri.ingredient.name,
-                f"{ri.quantity:.1f}",
+                f"{scaled_quantity:.1f}",
                 ri.unit
             ])
 
