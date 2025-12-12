@@ -61,20 +61,32 @@
     <div class="{% if current_camp %}hamburger-layout{% else %}camp-select-layout{% endif %}">
         {% if current_camp %}
         <!-- Hamburger Menu Layout -->
-        <div x-data="{ sidebarOpen: true }" class="flex h-screen bg-gray-50">
-            <!-- Sidebar - Material Design Style (wie OLD_Templates) -->
-            <div class="fixed inset-y-0 left-0 z-50 w-64 bg-blue-900 text-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:translate-x-0"
-                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <div x-data="{
+            sidebarOpen: true,
+            sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+            toggleCollapse() {
+                this.sidebarCollapsed = !this.sidebarCollapsed;
+                localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
+            }
+        }" class="flex h-screen bg-gray-50">
+            <!-- Sidebar - Material Design Style with Collapse Feature -->
+            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform transition-all duration-300 ease-in-out lg:translate-x-0"
+                 :class="{
+                    'translate-x-0': sidebarOpen,
+                    '-translate-x-full': !sidebarOpen,
+                    'w-64': !sidebarCollapsed,
+                    'w-20': sidebarCollapsed
+                 }">
 
                 <!-- Logo & Header -->
                 <div class="flex items-center justify-between h-16 px-4 bg-blue-800">
-                    <a href="/dashboard" class="flex items-center space-x-2">
-                        <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                    <a href="/dashboard" class="flex items-center space-x-2" :class="sidebarCollapsed ? 'justify-center w-full' : ''">
+                        <svg class="h-8 w-8 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
                         </svg>
-                        <span class="font-bold text-lg">Freizeit Rezepte</span>
+                        <span class="font-bold text-lg transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Freizeit Rezepte</span>
                     </a>
-                    <button @click="sidebarOpen = false" class="lg:hidden p-1 rounded-md hover:bg-blue-700">
+                    <button @click="sidebarOpen = false" class="lg:hidden p-1 rounded-md hover:bg-blue-700" x-show="!sidebarCollapsed" x-cloak>
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -82,12 +94,12 @@
                 </div>
 
                 <!-- Event Info -->
-                <div class="px-4 py-3 bg-blue-800 border-b border-blue-700">
-                    <div class="flex items-center space-x-2">
-                        <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <div class="px-4 py-3 bg-blue-800 border-b border-blue-700" :class="sidebarCollapsed ? 'flex justify-center' : ''">
+                    <div class="flex items-center space-x-2" :class="sidebarCollapsed ? 'flex-col space-x-0 space-y-1' : ''">
+                        <svg class="h-4 w-4 flex-shrink-0" :class="sidebarCollapsed ? 'h-6 w-6' : ''" fill="currentColor" viewBox="0 0 20 20" :title="sidebarCollapsed ? '{{ current_camp.name }}' : ''">
                             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
                         </svg>
-                        <div class="flex-1 min-w-0">
+                        <div class="flex-1 min-w-0 transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>
                             <p class="text-sm font-medium truncate">{{ current_camp.name }}</p>
                             <p class="text-xs text-blue-300">{{ current_camp.participant_count }} Teilnehmer</p>
                         </div>
@@ -97,53 +109,75 @@
                 <!-- Navigation Links -->
                 <nav class="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
                     <a href="/dashboard"
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if request.url.path == '/dashboard' or request.url.path == '/' %}bg-blue-700{% endif %}">
-                        <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if request.url.path == '/dashboard' or request.url.path == '/' %}bg-blue-700{% endif %}"
+                       :class="sidebarCollapsed ? 'justify-center' : ''"
+                       :title="sidebarCollapsed ? 'Dashboard' : ''">
+                        <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
-                        Dashboard
+                        <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Dashboard</span>
                     </a>
 
                     <a href="/recipes/"
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/recipes' in request.url.path %}bg-blue-700{% endif %}">
-                        <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/recipes' in request.url.path %}bg-blue-700{% endif %}"
+                       :class="sidebarCollapsed ? 'justify-center' : ''"
+                       :title="sidebarCollapsed ? 'Rezepte' : ''">
+                        <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
-                        Rezepte
+                        <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Rezepte</span>
                     </a>
 
                     <a href="/meal-planning/"
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/meal-planning' in request.url.path %}bg-blue-700{% endif %}">
-                        <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/meal-planning' in request.url.path %}bg-blue-700{% endif %}"
+                       :class="sidebarCollapsed ? 'justify-center' : ''"
+                       :title="sidebarCollapsed ? 'Speiseplan' : ''">
+                        <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
-                        Speiseplan
+                        <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Speiseplan</span>
                     </a>
 
                     <a href="/shopping-list/"
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/shopping-list' in request.url.path %}bg-blue-700{% endif %}">
-                        <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/shopping-list' in request.url.path %}bg-blue-700{% endif %}"
+                       :class="sidebarCollapsed ? 'justify-center' : ''"
+                       :title="sidebarCollapsed ? 'Einkaufsliste' : ''">
+                        <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
-                        Einkaufsliste
+                        <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Einkaufsliste</span>
                     </a>
 
                     <a href="/settings/"
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/settings' in request.url.path %}bg-blue-700{% endif %}">
-                        <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition {% if '/settings' in request.url.path %}bg-blue-700{% endif %}"
+                       :class="sidebarCollapsed ? 'justify-center' : ''"
+                       :title="sidebarCollapsed ? 'Einstellungen' : ''">
+                        <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
-                        Einstellungen
+                        <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Einstellungen</span>
                     </a>
 
-                    <!-- Logout -->
+                    <!-- Toggle Collapse Button -->
                     <div class="pt-4 mt-4 border-t border-blue-800">
-                        <a href="/select-camp" class="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-800 hover:bg-blue-700 transition">
-                            <svg class="h-5 w-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button @click="toggleCollapse()"
+                                class="w-full flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-blue-800 transition"
+                                :class="sidebarCollapsed ? 'justify-center' : ''"
+                                :title="sidebarCollapsed ? 'Sidebar erweitern' : 'Sidebar minimieren'">
+                            <svg class="h-5 w-5 flex-shrink-0 transition-transform duration-300" :class="sidebarCollapsed ? 'rotate-180' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                            </svg>
+                            <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Minimieren</span>
+                        </button>
+
+                        <a href="/select-camp" class="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-800 hover:bg-blue-700 transition mt-1"
+                           :class="sidebarCollapsed ? 'justify-center' : ''"
+                           :title="sidebarCollapsed ? 'Freizeit wechseln' : ''">
+                            <svg class="h-5 w-5 flex-shrink-0" :class="sidebarCollapsed ? '' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                             </svg>
-                            Freizeit wechseln
+                            <span class="transition-all duration-300" x-show="!sidebarCollapsed" x-cloak>Freizeit wechseln</span>
                         </a>
                     </div>
                 </nav>
@@ -156,8 +190,12 @@
                  class="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"></div>
 
             <!-- Main Content Area -->
-            <div class="flex-1 flex flex-col overflow-hidden lg:ml-64"
-                 :class="sidebarOpen ? 'ml-64' : 'ml-0'">
+            <div class="flex-1 flex flex-col overflow-hidden transition-all duration-300"
+                 :class="{
+                    'lg:ml-64': !sidebarCollapsed,
+                    'lg:ml-20': sidebarCollapsed,
+                    'ml-0': !sidebarOpen
+                 }">
                 <!-- Top Bar -->
                 <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6 z-10">
                     <div class="flex-1">
