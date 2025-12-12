@@ -181,11 +181,11 @@
    =================================== */
 
 .form-group {
-    @apply mb-5;
+    @apply mb-5 flex flex-col;
 }
 
 .form-label {
-    @apply block text-sm font-bold text-gray-800 mb-2;
+    @apply block w-full text-sm font-bold text-gray-800 mb-2;
     letter-spacing: 0.025em;
 }
 
