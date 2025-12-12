@@ -10,7 +10,7 @@ import tempfile
 import subprocess
 import sys
 
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -261,7 +261,7 @@ async def export_meal_plan_pdf(
     camp_id: int,
     db: Session = Depends(get_db)
 ):
-    """Export meal plan as PDF"""
+    """Export meal plan as PDF in landscape table format"""
 
     camp = crud.get_camp(db, camp_id)
     if not camp:
@@ -283,84 +283,139 @@ async def export_meal_plan_pdf(
         date_key = meal_plan.meal_date.date()
         meal_grid[date_key][meal_plan.meal_type].append(meal_plan)
 
-    # Create PDF
+    # Create PDF in landscape
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=2*cm, leftMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                            rightMargin=1.5*cm, leftMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
 
     elements = []
     styles = getSampleStyleSheet()
 
-    # Title
+    # Title style
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=24,
+        fontSize=20,
         textColor=colors.HexColor('#1F2937'),
-        spaceAfter=30
+        spaceAfter=10,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     )
 
-    title = Paragraph(f"Speiseplan: {camp.name}", title_style)
-    elements.append(title)
-
-    # Camp info
-    info_text = f"Zeitraum: {camp.start_date.strftime('%d.%m.%Y')} - {camp.end_date.strftime('%d.%m.%Y')}<br/>"
-    info_text += f"Teilnehmer: {camp.participant_count}"
-
-    info = Paragraph(info_text, styles['Normal'])
-    elements.append(info)
-    elements.append(Spacer(1, 20))
-
-    # Generate meal plan table
+    # Generate all days
+    all_days = []
     current_date = camp.start_date
     while current_date <= camp.end_date:
-        date_key = current_date.date()
+        all_days.append(current_date)
+        current_date += timedelta(days=1)
 
-        # Date heading with German weekday
-        weekday = get_german_weekday(current_date)
-        date_heading = Paragraph(
-            f"<b>{weekday}, {current_date.strftime('%d.%m.%Y')}</b>",
-            styles['Heading2']
-        )
-        elements.append(date_heading)
+    # Split days into weeks (7 days per page)
+    weeks = []
+    for i in range(0, len(all_days), 7):
+        weeks.append(all_days[i:i+7])
 
-        # Meals for this day
+    # Create a table for each week
+    for week_index, week_days in enumerate(weeks):
+        if week_index > 0:
+            elements.append(PageBreak())
+
+        # Title with camp info
+        title = Paragraph(f"Speiseplan: {camp.name}", title_style)
+        elements.append(title)
+
+        # Camp info
+        info_text = f"Zeitraum: {camp.start_date.strftime('%d.%m.%Y')} - {camp.end_date.strftime('%d.%m.%Y')} | Teilnehmer: {camp.participant_count}"
+        if len(weeks) > 1:
+            info_text += f" | Woche {week_index + 1} von {len(weeks)}"
+
+        info = Paragraph(info_text, styles['Normal'])
+        elements.append(info)
+        elements.append(Spacer(1, 15))
+
+        # Build table data
         table_data = []
 
-        for meal_type in [models.MealType.BREAKFAST, models.MealType.LUNCH, models.MealType.DINNER]:
-            meal_name = {"BREAKFAST": "Frühstück", "LUNCH": "Mittagessen", "DINNER": "Abendessen"}[meal_type.value]
-            recipes = meal_grid[date_key][meal_type]
+        # Header row with dates
+        header_row = [""]  # Empty cell for meal type column
+        for day in week_days:
+            weekday = get_german_weekday(day)
+            date_str = day.strftime('%d.%m.')
+            header_row.append(f"{weekday}\n{date_str}")
 
-            # Build recipe names list, handling None recipes (no meal planned)
-            if recipes:
-                names = []
-                for mp in recipes:
-                    if mp.recipe:
-                        names.append(mp.recipe.name)
-                    else:
-                        names.append("Kein Essen")
-                recipe_names = ", ".join(names) if names else "-"
-            else:
-                recipe_names = "-"
+        table_data.append(header_row)
 
-            table_data.append([meal_name, recipe_names])
+        # Meal rows
+        meal_types = [
+            (models.MealType.BREAKFAST, "Frühstück"),
+            (models.MealType.LUNCH, "Mittagessen"),
+            (models.MealType.DINNER, "Abendessen")
+        ]
 
-        table = Table(table_data, colWidths=[4*cm, 12*cm])
+        for meal_type, meal_name in meal_types:
+            row = [meal_name]
+
+            for day in week_days:
+                date_key = day.date()
+                recipes = meal_grid[date_key][meal_type]
+
+                if recipes:
+                    names = []
+                    for mp in recipes:
+                        if mp.recipe:
+                            names.append(mp.recipe.name)
+                        else:
+                            names.append("Kein Essen")
+                    recipe_text = "\n".join(names) if names else "-"
+                else:
+                    recipe_text = "-"
+
+                row.append(recipe_text)
+
+            table_data.append(row)
+
+        # Calculate column widths
+        num_days = len(week_days)
+        meal_col_width = 2.5*cm
+        day_col_width = (landscape(A4)[0] - 3*cm - meal_col_width) / num_days
+        col_widths = [meal_col_width] + [day_col_width] * num_days
+
+        # Create table
+        table = Table(table_data, colWidths=col_widths)
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F3F4F6')),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            # Header row styling
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+
+            # Meal type column styling
+            ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#F3F4F6')),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 1), (0, -1), 10),
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+            ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
+
+            # Data cells styling
+            ('FONTSIZE', (1, 1), (-1, -1), 8),
+            ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
+            ('VALIGN', (1, 1), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (1, 1), (-1, -1), 5),
+            ('RIGHTPADDING', (1, 1), (-1, -1), 5),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+
+            # Grid
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#D1D5DB')),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4F46E5')),
+
+            # Alternating row colors for data
+            ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
         ]))
 
         elements.append(table)
-        elements.append(Spacer(1, 15))
-
-        current_date += timedelta(days=1)
 
     # Build PDF
     doc.build(elements)
