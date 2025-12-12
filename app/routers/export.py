@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 from io import BytesIO
 import os
 from pathlib import Path
 import locale
+import tempfile
+import subprocess
+import sys
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -38,6 +41,32 @@ def get_german_weekday(date):
         6: "Sonntag"
     }
     return weekdays.get(date.weekday(), date.strftime('%A'))
+
+def open_pdf_file(filepath):
+    """Open PDF file with default system viewer"""
+    try:
+        if sys.platform == 'win32':
+            os.startfile(filepath)
+        elif sys.platform == 'darwin':  # macOS
+            subprocess.run(['open', filepath])
+        else:  # linux
+            subprocess.run(['xdg-open', filepath])
+        return True
+    except Exception as e:
+        print(f"Error opening PDF: {e}")
+        return False
+
+def get_downloads_folder():
+    """Get or create downloads folder for PDFs"""
+    # Get user's Downloads folder or create one in app directory
+    if sys.platform == 'win32':
+        downloads_path = Path.home() / 'Downloads' / 'Kuechenplaner'
+    else:
+        downloads_path = Path.home() / 'Downloads' / 'Kuechenplaner'
+
+    # Create folder if it doesn't exist
+    downloads_path.mkdir(parents=True, exist_ok=True)
+    return downloads_path
 
 @router.get("/shopping-list/pdf/{camp_id}")
 async def export_shopping_list_pdf(
@@ -327,9 +356,22 @@ async def export_meal_plan_pdf(
     buffer.seek(0)
     filename = f"speiseplan_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
-    return StreamingResponse(
-        buffer,
+    # Save PDF to downloads folder and open it
+    downloads_folder = get_downloads_folder()
+    filepath = downloads_folder / filename
+
+    # Write PDF to file
+    with open(filepath, 'wb') as f:
+        f.write(buffer.getvalue())
+
+    # Try to open the PDF automatically
+    open_pdf_file(str(filepath))
+
+    # Return file response
+    return FileResponse(
+        path=str(filepath),
         media_type="application/pdf",
+        filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -346,9 +388,14 @@ async def export_recipe_book_pdf(
 
     meal_plans = crud.get_meal_plans_for_camp(db, camp_id)
 
-    # Get unique recipes
-    recipe_ids = set(mp.recipe_id for mp in meal_plans)
-    recipes = [crud.get_recipe(db, rid) for rid in recipe_ids]
+    # Get unique recipes (filter out None recipe_ids)
+    recipe_ids = set(mp.recipe_id for mp in meal_plans if mp.recipe_id is not None)
+    recipes = [crud.get_recipe(db, rid) for rid in recipe_ids if rid is not None]
+    # Filter out None recipes (in case a recipe was deleted)
+    recipes = [r for r in recipes if r is not None]
+
+    if not recipes:
+        raise HTTPException(status_code=404, detail="No recipes found in meal plan")
 
     # Create PDF
     buffer = BytesIO()
@@ -440,9 +487,22 @@ async def export_recipe_book_pdf(
     buffer.seek(0)
     filename = f"rezeptbuch_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
-    return StreamingResponse(
-        buffer,
+    # Save PDF to downloads folder and open it
+    downloads_folder = get_downloads_folder()
+    filepath = downloads_folder / filename
+
+    # Write PDF to file
+    with open(filepath, 'wb') as f:
+        f.write(buffer.getvalue())
+
+    # Try to open the PDF automatically
+    open_pdf_file(str(filepath))
+
+    # Return file response
+    return FileResponse(
+        path=str(filepath),
         media_type="application/pdf",
+        filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
@@ -638,8 +698,21 @@ async def export_all_recipes_pdf(
     buffer.seek(0)
     filename = f"rezeptsammlung_{datetime.now().strftime('%Y%m%d')}.pdf"
 
-    return StreamingResponse(
-        buffer,
+    # Save PDF to downloads folder and open it
+    downloads_folder = get_downloads_folder()
+    filepath = downloads_folder / filename
+
+    # Write PDF to file
+    with open(filepath, 'wb') as f:
+        f.write(buffer.getvalue())
+
+    # Try to open the PDF automatically
+    open_pdf_file(str(filepath))
+
+    # Return file response
+    return FileResponse(
+        path=str(filepath),
         media_type="application/pdf",
+        filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
