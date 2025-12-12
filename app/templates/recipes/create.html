@@ -543,22 +543,15 @@ function ingredientAutocomplete() {
         selectSuggestion(suggestion) {
             console.log('Selecting suggestion:', suggestion);
 
-            // Direkt das Parent-Form-Element finden
-            const formElement = document.getElementById('recipe-form');
-            if (formElement && formElement.__x && formElement.__x.$data) {
-                // Zutat auswählen
-                formElement.__x.$data.currentIngredient = {
+            // Event-basierter Ansatz statt direktem Zugriff
+            window.dispatchEvent(new CustomEvent('ingredient-selected', {
+                detail: {
                     id: suggestion.id,
                     name: suggestion.name,
-                    quantity: null,
                     unit: suggestion.unit,
-                    customUnit: '',
                     category: suggestion.category
-                };
-                console.log('Ingredient selected:', formElement.__x.$data.currentIngredient);
-            } else {
-                console.error('Form not found or Alpine.js not initialized');
-            }
+                }
+            }));
 
             // Suchfeld leeren und Dropdown schließen
             this.search = '';
@@ -696,6 +689,20 @@ function recipeForm() {
                 this.$nextTick(() => {
                     this.initializeSortable();
                 });
+            });
+
+            // Event-Listener für Zutat-Auswahl aus Autocomplete
+            window.addEventListener('ingredient-selected', (event) => {
+                console.log('Ingredient selected via event:', event.detail);
+                this.currentIngredient = {
+                    id: event.detail.id,
+                    name: event.detail.name,
+                    quantity: null,
+                    unit: event.detail.unit,
+                    customUnit: '',
+                    category: event.detail.category
+                };
+                console.log('currentIngredient updated:', this.currentIngredient);
             });
         },
 
