@@ -191,11 +191,11 @@
 
 .form-input {
     @apply block w-full px-4 py-3 text-base text-gray-900
-           bg-white border-2 border-gray-300 rounded-lg
+           bg-gray-50 border-2 border-gray-400 rounded-lg
            transition-all duration-200
-           hover:border-gray-400
-           focus:border-purple-500 focus:ring-4 focus:ring-purple-100
-           placeholder:text-gray-400 placeholder:font-normal
+           hover:border-indigo-400 hover:bg-white
+           focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:bg-white
+           placeholder:text-gray-500 placeholder:font-normal
            shadow-sm;
 }
 
@@ -205,20 +205,20 @@
 
 .form-textarea {
     @apply block w-full px-4 py-3 text-base text-gray-900
-           bg-white border-2 border-gray-300 rounded-lg
+           bg-gray-50 border-2 border-gray-400 rounded-lg
            transition-all duration-200
-           hover:border-gray-400
-           focus:border-purple-500 focus:ring-4 focus:ring-purple-100
-           placeholder:text-gray-400 resize-y min-h-[120px]
+           hover:border-indigo-400 hover:bg-white
+           focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:bg-white
+           placeholder:text-gray-500 resize-y min-h-[120px]
            shadow-sm;
 }
 
 .form-select {
     @apply block w-full px-4 py-3 text-base text-gray-900
-           bg-white border-2 border-gray-300 rounded-lg
+           bg-gray-50 border-2 border-gray-400 rounded-lg
            transition-all duration-200
-           hover:border-gray-400
-           focus:border-purple-500 focus:ring-4 focus:ring-purple-100
+           hover:border-indigo-400 hover:bg-white
+           focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 focus:bg-white
            shadow-sm cursor-pointer;
 }
 
