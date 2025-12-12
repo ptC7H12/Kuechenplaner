@@ -157,13 +157,25 @@ async def export_shopping_list_pdf(
     # Build PDF
     doc.build(elements)
 
-    # Return as streaming response
     buffer.seek(0)
     filename = f"einkaufsliste_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
 
-    return StreamingResponse(
-        buffer,
+    # Save PDF to downloads folder and open it
+    downloads_folder = get_downloads_folder()
+    filepath = downloads_folder / filename
+
+    # Write PDF to file
+    with open(filepath, 'wb') as f:
+        f.write(buffer.getvalue())
+
+    # Try to open the PDF automatically
+    open_pdf_file(str(filepath))
+
+    # Return file response
+    return FileResponse(
+        path=str(filepath),
         media_type="application/pdf",
+        filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
