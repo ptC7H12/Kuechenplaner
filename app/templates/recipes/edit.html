@@ -495,21 +495,21 @@
 // Recipe data from server
 const RECIPE_DATA = {
     id: {{ recipe.id }},
-    name: {{ recipe.name|tojson }},
-    description: {{ recipe.description|tojson if recipe.description else '""' }},
+    name: {{ recipe.name|tojson|safe }},
+    description: {{ (recipe.description|tojson if recipe.description else '""')|safe }},
     base_servings: {{ recipe.base_servings }},
     preparation_time: {{ recipe.preparation_time if recipe.preparation_time else 'null' }},
     cooking_time: {{ recipe.cooking_time if recipe.cooking_time else 'null' }},
-    instructions: {{ recipe.instructions|tojson if recipe.instructions else '""' }},
-    allergen_notes: {{ recipe.allergen_notes|tojson if recipe.allergen_notes else '""' }},
+    instructions: {{ (recipe.instructions|tojson if recipe.instructions else '""')|safe }},
+    allergen_notes: {{ (recipe.allergen_notes|tojson if recipe.allergen_notes else '""')|safe }},
     ingredients: [
         {% for ri in recipe.ingredients %}
         {
             ingredient_id: {{ ri.ingredient.id }},
-            name: {{ ri.ingredient.name|tojson }},
+            name: {{ ri.ingredient.name|tojson|safe }},
             quantity: {{ ri.quantity }},
-            unit: {{ ri.unit|tojson }},
-            category: {{ ri.ingredient.category|tojson }}
+            unit: {{ ri.unit|tojson|safe }},
+            category: {{ ri.ingredient.category|tojson|safe }}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     ],
