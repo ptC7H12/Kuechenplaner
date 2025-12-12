@@ -149,20 +149,24 @@
 
                 <div class="grid grid-cols-1 gap-4">
                     <!-- Zutat (Autocomplete) -->
-                    <div class="relative" x-data="ingredientAutocomplete()">
+                    <div>
                         <label class="form-label">Zutat <span class="text-red-500">*</span></label>
-                        <input
-                            type="text"
-                            x-model="search"
-                            @input.debounce.300ms="searchIngredients"
-                            @focus="showSuggestions = search.length >= 1"
-                            @keydown.down.prevent="navigateDown"
-                            @keydown.up.prevent="navigateUp"
-                            @keydown.enter.prevent="selectCurrent"
-                            @keydown.escape="showSuggestions = false"
-                            class="form-input"
-                            placeholder="Zutat eingeben..."
-                        >
+
+                        <!-- Suchfeld -->
+                        <div class="relative" x-data="ingredientAutocomplete()">
+                            <input
+                                type="text"
+                                x-model="search"
+                                @input.debounce.300ms="searchIngredients"
+                                @focus="showSuggestions = search.length >= 1"
+                                @keydown.down.prevent="navigateDown"
+                                @keydown.up.prevent="navigateUp"
+                                @keydown.enter.prevent="selectCurrent"
+                                @keydown.escape="showSuggestions = false"
+                                class="form-input"
+                                placeholder="Zutat suchen..."
+                                :disabled="currentIngredient.id !== null"
+                            >
 
                         <!-- Autocomplete Dropdown -->
                         <div
@@ -205,6 +209,25 @@
                                     "<span x-text="search"></span>" als neue Zutat hinzufügen
                                 </p>
                             </div>
+                        </div>
+                        </div>
+
+                        <!-- Ausgewählte Zutat Badge -->
+                        <div x-show="currentIngredient.id" class="mt-2 inline-flex items-center px-4 py-2 rounded-lg bg-indigo-50 border-2 border-indigo-200">
+                            <svg class="w-5 h-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-bold text-indigo-900" x-text="currentIngredient.name"></span>
+                            <button
+                                type="button"
+                                @click="currentIngredient = { id: null, name: '', quantity: null, unit: '', customUnit: '', category: '' }"
+                                class="ml-3 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full p-1"
+                                title="Auswahl löschen"
+                            >
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -544,14 +567,19 @@ function ingredientAutocomplete() {
         },
 
         selectSuggestion(suggestion) {
+            console.log('Selecting suggestion:', suggestion);
+
             // Direkt das Parent-Formular finden und Zutat auswählen
             const form = this.$el.closest('form');
             if (form && form.__x) {
                 const formData = form.__x.$data;
                 if (formData && formData.selectIngredient) {
                     formData.selectIngredient(suggestion);
+                    console.log('Ingredient selected, currentIngredient:', formData.currentIngredient);
                 }
             }
+
+            // Suchfeld leeren und Dropdown schließen
             this.search = '';
             this.suggestions = [];
             this.showSuggestions = false;
