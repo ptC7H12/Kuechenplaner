@@ -542,7 +542,14 @@ function ingredientAutocomplete() {
         },
 
         selectSuggestion(suggestion) {
-            Alpine.store('recipeForm').selectIngredient(suggestion);
+            // Direkt das Parent-Formular finden und Zutat auswählen
+            const form = this.$el.closest('form');
+            if (form && form.__x) {
+                const formData = form.__x.$data;
+                if (formData && formData.selectIngredient) {
+                    formData.selectIngredient(suggestion);
+                }
+            }
             this.search = '';
             this.suggestions = [];
             this.showSuggestions = false;
@@ -603,7 +610,15 @@ function newIngredientForm() {
 
                 if (response.ok) {
                     const ingredient = await response.json();
-                    Alpine.store('recipeForm').selectIngredient(ingredient);
+
+                    // Direkt das Parent-Formular finden und Zutat auswählen
+                    const form = document.querySelector('#recipe-form');
+                    if (form && form.__x) {
+                        const formData = form.__x.$data;
+                        if (formData && formData.selectIngredient) {
+                            formData.selectIngredient(ingredient);
+                        }
+                    }
 
                     // Close modal
                     window.dispatchEvent(new CustomEvent('close-new-ingredient-modal'));
@@ -836,13 +851,5 @@ function recipeForm() {
         }
     };
 }
-
-// Make recipeForm available globally for ingredient autocomplete
-Alpine.store('recipeForm', {
-    selectIngredient(ingredient) {
-        const formComponent = document.querySelector('[x-data*="recipeForm"]').__x.$data;
-        formComponent.selectIngredient(ingredient);
-    }
-});
 </script>
 {% endblock %}
