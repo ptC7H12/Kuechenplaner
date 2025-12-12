@@ -495,7 +495,7 @@
 // Recipe data from server
 const RECIPE_DATA = {
     id: {{ recipe.id }},
-    name: "{{ recipe.name }}",
+    name: {{ recipe.name|tojson }},
     description: {{ recipe.description|tojson if recipe.description else '""' }},
     base_servings: {{ recipe.base_servings }},
     preparation_time: {{ recipe.preparation_time if recipe.preparation_time else 'null' }},
@@ -506,10 +506,10 @@ const RECIPE_DATA = {
         {% for ri in recipe.ingredients %}
         {
             ingredient_id: {{ ri.ingredient.id }},
-            name: "{{ ri.ingredient.name }}",
+            name: {{ ri.ingredient.name|tojson }},
             quantity: {{ ri.quantity }},
-            unit: "{{ ri.unit }}",
-            category: "{{ ri.ingredient.category }}"
+            unit: {{ ri.unit|tojson }},
+            category: {{ ri.ingredient.category|tojson }}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     ],
