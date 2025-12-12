@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import and_, or_
 from typing import List, Optional
 from datetime import datetime
@@ -48,7 +48,15 @@ def update_camp_last_accessed(db: Session, camp_id: int):
 
 # Recipe CRUD operations
 def get_recipe(db: Session, recipe_id: int):
-    return db.query(models.Recipe).filter(models.Recipe.id == recipe_id).first()
+    """Get a recipe with all its relationships eagerly loaded"""
+    return db.query(models.Recipe)\
+        .options(
+            selectinload(models.Recipe.ingredients).joinedload(models.RecipeIngredient.ingredient),
+            selectinload(models.Recipe.tags),
+            selectinload(models.Recipe.allergens)
+        )\
+        .filter(models.Recipe.id == recipe_id)\
+        .first()
 
 def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None, tag_ids: List[int] = None):
     query = db.query(models.Recipe)
