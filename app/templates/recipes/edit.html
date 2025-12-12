@@ -569,14 +569,21 @@ function ingredientAutocomplete() {
         selectSuggestion(suggestion) {
             console.log('Selecting suggestion:', suggestion);
 
-            // Direkt das Parent-Formular finden und Zutat auswählen
-            const form = this.$el.closest('form');
-            if (form && form.__x) {
-                const formData = form.__x.$data;
-                if (formData && formData.selectIngredient) {
-                    formData.selectIngredient(suggestion);
-                    console.log('Ingredient selected, currentIngredient:', formData.currentIngredient);
-                }
+            // Direkt das Parent-Form-Element finden
+            const formElement = document.getElementById('recipe-form');
+            if (formElement && formElement.__x && formElement.__x.$data) {
+                // Zutat auswählen
+                formElement.__x.$data.currentIngredient = {
+                    id: suggestion.id,
+                    name: suggestion.name,
+                    quantity: null,
+                    unit: suggestion.unit,
+                    customUnit: '',
+                    category: suggestion.category
+                };
+                console.log('Ingredient selected:', formElement.__x.$data.currentIngredient);
+            } else {
+                console.error('Form not found or Alpine.js not initialized');
             }
 
             // Suchfeld leeren und Dropdown schließen
@@ -641,13 +648,18 @@ function newIngredientForm() {
                 if (response.ok) {
                     const ingredient = await response.json();
 
-                    // Direkt das Parent-Formular finden und Zutat auswählen
-                    const form = document.querySelector('#recipe-form');
-                    if (form && form.__x) {
-                        const formData = form.__x.$data;
-                        if (formData && formData.selectIngredient) {
-                            formData.selectIngredient(ingredient);
-                        }
+                    // Direkt das Parent-Form-Element finden
+                    const formElement = document.getElementById('recipe-form');
+                    if (formElement && formElement.__x && formElement.__x.$data) {
+                        formElement.__x.$data.currentIngredient = {
+                            id: ingredient.id,
+                            name: ingredient.name,
+                            quantity: null,
+                            unit: ingredient.unit,
+                            customUnit: '',
+                            category: ingredient.category
+                        };
+                        console.log('New ingredient created and selected:', ingredient);
                     }
 
                     // Close modal
@@ -751,17 +763,6 @@ function recipeForm() {
                     container.sortableInstance = sortableInstance;
                 }
             });
-        },
-
-        selectIngredient(ingredient) {
-            this.currentIngredient = {
-                id: ingredient.id,
-                name: ingredient.name,
-                quantity: null,
-                unit: ingredient.unit,
-                customUnit: '',
-                category: ingredient.category
-            };
         },
 
         canAddIngredient() {
