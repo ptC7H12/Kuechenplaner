@@ -157,7 +157,7 @@ async def create_tag(
             <span class="font-semibold text-gray-900">{tag.name}</span>
             <div class="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm" style="background-color: {tag.color}"></div>
         </div>
-        <button hx-delete="/api/tags/{tag.id}"
+        <button hx-delete="/settings/api/tags/{tag.id}"
                 hx-confirm="Tag '{tag.name}' wirklich löschen?"
                 hx-target="#tag-{tag.id}"
                 hx-swap="outerHTML swap:0.3s"
