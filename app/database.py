@@ -36,3 +36,29 @@ def get_db():
 def create_tables():
     from app.models import Base
     Base.metadata.create_all(bind=engine)
+
+# Run database migrations
+def run_migrations():
+    """Run pending Alembic migrations"""
+    try:
+        from alembic.config import Config
+        from alembic import command
+        import os
+
+        # Get the alembic.ini path
+        alembic_ini_path = Path(__file__).parent.parent / "alembic.ini"
+
+        if not alembic_ini_path.exists():
+            print("alembic.ini not found, skipping migrations")
+            return
+
+        # Create Alembic config
+        alembic_cfg = Config(str(alembic_ini_path))
+
+        # Run migrations to the latest version
+        command.upgrade(alembic_cfg, "head")
+        print("Database migrations completed successfully")
+    except Exception as e:
+        print(f"Error running migrations: {e}")
+        # Don't fail the application if migrations fail
+        pass
