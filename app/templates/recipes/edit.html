@@ -459,72 +459,53 @@
             </div>
         </div>
 
-        <!-- Form Actions - Fixed Footer -->
-        <div class="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-            <div class="pointer-events-auto ml-0 lg:ml-64">
-                <div class="bg-white border-t-4 border-indigo-300 shadow-2xl">
-                    <div class="max-w-5xl mx-auto px-4 py-4">
-                        <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border-2 border-indigo-300">
-                        <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
-                        <!-- Info Section -->
-                        <div class="text-center lg:text-left">
-                            <p class="text-sm font-semibold text-gray-700">
-                                <span class="text-red-500 text-lg">*</span> Pflichtfelder
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                <span class="font-semibold">Version {{ recipe.version_number }}</span>
-                                <svg class="w-4 h-4 inline mx-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="font-semibold text-indigo-600">Version {{ recipe.version_number + 1 }}</span>
-                            </p>
-                        </div>
-
-                        <!-- Buttons -->
-                        <div class="flex items-center space-x-3">
-                            <a
-                                href="/recipes/{{ recipe.id }}"
-                                class="inline-flex items-center justify-center px-6 py-3.5 text-base font-bold rounded-xl
-                                       text-white bg-gradient-to-r from-red-600 to-rose-600
-                                       hover:from-red-700 hover:to-rose-700 hover:shadow-2xl
-                                       active:from-red-800 active:to-rose-800
-                                       focus:ring-4 focus:ring-red-300
-                                       transition-all duration-200 transform hover:scale-105 active:scale-95"
-                            >
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Abbrechen
-                            </a>
-                            <button
-                                type="submit"
-                                class="inline-flex items-center justify-center px-8 py-3.5 text-base font-bold rounded-xl
-                                       text-white bg-gradient-to-r from-indigo-600 to-purple-600
-                                       hover:from-indigo-700 hover:to-purple-700 hover:shadow-2xl
-                                       active:from-indigo-800 active:to-purple-800
-                                       focus:ring-4 focus:ring-indigo-300
-                                       transition-all duration-200 transform hover:scale-105 active:scale-95
-                                       disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                :disabled="isSubmitting"
-                            >
-                                <svg x-show="!isSubmitting" class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <svg x-show="isSubmitting" class="animate-spin w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span x-show="!isSubmitting">Änderungen speichern</span>
-                                <span x-show="isSubmitting">Speichern...</span>
-                            </button>
-                        </div>
-                    </div>
+        <!-- Form Info Section (non-sticky) -->
+        <div class="card">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">
+                        <span class="text-red-500 text-lg">*</span> Pflichtfelder
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        <span class="font-semibold">Version {{ recipe.version_number }}</span>
+                        <svg class="w-4 h-4 inline mx-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-semibold text-indigo-600">Version {{ recipe.version_number + 1 }}</span>
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Spacer for fixed footer -->
-        <div class="h-32"></div>
+        <!-- Floating Action Buttons (FABs) -->
+        <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+            <!-- Abbrechen - Secondary FAB -->
+            <a href="/recipes/{{ recipe.id }}"
+               class="flex items-center px-4 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-full shadow-2xl hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-red-300"
+               title="Abbrechen">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span class="text-sm font-semibold">Abbrechen</span>
+            </a>
+
+            <!-- Änderungen speichern - Primary FAB -->
+            <button
+                type="submit"
+                :disabled="isSubmitting"
+                x-bind:class="{ 'opacity-50 cursor-not-allowed': isSubmitting }"
+                class="flex items-center px-4 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-full shadow-2xl hover:from-teal-700 hover:to-emerald-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300 disabled:hover:scale-100 disabled:hover:shadow-2xl"
+                title="Änderungen speichern">
+                <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <svg x-show="isSubmitting" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm font-semibold" x-text="isSubmitting ? 'Speichern...' : 'Änderungen speichern'"></span>
+            </button>
+        </div>
     </form>
 
     <!-- New Ingredient Modal -->
