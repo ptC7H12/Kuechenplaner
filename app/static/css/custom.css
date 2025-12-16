@@ -774,3 +774,10 @@ select:focus-visible {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
 }
+
+/* Sidebar specific transitions - only transform and width */
+.transition-sidebar {
+    transition-property: transform, width;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
