@@ -764,3 +764,13 @@ select:focus-visible {
 .nav-item-active {
     @apply bg-purple-100 text-purple-700 border-r-2 border-purple-600;
 }
+
+/* ===================================
+   SIDEBAR CONTENT MARGIN TRANSITION
+   =================================== */
+
+.transition-margin-only {
+    transition-property: margin;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
