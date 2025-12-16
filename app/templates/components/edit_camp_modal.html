@@ -1,20 +1,15 @@
 <!-- Modal Content with Material Design -->
 <div class="p-6">
     <!-- Modal Header -->
-    <div class="modal-header">
+    <div class="px-6 pt-6 pb-4 border-b border-gray-200">
         <div class="flex items-center space-x-3">
             <div class="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
                 <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
             </div>
-            <h2 class="modal-title text-2xl">Freizeit bearbeiten</h2>
+            <h2 class="text-2xl font-bold text-gray-900">Freizeit bearbeiten</h2>
         </div>
-        <button onclick="FreizeitApp.closeModal()" class="modal-close hover:rotate-90 transition-transform duration-300">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </button>
     </div>
 
     <!-- Modal Body -->
@@ -118,24 +113,24 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center justify-end space-x-3 pt-6 border-t-2 border-gray-200">
+        <!-- Action Buttons (FAB-Style) -->
+        <div class="flex items-center justify-end space-x-4 pt-6 border-t-2 border-gray-200">
             <button type="button"
                     onclick="FreizeitApp.closeModal()"
-                    class="btn btn-secondary">
+                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
                 Abbrechen
             </button>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
                 <svg id="edit-spinner" class="w-5 h-5 mr-2 htmx-indicator animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
-                Änderungen speichern
+                Speichern
             </button>
         </div>
     </form>
