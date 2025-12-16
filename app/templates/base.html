@@ -61,6 +61,16 @@
     <div class="{% if current_camp %}hamburger-layout{% else %}camp-select-layout{% endif %}">
         {% if current_camp %}
         <!-- Hamburger Menu Layout -->
+        <script>
+            // Set initial sidebar width BEFORE Alpine.js to prevent flashing
+            document.addEventListener('DOMContentLoaded', function() {
+                const sidebar = document.querySelector('[data-sidebar]');
+                if (sidebar && localStorage.getItem('sidebarCollapsed') === 'true') {
+                    sidebar.classList.remove('w-64');
+                    sidebar.classList.add('w-20');
+                }
+            });
+        </script>
         <div x-data="{
             sidebarOpen: true,
             sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
@@ -70,7 +80,8 @@
             }
         }" class="flex h-screen bg-gray-50">
             <!-- Sidebar - Material Design Style with Collapse Feature -->
-            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform lg:translate-x-0 sidebar-no-animation"
+            <div data-sidebar
+                 class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform lg:translate-x-0 w-64"
                  :class="{
                     'translate-x-0': sidebarOpen,
                     '-translate-x-full': !sidebarOpen,
@@ -190,7 +201,7 @@
                  class="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"></div>
 
             <!-- Main Content Area -->
-            <div class="flex-1 flex flex-col overflow-hidden"
+            <div class="flex-1 flex flex-col overflow-hidden lg:ml-64"
                  :class="{
                     'lg:ml-64': !sidebarCollapsed,
                     'lg:ml-20': sidebarCollapsed,
