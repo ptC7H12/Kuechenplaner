@@ -769,15 +769,14 @@ select:focus-visible {
    SIDEBAR CONTENT MARGIN TRANSITION
    =================================== */
 
-.transition-margin-only {
-    transition-property: margin;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
+/* Sidebar: NO transitions on page load/change, only on mobile toggle */
+.sidebar-no-animation {
+    transition: none;
 }
 
-/* Sidebar specific transitions - only transform and width */
-.transition-sidebar {
-    transition-property: transform, width;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
+/* Only animate transform on mobile (for slide-in/out) */
+@media (max-width: 1024px) {
+    .sidebar-no-animation {
+        transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
 }
