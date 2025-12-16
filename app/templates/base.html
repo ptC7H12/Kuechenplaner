@@ -70,12 +70,14 @@
             }
         }" class="flex h-screen bg-gray-50">
             <!-- Sidebar - Material Design Style with Collapse Feature -->
-            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform transition-sidebar lg:translate-x-0"
+            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform lg:translate-x-0"
+                 x-cloak
                  :class="{
                     'translate-x-0': sidebarOpen,
                     '-translate-x-full': !sidebarOpen,
                     'w-64': !sidebarCollapsed,
-                    'w-20': sidebarCollapsed
+                    'w-20': sidebarCollapsed,
+                    'transition-sidebar': true
                  }">
 
                 <!-- Logo & Header -->
