@@ -1,10 +1,13 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List, Dict, Any
 from collections import defaultdict
 from datetime import datetime, timedelta
+import logging
 
 from app import models, crud
 from app.services.unit_converter import convert_unit
+
+logger = logging.getLogger("kuechenplaner.calculation")
 
 def scale_recipe(recipe: models.Recipe, target_servings: int) -> Dict[str, Any]:
     """Scale recipe ingredients to target servings"""
@@ -131,15 +134,18 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
     if planned_meals < expected_meals:
         warnings.append(f"{expected_meals - planned_meals} Mahlzeiten noch nicht geplant")
     
-    # Check for recipes without allergen information
+    # Check for recipes without allergen information (optimized bulk query)
     recipes_without_allergens = 0
-    for recipe_id in recipe_ids:
-        recipe = crud.get_recipe(db, recipe_id)
-        if recipe and not recipe.allergens:
-            recipes_without_allergens += 1
-    
-    if recipes_without_allergens > 0:
-        warnings.append(f"{recipes_without_allergens} Rezepte ohne Allergen-Informationen")
+    if recipe_ids:
+        # Bulk query instead of N+1 queries
+        recipes_to_check = db.query(models.Recipe).filter(
+            models.Recipe.id.in_(recipe_ids)
+        ).options(selectinload(models.Recipe.allergens)).all()
+
+        recipes_without_allergens = sum(1 for r in recipes_to_check if not r.allergens)
+
+        if recipes_without_allergens > 0:
+            warnings.append(f"{recipes_without_allergens} Rezepte ohne Allergen-Informationen")
 
     # Create daily overview
     daily_overview = []

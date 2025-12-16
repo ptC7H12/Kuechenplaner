@@ -1,11 +1,17 @@
 import uvicorn
 from threading import Thread
 import os
+import logging
+
+# Setup logging first
+from app.logging_config import setup_logging
+setup_logging(log_level=os.environ.get("LOG_LEVEL", "INFO"))
+logger = logging.getLogger("kuechenplaner.main")
 
 # Only import webview if not in development mode
 if not os.environ.get("DEVELOPMENT"):
     import webview
-from fastapi import FastAPI, Request, Depends, Response
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -41,24 +47,31 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 # Create database tables on startup
 @app.on_event("startup")
 async def startup_event():
+    logger.info("Application starting up...")
+
     # Set German locale for date formatting
     try:
         locale.setlocale(locale.LC_TIME, 'de_DE.UTF-8')
+        logger.info("Locale set to de_DE.UTF-8")
     except locale.Error:
         try:
             # Try alternative German locale names
             locale.setlocale(locale.LC_TIME, 'de_DE')
+            logger.info("Locale set to de_DE")
         except locale.Error:
             try:
                 locale.setlocale(locale.LC_TIME, 'German')
+                logger.info("Locale set to German")
             except locale.Error:
                 # If all fail, continue without locale (will fall back to English)
-                pass
+                logger.warning("Failed to set German locale, using default")
 
     # Create tables first (if they don't exist)
+    logger.info("Creating database tables...")
     create_tables()
 
     # Run any pending migrations
+    logger.info("Running database migrations...")
     run_migrations()
 
     # Initialize default settings and sample data
@@ -122,10 +135,13 @@ async def startup_event():
             existing = db.query(crud.models.Ingredient).filter_by(name=ingredient_data["name"]).first()
             if not existing:
                 crud.create_ingredient(db, crud.schemas.IngredientCreate(**ingredient_data))
-        
+
         db.commit()
+        logger.info("Default data initialized successfully")
     finally:
         db.close()
+
+    logger.info("Application startup complete")
 
 # Root route - redirect to camp selection or dashboard
 @app.get("/", response_class=HTMLResponse)
@@ -183,8 +199,9 @@ app.include_router(export.router, prefix="/export", tags=["export"])
 
 def start_server():
     """Start the FastAPI server"""
+    logger.info("Starting FastAPI server on port 12000...")
     uvicorn.run(
-        app, 
+        app,
         host="0.0.0.0",  # Allow external access for development
         port=12000,      # Use the provided port
         log_level="info"

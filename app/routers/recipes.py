@@ -1,15 +1,53 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional, List
+import json
+import logging
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context
 from app import crud, schemas, models
 
+logger = logging.getLogger("kuechenplaner.recipes")
+
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def parse_recipe_form_data(ingredients: str, tag_ids: str):
+    """
+    Parse JSON form data for recipe creation/update
+
+    Args:
+        ingredients: JSON string of ingredients
+        tag_ids: JSON string of tag IDs
+
+    Returns:
+        Tuple of (ingredient_objects, tag_ids_list)
+
+    Raises:
+        HTTPException: If JSON parsing fails
+    """
+    try:
+        ingredients_list = json.loads(ingredients)
+        tag_ids_list = json.loads(tag_ids)
+
+        # Convert ingredients to RecipeIngredientCreate objects
+        ingredient_objects = [
+            schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
+        ]
+
+        return ingredient_objects, tag_ids_list
+
+    except json.JSONDecodeError as e:
+        logger.warning(f"Invalid JSON data in recipe form: {e}")
+        raise HTTPException(status_code=400, detail=f"Ungültige JSON-Daten: {str(e)}")
+    except (ValueError, KeyError, TypeError) as e:
+        logger.warning(f"Invalid ingredient data format: {e}")
+        raise HTTPException(status_code=400, detail=f"Ungültige Zutatendaten: {str(e)}")
 
 @router.get("/", response_class=HTMLResponse)
 async def list_recipes(
@@ -75,16 +113,8 @@ async def create_recipe(
     """Create a new recipe"""
 
     try:
-        import json
-
-        # Parse JSON strings
-        ingredients_list = json.loads(ingredients)
-        tag_ids_list = json.loads(tag_ids)
-
-        # Convert ingredients to RecipeIngredientCreate objects
-        ingredient_objects = [
-            schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
-        ]
+        # Parse form data using helper function
+        ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
 
         # Create recipe data
         recipe_data = schemas.RecipeCreate(
@@ -102,14 +132,20 @@ async def create_recipe(
         # Create recipe in database
         recipe = crud.create_recipe(db, recipe_data)
 
+        logger.info(f"Recipe created: {recipe.name} (ID: {recipe.id})")
+
         # Redirect to recipe detail page
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=303)
 
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON data: {str(e)}")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error creating recipe: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen des Rezepts")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error creating recipe: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
 
 @router.get("/{recipe_id}", response_class=HTMLResponse)
 async def get_recipe(
@@ -169,21 +205,13 @@ async def update_recipe(
     """Update an existing recipe"""
 
     try:
-        import json
-
         # Check if recipe exists
         existing_recipe = crud.get_recipe(db, recipe_id)
         if not existing_recipe:
             raise HTTPException(status_code=404, detail="Recipe not found")
 
-        # Parse JSON strings
-        ingredients_list = json.loads(ingredients)
-        tag_ids_list = json.loads(tag_ids)
-
-        # Convert ingredients to RecipeIngredientCreate objects
-        ingredient_objects = [
-            schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
-        ]
+        # Parse form data using helper function
+        ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
 
         # Create update data
         recipe_update = schemas.RecipeUpdate(
@@ -201,14 +229,20 @@ async def update_recipe(
         # Update recipe in database
         updated_recipe = crud.update_recipe(db, recipe_id, recipe_update)
 
+        logger.info(f"Recipe updated: {updated_recipe.name} (ID: {recipe_id})")
+
         # Redirect to recipe detail page
-        from fastapi.responses import RedirectResponse
         return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=303)
 
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON data: {str(e)}")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error updating recipe {recipe_id}: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Datenbankfehler beim Aktualisieren des Rezepts")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error updating recipe {recipe_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
 
 @router.get("/{recipe_id}/versions")
 async def get_recipe_versions(
@@ -339,6 +373,8 @@ async def quick_create_ingredient(
         )
         new_ingredient = crud.create_ingredient(db, ingredient_data)
 
+        logger.info(f"Ingredient quick-created: {new_ingredient.name} (ID: {new_ingredient.id})")
+
         return {
             "id": new_ingredient.id,
             "name": new_ingredient.name,
@@ -347,5 +383,15 @@ async def quick_create_ingredient(
             "usage_count": 0
         }
 
+    except SQLAlchemyError as e:
+        logger.error(f"Database error creating ingredient '{name}': {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen der Zutat")
+    except (ValueError, KeyError) as e:
+        logger.warning(f"Invalid input data for ingredient creation: {e}")
+        raise HTTPException(status_code=400, detail=f"Ungültige Eingabedaten: {str(e)}")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error creating ingredient: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
