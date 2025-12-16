@@ -310,10 +310,10 @@ async def export_meal_plan_pdf(
         all_days.append(current_date)
         current_date += timedelta(days=1)
 
-    # Split days into weeks (7 days per page)
+    # Split days into weeks (10 days per page)
     weeks = []
-    for i in range(0, len(all_days), 7):
-        weeks.append(all_days[i:i+7])
+    for i in range(0, len(all_days), 10):
+        weeks.append(all_days[i:i+10])
 
     # Create a table for each week
     for week_index, week_days in enumerate(weeks):
@@ -327,7 +327,7 @@ async def export_meal_plan_pdf(
         # Camp info
         info_text = f"Zeitraum: {camp.start_date.strftime('%d.%m.%Y')} - {camp.end_date.strftime('%d.%m.%Y')} | Teilnehmer: {camp.participant_count}"
         if len(weeks) > 1:
-            info_text += f" | Woche {week_index + 1} von {len(weeks)}"
+            info_text += f" | Seite {week_index + 1} von {len(weeks)}"
 
         info = Paragraph(info_text, styles['Normal'])
         elements.append(info)
