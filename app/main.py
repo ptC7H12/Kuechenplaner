@@ -14,7 +14,7 @@ import locale
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from app.database import create_tables, get_db
+from app.database import create_tables, run_migrations, get_db
 from app.dependencies import get_current_camp, get_template_context
 from app import crud
 
@@ -55,7 +55,11 @@ async def startup_event():
                 # If all fail, continue without locale (will fall back to English)
                 pass
 
+    # Create tables first (if they don't exist)
     create_tables()
+
+    # Run any pending migrations
+    run_migrations()
 
     # Initialize default settings and sample data
     db = next(get_db())

@@ -333,30 +333,26 @@ async def export_meal_plan_pdf(
         elements.append(info)
         elements.append(Spacer(1, 15))
 
-        # Build table data
+        # Build table data with days in rows and meal types in columns
         table_data = []
 
-        # Header row with dates
-        header_row = [""]  # Empty cell for meal type column
-        for day in week_days:
-            weekday = get_german_weekday(day)
-            date_str = day.strftime('%d.%m.')
-            header_row.append(f"{weekday}\n{date_str}")
-
-        table_data.append(header_row)
-
-        # Meal rows
+        # Header row with meal types
         meal_types = [
             (models.MealType.BREAKFAST, "Frühstück"),
             (models.MealType.LUNCH, "Mittagessen"),
             (models.MealType.DINNER, "Abendessen")
         ]
+        header_row = ["Datum"] + [meal_name for _, meal_name in meal_types]
+        table_data.append(header_row)
 
-        for meal_type, meal_name in meal_types:
-            row = [meal_name]
+        # Data rows - one row per day
+        for day in week_days:
+            date_key = day.date()
+            weekday = get_german_weekday(day)
+            date_str = day.strftime('%d.%m.%Y')
+            row = [f"{weekday}\n{date_str}"]
 
-            for day in week_days:
-                date_key = day.date()
+            for meal_type, _ in meal_types:
                 recipes = meal_grid[date_key][meal_type]
 
                 if recipes:
@@ -374,11 +370,11 @@ async def export_meal_plan_pdf(
 
             table_data.append(row)
 
-        # Calculate column widths
-        num_days = len(week_days)
-        meal_col_width = 2.5*cm
-        day_col_width = (landscape(A4)[0] - 3*cm - meal_col_width) / num_days
-        col_widths = [meal_col_width] + [day_col_width] * num_days
+        # Calculate column widths - date column wider, meal columns equal
+        date_col_width = 3.5*cm
+        num_meals = len(meal_types)
+        meal_col_width = (landscape(A4)[0] - 3*cm - date_col_width) / num_meals
+        col_widths = [date_col_width] + [meal_col_width] * num_meals
 
         # Create table
         table = Table(table_data, colWidths=col_widths)
@@ -387,32 +383,33 @@ async def export_meal_plan_pdf(
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),  # Date column left-aligned
+            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),  # Meal columns centered
             ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
 
-            # Meal type column styling
+            # Date column styling (first column in data rows)
             ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#F3F4F6')),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (0, -1), 10),
+            ('FONTSIZE', (0, 1), (0, -1), 9),
             ('ALIGN', (0, 1), (0, -1), 'LEFT'),
             ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
 
-            # Data cells styling
-            ('FONTSIZE', (1, 1), (-1, -1), 8),
+            # Data cells styling (meal columns)
+            ('FONTSIZE', (1, 1), (-1, -1), 7),  # Reduced font size for better fit
             ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
             ('VALIGN', (1, 1), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (1, 1), (-1, -1), 5),
-            ('RIGHTPADDING', (1, 1), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
 
             # Grid
             ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#D1D5DB')),
             ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4F46E5')),
 
             # Alternating row colors for data
-            ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
         ]))
 
         elements.append(table)
