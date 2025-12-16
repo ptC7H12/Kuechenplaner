@@ -30,7 +30,7 @@
 
                 <!-- Recipe Meta Information -->
                 <div class="flex flex-wrap gap-3">
-                    <div class="flex items-center space-x-2 bg-gradient-to-br from-blue-50 to-cyan-50 px-5 py-3 rounded-xl border-2 border-blue-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center space-x-2 bg-gradient-to-br from-blue-100 to-cyan-100 px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                         <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
@@ -41,7 +41,7 @@
                     </div>
 
                     {% if recipe.preparation_time %}
-                    <div class="flex items-center space-x-2 bg-gradient-to-br from-orange-50 to-amber-50 px-5 py-3 rounded-xl border-2 border-orange-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center space-x-2 bg-gradient-to-br from-orange-100 to-amber-100 px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                         <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
@@ -53,7 +53,7 @@
                     {% endif %}
 
                     {% if recipe.cooking_time %}
-                    <div class="flex items-center space-x-2 bg-gradient-to-br from-red-50 to-rose-50 px-5 py-3 rounded-xl border-2 border-red-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center space-x-2 bg-gradient-to-br from-red-100 to-rose-100 px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                         <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
                             <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"></path>
@@ -64,7 +64,7 @@
                     </div>
                     {% endif %}
 
-                    <div class="flex items-center space-x-2 bg-gradient-to-br from-purple-50 to-violet-50 px-5 py-3 rounded-xl border-2 border-purple-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div class="flex items-center space-x-2 bg-gradient-to-br from-purple-100 to-violet-100 px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
                         <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                             v{{ recipe.version_number }}
                         </div>
@@ -77,8 +77,8 @@
                 <div class="mt-5">
                     <div class="flex flex-wrap gap-2">
                         {% for tag in recipe.tags %}
-                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold border-2 shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
-                              style="background-color: {{ tag.color }}30; color: {{ tag.color }}; border-color: {{ tag.color }};">
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                              style="background-color: {{ tag.color }}50; color: {{ tag.color }};">
                             {% if tag.icon %}<span class="text-base mr-1">{{ tag.icon }}</span>{% endif %} {{ tag.name }}
                         </span>
                         {% endfor %}
@@ -121,7 +121,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Ingredients Section -->
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+        <div class="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
             <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-5">
                 <h2 class="text-2xl font-black text-white flex items-center">
                     <span class="text-3xl mr-3 drop-shadow-lg">🛒</span>
@@ -135,7 +135,7 @@
                 {% if recipe.ingredients %}
                 <ul class="space-y-3">
                     {% for ingredient in recipe.ingredients %}
-                    <li class="flex items-start space-x-4 p-4 bg-white rounded-xl border-2 border-green-200 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:border-green-400 transition-all duration-200 hover:shadow-md hover:scale-102 group">
+                    <li class="flex items-start space-x-4 p-4 bg-green-50 rounded-xl hover:bg-gradient-to-r hover:from-green-100 hover:to-emerald-100 transition-all duration-200 hover:shadow-md hover:scale-102 group">
                         <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-lg shadow-md group-hover:scale-110 transition-transform duration-200">
                             ✓
                         </div>
@@ -161,7 +161,7 @@
         </div>
 
         <!-- Instructions Section -->
-        <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+        <div class="bg-gradient-to-br from-purple-100 to-violet-100 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
             <div class="bg-gradient-to-r from-purple-500 to-violet-600 px-6 py-5">
                 <h2 class="text-2xl font-black text-white flex items-center">
                     <span class="text-3xl mr-3 drop-shadow-lg">📖</span>
@@ -170,7 +170,7 @@
             </div>
             <div class="p-6">
                 {% if recipe.instructions %}
-                <div class="bg-white rounded-xl p-6 border-2 border-purple-200 shadow-inner">
+                <div class="bg-purple-50 rounded-xl p-6 shadow-inner">
                     <div class="prose max-w-none">
                         <p class="text-gray-800 leading-relaxed whitespace-pre-line text-base">{{ recipe.instructions }}</p>
                     </div>
@@ -187,16 +187,6 @@
 
     <!-- Floating Action Buttons (FABs) -->
     <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-        <!-- Zurück zur Liste - Tertiary FAB -->
-        <a href="/recipes/"
-           class="flex items-center px-4 py-3 bg-gray-600 text-white rounded-full shadow-2xl hover:bg-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-gray-300"
-           title="Zurück zur Rezeptliste">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
-            </svg>
-            <span class="text-sm font-semibold">Zurück</span>
-        </a>
-
         <!-- Versionen anzeigen - Secondary FAB -->
         <a href="/recipes/{{ recipe.id }}/versions"
            class="flex items-center px-4 py-3 bg-purple-600 text-white rounded-full shadow-2xl hover:bg-purple-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-purple-300"
