@@ -752,6 +752,22 @@ select:focus-visible {
 }
 
 /* ===================================
+   SORTABLE.JS DRAG & DROP STYLES - RECIPE INGREDIENTS
+   =================================== */
+
+.sortable-ghost {
+    @apply opacity-30 bg-indigo-100 border-2 border-indigo-400 border-dashed;
+}
+
+.sortable-chosen {
+    @apply shadow-2xl ring-4 ring-indigo-300 scale-105 cursor-grabbing;
+}
+
+.sortable-drag {
+    @apply opacity-90 rotate-2 shadow-2xl;
+}
+
+/* ===================================
    LEGACY COMPATIBILITY
    =================================== */
 
