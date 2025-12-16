@@ -197,8 +197,8 @@
            focus:border-indigo-600 focus:ring-0 focus:shadow-2xl focus:outline-none
            placeholder:text-gray-400 placeholder:font-normal;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 1rem 1.25rem !important;
-    border-radius: 0.75rem !important;
+    padding: 0.875rem 1.125rem !important;
+    border-radius: 0.625rem !important;
 }
 
 .form-input:hover {
@@ -223,8 +223,8 @@
            focus:border-indigo-600 focus:ring-0 focus:shadow-2xl focus:outline-none
            placeholder:text-gray-400 resize-y min-h-[120px];
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 1rem 1.25rem !important;
-    border-radius: 0.75rem !important;
+    padding: 0.875rem 1.125rem !important;
+    border-radius: 0.625rem !important;
 }
 
 .form-textarea:hover {
@@ -245,8 +245,8 @@
            focus:border-indigo-600 focus:ring-0 focus:shadow-2xl focus:outline-none
            cursor-pointer;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 1rem 1.25rem !important;
-    border-radius: 0.75rem !important;
+    padding: 0.875rem 1.125rem !important;
+    border-radius: 0.625rem !important;
 }
 
 .form-select:hover {
