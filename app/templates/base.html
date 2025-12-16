@@ -64,26 +64,18 @@
         <div x-data="{
             sidebarOpen: true,
             sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
-            transitionsEnabled: false,
-            init() {
-                // Enable transitions after initial render to prevent animation on page load
-                setTimeout(() => {
-                    this.transitionsEnabled = true;
-                }, 100);
-            },
             toggleCollapse() {
                 this.sidebarCollapsed = !this.sidebarCollapsed;
                 localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
             }
         }" class="flex h-screen bg-gray-50">
             <!-- Sidebar - Material Design Style with Collapse Feature -->
-            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform lg:translate-x-0"
+            <div class="fixed inset-y-0 left-0 z-50 bg-blue-900 text-white shadow-2xl transform lg:translate-x-0 sidebar-no-animation"
                  :class="{
                     'translate-x-0': sidebarOpen,
                     '-translate-x-full': !sidebarOpen,
                     'w-64': !sidebarCollapsed,
-                    'w-20': sidebarCollapsed,
-                    'transition-sidebar': transitionsEnabled
+                    'w-20': sidebarCollapsed
                  }">
 
                 <!-- Logo & Header -->
@@ -202,8 +194,7 @@
                  :class="{
                     'lg:ml-64': !sidebarCollapsed,
                     'lg:ml-20': sidebarCollapsed,
-                    'ml-0': !sidebarOpen,
-                    'transition-margin-only': transitionsEnabled
+                    'ml-0': !sidebarOpen
                  }">
                 <!-- Top Bar -->
                 <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6 z-10">
