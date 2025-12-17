@@ -593,11 +593,25 @@ function newIngredientForm() {
             unit: '',
             category: ''
         },
+        // Store event handler reference for cleanup
+        _handleOpenModal: null,
 
         init() {
-            window.addEventListener('open-new-ingredient-modal', (e) => {
+            // Store handler as reference
+            this._handleOpenModal = (e) => {
                 this.newIngredient.name = e.detail?.name || '';
-            });
+            };
+
+            // Register event listener
+            window.addEventListener('open-new-ingredient-modal', this._handleOpenModal);
+        },
+
+        // Alpine.js destroy lifecycle hook for cleanup
+        destroy() {
+            // Remove event listener to prevent memory leaks
+            if (this._handleOpenModal) {
+                window.removeEventListener('open-new-ingredient-modal', this._handleOpenModal);
+            }
         },
 
         async createNewIngredient() {
@@ -674,6 +688,8 @@ function recipeForm() {
         isSubmitting: false,
         autoSaveStatus: '',
         sortable: null,
+        // Store event handler reference for cleanup
+        _handleIngredientSelected: null,
 
         init() {
             // Load from LocalStorage
@@ -691,8 +707,8 @@ function recipeForm() {
                 });
             });
 
-            // Event-Listener für Zutat-Auswahl aus Autocomplete
-            window.addEventListener('ingredient-selected', (event) => {
+            // Event-Listener für Zutat-Auswahl aus Autocomplete - Store as reference
+            this._handleIngredientSelected = (event) => {
                 console.log('Ingredient selected via event:', event.detail);
                 this.currentIngredient = {
                     id: event.detail.id,
@@ -703,7 +719,21 @@ function recipeForm() {
                     category: event.detail.category
                 };
                 console.log('currentIngredient updated:', this.currentIngredient);
-            });
+            };
+
+            // Register event listener
+            window.addEventListener('ingredient-selected', this._handleIngredientSelected);
+        },
+
+        // Alpine.js destroy lifecycle hook for cleanup
+        destroy() {
+            // Remove event listener to prevent memory leaks
+            if (this._handleIngredientSelected) {
+                window.removeEventListener('ingredient-selected', this._handleIngredientSelected);
+            }
+
+            // Clear localStorage
+            localStorage.removeItem('recipeFormDraft');
         },
 
         initializeSortable() {

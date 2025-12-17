@@ -5,23 +5,14 @@
 {% block content %}
 <div class="space-y-6" x-data="mealPlanning()">
     <!-- Info Card -->
-    <div class="info-card info-card-purple">
-        <div class="flex items-start space-x-4">
-            <div class="flex-shrink-0">
-                <div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center text-white shadow-lg">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-            </div>
-            <div class="flex-1">
-                <h3 class="text-xl font-black text-purple-900">Mahlzeitenplanung</h3>
-                <p class="text-sm text-purple-700 mt-2 leading-relaxed">
-                    Ziehen Sie Rezepte per Drag & Drop in den Kalender.
-                </p>
-            </div>
-        </div>
-    </div>
+    {% with
+        variant="purple",
+        icon='<div class="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center text-white shadow-lg"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>',
+        title="Mahlzeitenplanung",
+        content="<p class='leading-relaxed'>Ziehen Sie Rezepte per Drag & Drop in den Kalender.</p>"
+    %}
+        {% include "components/info_card.html" %}
+    {% endwith %}
 
     <!-- Planning Interface -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -40,7 +31,7 @@
                         x-model="searchQuery"
                         @input="filterRecipes()"
                         placeholder="Rezepte suchen..."
-                        class="form-input"
+                        class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     >
                 </div>
 

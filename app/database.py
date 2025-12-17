@@ -3,6 +3,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from pathlib import Path
+import logging
+
+logger = logging.getLogger("kuechenplaner.database")
 
 # Create data directory if it doesn't exist
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -49,7 +52,7 @@ def run_migrations():
         alembic_ini_path = Path(__file__).parent.parent / "alembic.ini"
 
         if not alembic_ini_path.exists():
-            print("alembic.ini not found, skipping migrations")
+            logger.warning("alembic.ini not found, skipping migrations")
             return
 
         # Create Alembic config
@@ -57,8 +60,8 @@ def run_migrations():
 
         # Run migrations to the latest version
         command.upgrade(alembic_cfg, "head")
-        print("Database migrations completed successfully")
+        logger.info("Database migrations completed successfully")
     except Exception as e:
-        print(f"Error running migrations: {e}")
+        logger.error(f"Error running migrations: {e}", exc_info=True)
         # Don't fail the application if migrations fail
         pass
