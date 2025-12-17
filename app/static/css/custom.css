@@ -210,6 +210,13 @@
 .form-input:focus {
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
     border-color: #4f46e5; /* indigo-600 */
+    outline: none !important;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.form-input:focus-visible {
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none !important;
 }
 
 .form-input:disabled {
@@ -237,6 +244,13 @@
 .form-textarea:focus {
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
     border-color: #4f46e5; /* indigo-600 */
+    outline: none !important;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.form-textarea:focus-visible {
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none !important;
 }
 
 .form-select {
@@ -260,6 +274,13 @@
 .form-select:focus {
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
     border-color: #4f46e5; /* indigo-600 */
+    outline: none !important;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.form-select:focus-visible {
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none !important;
 }
 
 .form-checkbox {
@@ -687,9 +708,9 @@
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
+input:not(.form-input):focus-visible,
+textarea:not(.form-textarea):focus-visible,
+select:not(.form-select):focus-visible {
     @apply ring-4 ring-purple-300 ring-opacity-50;
 }
 
