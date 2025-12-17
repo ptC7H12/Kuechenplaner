@@ -2,13 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from typing import Optional
+import logging
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context
 from app import crud, schemas
 from app.services.calculation import get_camp_statistics
+
+logger = logging.getLogger("kuechenplaner.camps")
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -48,19 +52,29 @@ async def create_camp(
         )
         
         camp = crud.create_camp(db, camp_data)
-        
+
+        logger.info(f"Camp created: {camp.name} (ID: {camp.id})")
+
         # Set as current camp
         crud.set_setting_value(db, "last_selected_camp_id", camp.id)
-        
+
         # Redirect to dashboard with cookie
         response = RedirectResponse(url="/dashboard", status_code=302)
         response.set_cookie(key="current_camp_id", value=str(camp.id))
         return response
-        
+
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid date format")
+        logger.warning(f"Invalid date format in camp creation: {e}")
+        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error creating camp: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen der Freizeit")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error creating camp: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
 
 @router.post("/{camp_id}/select", response_class=RedirectResponse)
 async def select_camp(
@@ -161,14 +175,24 @@ async def update_camp(
         
         camp_update = schemas.CampUpdate(**update_data)
         camp = crud.update_camp(db, camp_id, camp_update)
-        
+
         if not camp:
             raise HTTPException(status_code=404, detail="Camp not found")
-        
+
+        logger.info(f"Camp updated: {camp.name} (ID: {camp_id})")
+
         # Return success response (HTMX will close modal and refresh page)
         return '<script>window.location.reload();</script>'
-        
+
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid date format")
+        logger.warning(f"Invalid date format in camp update: {e}")
+        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error updating camp {camp_id}: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Datenbankfehler beim Aktualisieren der Freizeit")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error updating camp {camp_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")

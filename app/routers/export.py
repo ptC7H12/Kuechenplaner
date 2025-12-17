@@ -9,6 +9,9 @@ import locale
 import tempfile
 import subprocess
 import sys
+import logging
+
+logger = logging.getLogger("kuechenplaner.export")
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -53,7 +56,7 @@ def open_pdf_file(filepath):
             subprocess.run(['xdg-open', filepath])
         return True
     except Exception as e:
-        print(f"Error opening PDF: {e}")
+        logger.error(f"Error opening PDF: {e}", exc_info=True)
         return False
 
 def get_downloads_folder():
@@ -158,7 +161,7 @@ async def export_shopping_list_pdf(
     doc.build(elements)
 
     buffer.seek(0)
-    filename = f"einkaufsliste_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"einkaufsliste_{camp.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
 
     # Save PDF to downloads folder and open it
     downloads_folder = get_downloads_folder()
@@ -248,7 +251,7 @@ async def export_shopping_list_excel(
     wb.save(buffer)
     buffer.seek(0)
 
-    filename = f"einkaufsliste_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"einkaufsliste_{camp.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
 
     return StreamingResponse(
         buffer,
@@ -418,7 +421,7 @@ async def export_meal_plan_pdf(
     doc.build(elements)
 
     buffer.seek(0)
-    filename = f"speiseplan_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"speiseplan_{camp.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
 
     # Save PDF to downloads folder and open it
     downloads_folder = get_downloads_folder()
@@ -553,7 +556,7 @@ async def export_recipe_book_pdf(
     doc.build(elements)
 
     buffer.seek(0)
-    filename = f"rezeptbuch_{camp.name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"rezeptbuch_{camp.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
 
     # Save PDF to downloads folder and open it
     downloads_folder = get_downloads_folder()
@@ -637,7 +640,7 @@ async def export_all_recipes_pdf(
     title = Paragraph("Rezeptsammlung", title_style)
     elements.append(title)
 
-    subtitle = Paragraph(f"{len(recipes)} Rezepte | {datetime.now().strftime('%d.%m.%Y')}", subtitle_style)
+    subtitle = Paragraph(f"{len(recipes)} Rezepte | {datetime.utcnow().strftime('%d.%m.%Y')}", subtitle_style)
     elements.append(subtitle)
     elements.append(Spacer(1, 30))
 
@@ -764,7 +767,7 @@ async def export_all_recipes_pdf(
     doc.build(elements)
 
     buffer.seek(0)
-    filename = f"rezeptsammlung_{datetime.now().strftime('%Y%m%d')}.pdf"
+    filename = f"rezeptsammlung_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
 
     # Save PDF to downloads folder and open it
     downloads_folder = get_downloads_folder()

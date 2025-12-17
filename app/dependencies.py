@@ -1,7 +1,6 @@
 from fastapi import Depends, HTTPException, Request, Cookie
 from sqlalchemy.orm import Session
 from typing import Optional
-import json
 from datetime import datetime, timedelta
 
 from app.database import get_db

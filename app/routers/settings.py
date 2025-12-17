@@ -4,13 +4,32 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 import json
+import logging
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context
 from app import crud, schemas, models
 
+logger = logging.getLogger("kuechenplaner.settings")
+
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def safe_json_load(value: str) -> Any:
+    """
+    Safely parse JSON or return string value
+
+    Args:
+        value: String value that might be JSON
+
+    Returns:
+        Parsed JSON value or original string
+    """
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return value
 
 @router.get("/", response_class=HTMLResponse)
 async def settings_page(
@@ -23,7 +42,7 @@ async def settings_page(
 
     # Get all settings
     all_settings = db.query(models.AppSettings).all()
-    settings_dict = {setting.key: json.loads(setting.value) if setting.value.startswith('{') or setting.value.startswith('[') else setting.value for setting in all_settings}
+    settings_dict = {setting.key: safe_json_load(setting.value) for setting in all_settings}
 
     # Get all tags and allergens
     tags = crud.get_tags(db)
