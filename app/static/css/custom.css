@@ -190,33 +190,39 @@
 }
 
 .form-input {
-    @apply block w-full px-5 py-4 text-base text-gray-900 font-normal
-           bg-white rounded-xl
-           transition-all duration-300 ease-in-out
-           hover:shadow-xl
-           focus:ring-0 focus:shadow-2xl focus:outline-none
-           placeholder:text-gray-400 placeholder:font-normal;
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1c1917;
+    background-color: #ffffff;
+    border: 3px solid #78716c;
+    border-radius: 0.625rem;
+    transition: all 0.3s ease-in-out;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 0.875rem 1.125rem !important;
-    border-radius: 0.625rem !important;
-    border: 3px solid #78716c; /* gray-500 */
+}
+
+.form-input::placeholder {
+    color: #9ca3af;
+    opacity: 1;
 }
 
 .form-input:hover {
+    border-color: #6366f1;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
-    border-color: #6366f1; /* indigo-500 */
 }
 
 .form-input:focus {
+    border-color: #4f46e5;
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
-    border-color: #4f46e5; /* indigo-600 */
-    outline: none !important;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none;
 }
 
 .form-input:focus-visible {
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    outline: none !important;
+    border-color: #4f46e5;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
 }
 
 .form-input:disabled {
@@ -224,63 +230,73 @@
 }
 
 .form-textarea {
-    @apply block w-full px-5 py-4 text-base text-gray-900 font-normal
-           bg-white rounded-xl
-           transition-all duration-300 ease-in-out
-           hover:shadow-xl
-           focus:ring-0 focus:shadow-2xl focus:outline-none
-           placeholder:text-gray-400 resize-y min-h-[120px];
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1c1917;
+    background-color: #ffffff;
+    border: 3px solid #78716c;
+    border-radius: 0.625rem;
+    transition: all 0.3s ease-in-out;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 0.875rem 1.125rem !important;
-    border-radius: 0.625rem !important;
-    border: 3px solid #78716c; /* gray-500 */
+    resize: vertical;
+    min-height: 120px;
+}
+
+.form-textarea::placeholder {
+    color: #9ca3af;
+    opacity: 1;
 }
 
 .form-textarea:hover {
+    border-color: #6366f1;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
-    border-color: #6366f1; /* indigo-500 */
 }
 
 .form-textarea:focus {
+    border-color: #4f46e5;
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
-    border-color: #4f46e5; /* indigo-600 */
-    outline: none !important;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none;
 }
 
 .form-textarea:focus-visible {
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    outline: none !important;
+    border-color: #4f46e5;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
 }
 
 .form-select {
-    @apply block w-full px-5 py-4 text-base text-gray-900 font-normal
-           bg-white rounded-xl
-           transition-all duration-300 ease-in-out
-           hover:shadow-xl
-           focus:ring-0 focus:shadow-2xl focus:outline-none
-           cursor-pointer;
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1c1917;
+    background-color: #ffffff;
+    border: 3px solid #78716c;
+    border-radius: 0.625rem;
+    transition: all 0.3s ease-in-out;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
-    padding: 0.875rem 1.125rem !important;
-    border-radius: 0.625rem !important;
-    border: 3px solid #78716c; /* gray-500 */
+    cursor: pointer;
 }
 
 .form-select:hover {
+    border-color: #6366f1;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
-    border-color: #6366f1; /* indigo-500 */
 }
 
 .form-select:focus {
+    border-color: #4f46e5;
     box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
-    border-color: #4f46e5; /* indigo-600 */
-    outline: none !important;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    outline: none;
 }
 
 .form-select:focus-visible {
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-    outline: none !important;
+    border-color: #4f46e5;
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    outline: none;
 }
 
 .form-checkbox {
