@@ -78,12 +78,13 @@
                                 </div>
                                 <button
                                     onclick="FreizeitApp.openModal('/api/camps/{{ current_camp.id }}/edit')"
-                                    class="btn btn-primary"
+                                    class="flex items-center px-4 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-full shadow-2xl hover:from-teal-700 hover:to-emerald-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
+                                    title="Freizeit bearbeiten"
                                 >
-                                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                                     </svg>
-                                    Bearbeiten
+                                    <span class="text-sm font-semibold">Bearbeiten</span>
                                 </button>
                             </div>
                         </div>
