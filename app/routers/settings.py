@@ -201,7 +201,11 @@ async def delete_tag(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
 
+    tag_name = tag.name
     db.delete(tag)
     db.commit()
 
-    return {"success": True, "message": f"Tag '{tag.name}' deleted"}
+    logger.info(f"Tag deleted: {tag_name} (ID: {tag_id})")
+
+    # Return empty response for HTMX to remove the element
+    return HTMLResponse(content="", status_code=200)
