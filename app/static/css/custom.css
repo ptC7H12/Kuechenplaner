@@ -311,6 +311,12 @@
            cursor-pointer hover:border-purple-500;
 }
 
+.form-input-color {
+    height: 2.875rem;
+    padding: 0.5rem !important;
+    cursor: pointer;
+}
+
 .form-error {
     @apply mt-2 text-sm font-semibold text-red-600 flex items-center;
 }
@@ -324,12 +330,12 @@
    =================================== */
 
 .card {
-    @apply bg-white rounded-xl shadow-md p-6
+    @apply bg-white rounded-2xl shadow-md p-6
            transition-all duration-300 hover:shadow-lg;
 }
 
 .card-hover {
-    @apply bg-white rounded-xl shadow-md p-6
+    @apply bg-white rounded-2xl shadow-md p-6
            transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px]
            cursor-pointer;
 }
