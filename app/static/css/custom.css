@@ -311,6 +311,12 @@
            cursor-pointer hover:border-purple-500;
 }
 
+.form-input-color {
+    height: 2.875rem;
+    padding: 0.5rem !important;
+    cursor: pointer;
+}
+
 .form-error {
     @apply mt-2 text-sm font-semibold text-red-600 flex items-center;
 }
