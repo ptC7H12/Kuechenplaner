@@ -173,6 +173,15 @@ templates/
        hx-target="#recipe-list">
 ```
 
+### Design System (Material Design 3)
+**🎨 Buttons:** `.btn-primary` (indigo), `.btn-secondary` (gray), `.btn-success` (green), `.btn-danger` (red), `.btn-accent` (teal)
+**📝 Forms:** `.form-label`, `.form-input`, `.form-select`, `.form-textarea`, `.form-checkbox`, `.form-input-color`
+**🃏 Cards:** `.card` (rounded-2xl), `.card-hover`
+**🚀 FABs:** Extended FABs mit `bg-indigo-600` (primär), `bg-teal-600` (sekundär)
+**🎨 Farben:** Indigo (primär), Teal (sekundär), Green (success), Red (danger)
+**📦 Shadows:** `shadow-md` → `hover:shadow-lg` → `active:shadow-xl` → `shadow-2xl` (FABs)
+**➡️ Details:** Siehe `docs/DESIGN_SYSTEM.md`
+
 ## 🔑 Wichtige Konzepte
 
 ### 1. Camp-Auswahl-Mechanismus
