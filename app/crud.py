@@ -268,11 +268,11 @@ def get_meal_plans_for_camp(db: Session, camp_id: int):
 
 def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
     try:
-        logger.debug("crud.create_meal_plan() called")
-        logger.debug(f"  Input data: {meal_plan.dict()}")
+        logger.info("crud.create_meal_plan() called")
+        logger.info(f"  Input data: {meal_plan.dict()}")
 
         # Get the next position for this meal slot
-        logger.debug("Querying existing meal plans for position calculation...")
+        logger.info("Querying existing meal plans for position calculation...")
         existing_count = db.query(models.MealPlan).filter(
             and_(
                 models.MealPlan.camp_id == meal_plan.camp_id,
@@ -280,27 +280,27 @@ def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
                 models.MealPlan.meal_type == meal_plan.meal_type
             )
         ).count()
-        logger.debug(f"  Existing meal plans count: {existing_count}")
-        logger.debug(f"  New position will be: {existing_count}")
+        logger.info(f"  Existing meal plans count: {existing_count}")
+        logger.info(f"  New position will be: {existing_count}")
 
         # Exclude position from the dict to avoid duplicate keyword argument
         meal_plan_data = meal_plan.dict(exclude={'position'})
-        logger.debug(f"  Creating MealPlan object with data: {meal_plan_data}")
-        logger.debug(f"  Position: {existing_count}")
+        logger.info(f"  Creating MealPlan object with data: {meal_plan_data}")
+        logger.info(f"  Position: {existing_count}")
 
         db_meal_plan = models.MealPlan(**meal_plan_data, position=existing_count)
-        logger.debug("  MealPlan object created successfully")
+        logger.info("  MealPlan object created successfully")
 
-        logger.debug("  Adding to database session...")
+        logger.info("  Adding to database session...")
         db.add(db_meal_plan)
 
-        logger.debug("  Committing to database...")
+        logger.info("  Committing to database...")
         db.commit()
 
-        logger.debug("  Refreshing object from database...")
+        logger.info("  Refreshing object from database...")
         db.refresh(db_meal_plan)
 
-        logger.debug(f"  SUCCESS: Created meal plan with ID {db_meal_plan.id}")
+        logger.info(f"  SUCCESS: Created meal plan with ID {db_meal_plan.id}")
         return db_meal_plan
 
     except Exception as e:
