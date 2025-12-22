@@ -4,10 +4,16 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
+import logging
+import traceback
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context
 from app import crud, schemas, models
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -82,18 +88,54 @@ async def create_meal_plan(
 ):
     """Create a new meal plan (API endpoint)"""
 
-    # Verify camp exists
-    camp = crud.get_camp(db, meal_plan.camp_id)
-    if not camp:
-        raise HTTPException(status_code=404, detail="Camp not found")
+    logger.info("=" * 80)
+    logger.info("CREATE MEAL PLAN REQUEST")
+    logger.info(f"Camp ID: {meal_plan.camp_id}")
+    logger.info(f"Recipe ID: {meal_plan.recipe_id}")
+    logger.info(f"Meal Date: {meal_plan.meal_date}")
+    logger.info(f"Meal Type: {meal_plan.meal_type}")
+    logger.info(f"Position: {meal_plan.position}")
+    logger.info(f"Notes: {meal_plan.notes}")
+    logger.info("=" * 80)
 
-    # Verify recipe exists (only if recipe_id is provided)
-    if meal_plan.recipe_id is not None:
-        recipe = crud.get_recipe(db, meal_plan.recipe_id)
-        if not recipe:
-            raise HTTPException(status_code=404, detail="Recipe not found")
+    try:
+        # Verify camp exists
+        logger.debug(f"Verifying camp exists: {meal_plan.camp_id}")
+        camp = crud.get_camp(db, meal_plan.camp_id)
+        if not camp:
+            logger.error(f"Camp not found: {meal_plan.camp_id}")
+            raise HTTPException(status_code=404, detail="Camp not found")
+        logger.debug(f"Camp found: {camp.name}")
 
-    return crud.create_meal_plan(db, meal_plan)
+        # Verify recipe exists (only if recipe_id is provided)
+        if meal_plan.recipe_id is not None:
+            logger.debug(f"Verifying recipe exists: {meal_plan.recipe_id}")
+            recipe = crud.get_recipe(db, meal_plan.recipe_id)
+            if not recipe:
+                logger.error(f"Recipe not found: {meal_plan.recipe_id}")
+                raise HTTPException(status_code=404, detail="Recipe not found")
+            logger.debug(f"Recipe found: {recipe.name}")
+        else:
+            logger.debug("No recipe ID provided - creating 'Kein Essen' entry")
+
+        logger.debug("Creating meal plan in database...")
+        created_meal_plan = crud.create_meal_plan(db, meal_plan)
+        logger.info(f"SUCCESS: Meal plan created with ID: {created_meal_plan.id}")
+
+        return created_meal_plan
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error("FATAL ERROR CREATING MEAL PLAN")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error("Full traceback:")
+        logger.error(traceback.format_exc())
+        logger.error("=" * 80)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.put("/api/meal-plans/{meal_plan_id}", response_model=schemas.MealPlan)
 async def update_meal_plan(
