@@ -167,7 +167,7 @@
                                         class="meal-cell-dropzone min-h-[120px] rounded-lg"
                                         data-meal-date="{{ day.strftime('%Y-%m-%d') }}"
                                         data-meal-type="{{ meal_type_value }}"
-                                        data-camp-id="{{ camp.id }}"
+                                        data-camp-id="{{ current_camp.id }}"
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
@@ -219,17 +219,17 @@
     <!-- Floating Action Buttons (FABs) -->
     <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
         <!-- Plan exportieren (PDF) - Primary FAB -->
-        <a href="/export/meal-plan/pdf/{{ camp.id }}"
+        <a href="/export/meal-plan/pdf/{{ current_camp.id }}"
            class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-full shadow-2xl hover:bg-indigo-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-indigo-300"
            title="Plan exportieren (PDF)">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
             </svg>
-            <span class="text-sm font-semibold">Plan exportieren</span>
+            <span class="text-sm font-semibold">PDF Export</span>
         </a>
 
         <!-- Rezeptbuch (PDF) - Secondary FAB -->
-        <a href="/export/recipe-book/pdf/{{ camp.id }}"
+        <a href="/export/recipe-book/pdf/{{ current_camp.id }}"
            class="flex items-center px-4 py-3 bg-teal-600 text-white rounded-full shadow-2xl hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
            title="Rezeptbuch (PDF)">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -410,18 +410,4 @@ function mealPlanning() {
     border: 2px dashed #3b82f6;
 }
 </style>
-{% endblock %}
-
-{% block fab %}
-<!-- Floating Action Button for PDF Export -->
-<div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-    <a href="/export/meal-plan/pdf"
-       class="flex items-center px-4 py-3 bg-teal-600 text-white rounded-full shadow-2xl hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
-       title="Speiseplan als PDF exportieren">
-        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
-        </svg>
-        <span class="text-sm font-semibold">PDF Export</span>
-    </a>
-</div>
 {% endblock %}
