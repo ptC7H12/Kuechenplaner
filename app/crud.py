@@ -3,8 +3,14 @@ from sqlalchemy import and_, or_
 from typing import List, Optional
 from datetime import datetime
 import json
+import logging
+import traceback
 
 from app import models, schemas
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Camp CRUD operations
 def get_camp(db: Session, camp_id: int):
@@ -261,22 +267,52 @@ def get_meal_plans_for_camp(db: Session, camp_id: int):
     ).all()
 
 def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
-    # Get the next position for this meal slot
-    existing_count = db.query(models.MealPlan).filter(
-        and_(
-            models.MealPlan.camp_id == meal_plan.camp_id,
-            models.MealPlan.meal_date == meal_plan.meal_date,
-            models.MealPlan.meal_type == meal_plan.meal_type
-        )
-    ).count()
+    try:
+        logger.debug("crud.create_meal_plan() called")
+        logger.debug(f"  Input data: {meal_plan.dict()}")
 
-    # Exclude position from the dict to avoid duplicate keyword argument
-    meal_plan_data = meal_plan.dict(exclude={'position'})
-    db_meal_plan = models.MealPlan(**meal_plan_data, position=existing_count)
-    db.add(db_meal_plan)
-    db.commit()
-    db.refresh(db_meal_plan)
-    return db_meal_plan
+        # Get the next position for this meal slot
+        logger.debug("Querying existing meal plans for position calculation...")
+        existing_count = db.query(models.MealPlan).filter(
+            and_(
+                models.MealPlan.camp_id == meal_plan.camp_id,
+                models.MealPlan.meal_date == meal_plan.meal_date,
+                models.MealPlan.meal_type == meal_plan.meal_type
+            )
+        ).count()
+        logger.debug(f"  Existing meal plans count: {existing_count}")
+        logger.debug(f"  New position will be: {existing_count}")
+
+        # Exclude position from the dict to avoid duplicate keyword argument
+        meal_plan_data = meal_plan.dict(exclude={'position'})
+        logger.debug(f"  Creating MealPlan object with data: {meal_plan_data}")
+        logger.debug(f"  Position: {existing_count}")
+
+        db_meal_plan = models.MealPlan(**meal_plan_data, position=existing_count)
+        logger.debug("  MealPlan object created successfully")
+
+        logger.debug("  Adding to database session...")
+        db.add(db_meal_plan)
+
+        logger.debug("  Committing to database...")
+        db.commit()
+
+        logger.debug("  Refreshing object from database...")
+        db.refresh(db_meal_plan)
+
+        logger.debug(f"  SUCCESS: Created meal plan with ID {db_meal_plan.id}")
+        return db_meal_plan
+
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error("ERROR IN crud.create_meal_plan()")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error("Full traceback:")
+        logger.error(traceback.format_exc())
+        logger.error("=" * 80)
+        db.rollback()
+        raise
 
 def update_meal_plan(db: Session, meal_plan_id: int, meal_plan_update: schemas.MealPlanUpdate):
     db_meal_plan = get_meal_plan(db, meal_plan_id)
