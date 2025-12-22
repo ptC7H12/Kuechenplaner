@@ -259,6 +259,23 @@ async def get_recipe_versions(
 
     versions = crud.get_recipe_versions(db, recipe_id)
 
+    # Parse JSON snapshots for each version
+    for version in versions:
+        if version.ingredients_snapshot:
+            version.ingredients_parsed = json.loads(version.ingredients_snapshot)
+        else:
+            version.ingredients_parsed = []
+
+        if version.tags_snapshot:
+            version.tags_parsed = json.loads(version.tags_snapshot)
+        else:
+            version.tags_parsed = []
+
+        if version.allergens_snapshot:
+            version.allergens_parsed = json.loads(version.allergens_snapshot)
+        else:
+            version.allergens_parsed = []
+
     context.update({
         "recipe": recipe,
         "versions": versions,
