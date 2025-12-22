@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Versionen - {{ recipe.name }}{% endblock %}
+
+{% block header_actions %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 rounded-2xl shadow-xl p-8">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="/recipes/{{ recipe.id }}"
+               class="flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </a>
+            <div class="flex-1">
+                <h1 class="text-4xl font-black text-gray-900 tracking-tight">{{ recipe.name }}</h1>
+                <p class="text-lg text-gray-600 mt-1">Versionshistorie</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 bg-gradient-to-br from-purple-100 to-violet-100 px-6 py-4 rounded-xl shadow-md">
+            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                v{{ current_version }}
+            </div>
+            <div>
+                <p class="text-sm font-bold text-purple-900">Aktuelle Version</p>
+                <p class="text-xs text-purple-700">{{ versions|length }} Versionen verfügbar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Versions List -->
+    {% if versions %}
+    <div class="space-y-4">
+        {% for version in versions %}
+        <div class="bg-gradient-to-br {% if version.version_number == current_version %}from-purple-50 to-violet-50 border-2 border-purple-300{% else %}from-gray-50 to-slate-50 border border-gray-200{% endif %} rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
+            <!-- Version Header -->
+            <div class="bg-gradient-to-r {% if version.version_number == current_version %}from-purple-500 to-violet-600{% else %}from-gray-400 to-slate-500{% endif %} px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                            v{{ version.version_number }}
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-white drop-shadow-md">{{ version.name }}</h3>
+                            <p class="text-sm text-white text-opacity-90">
+                                {% if version.created_at %}
+                                    {{ version.created_at.strftime('%d.%m.%Y %H:%M') }} Uhr
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if version.version_number == current_version %}
+                    <span class="px-4 py-2 bg-white bg-opacity-30 rounded-full text-sm font-bold text-white shadow-lg">
+                        AKTUELL
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Version Details -->
+            <div class="p-6">
+                <!-- Description -->
+                {% if version.description %}
+                <div class="mb-4">
+                    <p class="text-gray-700 leading-relaxed">{{ version.description }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Meta Information -->
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <div class="flex items-center space-x-2 bg-blue-100 px-4 py-2 rounded-xl shadow-sm">
+                        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
+                        </svg>
+                        <span class="font-bold text-blue-900">{{ version.base_servings }}</span>
+                        <span class="text-sm text-blue-700">Portionen</span>
+                    </div>
+
+                    {% if version.preparation_time %}
+                    <div class="flex items-center space-x-2 bg-orange-100 px-4 py-2 rounded-xl shadow-sm">
+                        <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="font-bold text-orange-900">{{ version.preparation_time }}</span>
+                        <span class="text-sm text-orange-700">min Vorbereitung</span>
+                    </div>
+                    {% endif %}
+
+                    {% if version.cooking_time %}
+                    <div class="flex items-center space-x-2 bg-red-100 px-4 py-2 rounded-xl shadow-sm">
+                        <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="font-bold text-red-900">{{ version.cooking_time }}</span>
+                        <span class="text-sm text-red-700">min Kochen</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Collapsible Details -->
+                <details class="group">
+                    <summary class="cursor-pointer list-none">
+                        <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl hover:from-indigo-200 hover:to-purple-200 transition-all duration-300">
+                            <span class="font-bold text-indigo-900 flex items-center">
+                                <svg class="w-5 h-5 mr-2 group-open:rotate-90 transition-transform duration-300" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                Details anzeigen
+                            </span>
+                        </div>
+                    </summary>
+
+                    <div class="mt-4 space-y-4">
+                        <!-- Ingredients -->
+                        {% if version.ingredients_snapshot %}
+                        <div class="bg-green-50 rounded-xl p-4 border border-green-200">
+                            <h4 class="font-bold text-green-900 mb-3 flex items-center">
+                                <span class="text-xl mr-2">🛒</span>
+                                Zutaten
+                            </h4>
+                            {% set ingredients = version.ingredients_snapshot | fromjson %}
+                            <ul class="space-y-2">
+                                {% for ingredient in ingredients %}
+                                <li class="flex items-start space-x-3">
+                                    <span class="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✓</span>
+                                    <div>
+                                        <span class="font-bold text-green-900">{{ ingredient.quantity }} {{ ingredient.unit }}</span>
+                                        <span class="text-gray-700">{{ ingredient.ingredient_name }}</span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <!-- Instructions -->
+                        {% if version.instructions %}
+                        <div class="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                            <h4 class="font-bold text-purple-900 mb-3 flex items-center">
+                                <span class="text-xl mr-2">📖</span>
+                                Zubereitung
+                            </h4>
+                            <p class="text-gray-700 leading-relaxed whitespace-pre-line text-sm">{{ version.instructions }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Tags -->
+                        {% if version.tags_snapshot %}
+                        <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                            <h4 class="font-bold text-indigo-900 mb-3 flex items-center">
+                                <span class="text-xl mr-2">🏷️</span>
+                                Tags
+                            </h4>
+                            {% set tags = version.tags_snapshot | fromjson %}
+                            <div class="flex flex-wrap gap-2">
+                                {% for tag in tags %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold shadow-sm"
+                                      style="background-color: {{ tag.color }}30; color: {{ tag.color }};">
+                                    {% if tag.icon %}<span class="text-base mr-1">{{ tag.icon }}</span>{% endif %} {{ tag.name }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Allergens -->
+                        {% if version.allergens_snapshot %}
+                        {% set allergens = version.allergens_snapshot | fromjson %}
+                        {% if allergens %}
+                        <div class="bg-red-50 rounded-xl p-4 border border-red-200">
+                            <h4 class="font-bold text-red-900 mb-3 flex items-center">
+                                <span class="text-xl mr-2">⚠️</span>
+                                Allergene
+                            </h4>
+                            <div class="flex flex-wrap gap-2">
+                                {% for allergen in allergens %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold bg-white text-red-800 border border-red-400 shadow-sm">
+                                    {% if allergen.icon %}<span class="text-base mr-1">{{ allergen.icon }}</span>{% endif %} {{ allergen.name }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Allergen Notes -->
+                        {% if version.allergen_notes %}
+                        <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                            <h4 class="font-bold text-yellow-900 mb-2 flex items-center">
+                                <span class="text-xl mr-2">📝</span>
+                                Allergen-Hinweise
+                            </h4>
+                            <p class="text-gray-700 text-sm leading-relaxed">{{ version.allergen_notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </details>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20 bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl shadow-xl">
+        <div class="text-8xl mb-6 opacity-20">📚</div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2">Keine Versionen verfügbar</h3>
+        <p class="text-gray-600">Dieses Rezept hat noch keine Versionshistorie.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
