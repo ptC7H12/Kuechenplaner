@@ -100,25 +100,25 @@ async def create_meal_plan(
 
     try:
         # Verify camp exists
-        logger.debug(f"Verifying camp exists: {meal_plan.camp_id}")
+        logger.info(f"Verifying camp exists: {meal_plan.camp_id}")
         camp = crud.get_camp(db, meal_plan.camp_id)
         if not camp:
             logger.error(f"Camp not found: {meal_plan.camp_id}")
             raise HTTPException(status_code=404, detail="Camp not found")
-        logger.debug(f"Camp found: {camp.name}")
+        logger.info(f"Camp found: {camp.name}")
 
         # Verify recipe exists (only if recipe_id is provided)
         if meal_plan.recipe_id is not None:
-            logger.debug(f"Verifying recipe exists: {meal_plan.recipe_id}")
+            logger.info(f"Verifying recipe exists: {meal_plan.recipe_id}")
             recipe = crud.get_recipe(db, meal_plan.recipe_id)
             if not recipe:
                 logger.error(f"Recipe not found: {meal_plan.recipe_id}")
                 raise HTTPException(status_code=404, detail="Recipe not found")
-            logger.debug(f"Recipe found: {recipe.name}")
+            logger.info(f"Recipe found: {recipe.name}")
         else:
-            logger.debug("No recipe ID provided - creating 'Kein Essen' entry")
+            logger.info("No recipe ID provided - creating 'Kein Essen' entry")
 
-        logger.debug("Creating meal plan in database...")
+        logger.info("Creating meal plan in database...")
         created_meal_plan = crud.create_meal_plan(db, meal_plan)
         logger.info(f"SUCCESS: Meal plan created with ID: {created_meal_plan.id}")
 
