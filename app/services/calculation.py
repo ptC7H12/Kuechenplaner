@@ -124,10 +124,18 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
     
     # Calculate total days
     total_days = (camp.end_date - camp.start_date).days + 1
-    
+
     # Calculate expected meals (3 per day)
     expected_meals = total_days * 3
-    planned_meals = len(meal_plans)
+
+    # Count unique meal slots that have at least one recipe assigned
+    # (not just MealPlan entries, which could be "no meal" markers with recipe_id=NULL)
+    meal_slots_with_recipes = set()
+    for meal_plan in meal_plans:
+        if meal_plan.recipe_id is not None:
+            meal_slots_with_recipes.add((meal_plan.meal_date.date(), meal_plan.meal_type))
+
+    planned_meals = len(meal_slots_with_recipes)
     
     # Check for missing meals
     warnings = []
@@ -169,8 +177,11 @@ def get_camp_statistics(db: Session, camp_id: int) -> Dict[str, Any]:
                     day_meals[meal_type_str] = []
                 day_meals[meal_type_str].append(meal_plan)
 
-        # Count planned meals for this day
-        meals_planned = sum(1 for meals in day_meals.values() if meals is not None and len(meals) > 0)
+        # Count planned meals for this day (only those with actual recipes, not "no meal" markers)
+        meals_planned = sum(
+            1 for meals in day_meals.values()
+            if meals is not None and len(meals) > 0 and any(mp.recipe_id is not None for mp in meals)
+        )
 
         daily_overview.append({
             'day_number': day_num + 1,
