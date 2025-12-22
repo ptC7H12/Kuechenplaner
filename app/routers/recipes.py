@@ -244,9 +244,11 @@ async def update_recipe(
         logger.error(f"Unexpected error updating recipe {recipe_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
 
-@router.get("/{recipe_id}/versions")
+@router.get("/{recipe_id}/versions", response_class=HTMLResponse)
 async def get_recipe_versions(
     recipe_id: int,
+    request: Request,
+    context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
     """Get all versions of a recipe"""
@@ -256,11 +258,14 @@ async def get_recipe_versions(
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     versions = crud.get_recipe_versions(db, recipe_id)
-    return {
+
+    context.update({
         "recipe": recipe,
         "versions": versions,
         "current_version": recipe.version_number
-    }
+    })
+
+    return templates.TemplateResponse("recipes/versions.html", context)
 
 @router.delete("/{recipe_id}", response_class=HTMLResponse)
 async def delete_recipe(
