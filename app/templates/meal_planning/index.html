@@ -38,18 +38,18 @@
                 <!-- Recipe List -->
                 <div id="recipe-sidebar" class="p-4 space-y-2 max-h-[600px] overflow-y-auto">
                     <!-- "Kein Essen" Option -->
-                    <div class="recipe-card-draggable bg-red-50 border-2 border-red-300 hover:bg-red-100 hover:border-red-400 transition-colors"
+                    <div class="recipe-card-draggable bg-red-200 hover:bg-red-300 transition-colors"
                          data-recipe-id="0"
                          data-recipe-name="Kein Essen">
                         <div class="flex items-start">
-                            <div class="flex-shrink-0 w-8 h-8 bg-red-200 rounded flex items-center justify-center mr-2">
-                                <svg class="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex-shrink-0 w-8 h-8 bg-red-400 rounded flex items-center justify-center mr-2">
+                                <svg class="w-5 h-5 text-red-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h4 class="font-bold text-sm text-red-700 truncate">Kein Essen</h4>
-                                <p class="text-xs text-red-600 font-medium">Keine Mahlzeit geplant</p>
+                                <h4 class="font-bold text-sm text-red-900 truncate">Kein Essen</h4>
+                                <p class="text-xs text-red-800 font-medium">Keine Mahlzeit geplant</p>
                             </div>
                         </div>
                     </div>
@@ -171,7 +171,7 @@
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
-                                            <div class="recipe-card-planned {% if not meal_plan.recipe_id %}bg-red-50 border-2 border-red-300{% endif %}"
+                                            <div class="recipe-card-planned {% if not meal_plan.recipe_id %}bg-red-200{% endif %}"
                                                  data-meal-plan-id="{{ meal_plan.id }}"
                                                  data-recipe-id="{{ meal_plan.recipe_id or 0 }}">
                                                 <div class="flex items-start">
@@ -189,10 +189,10 @@
                                                             {% endif %}
                                                         {% else %}
                                                             <div class="flex items-center">
-                                                                <svg class="w-4 h-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <svg class="w-4 h-4 text-red-900 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                                 </svg>
-                                                                <h4 class="font-bold text-sm text-red-700 truncate">Kein Essen</h4>
+                                                                <h4 class="font-bold text-sm text-red-900 truncate">Kein Essen</h4>
                                                             </div>
                                                         {% endif %}
                                                     </div>
