@@ -807,6 +807,72 @@ select:not(.form-select):focus-visible {
 }
 
 /* ===================================
+   FAB-STYLE BUTTONS (Non-Floating)
+   Material Design buttons with FAB aesthetics but not fixed positioned
+   =================================== */
+
+/* Base FAB-Style Button */
+.btn-fab {
+    @apply inline-flex items-center justify-center font-semibold
+           px-6 py-3 rounded-full shadow-2xl
+           transition-all duration-300
+           hover:shadow-xl hover:scale-110
+           active:scale-95
+           focus:outline-none focus:ring-4
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
+    letter-spacing: 0.025em;
+}
+
+/* FAB-Style Primary */
+.btn-fab-primary {
+    @apply bg-indigo-600 text-white
+           hover:bg-indigo-700
+           active:bg-indigo-800
+           focus:ring-indigo-300;
+}
+
+/* FAB-Style Secondary */
+.btn-fab-secondary {
+    @apply bg-gray-600 text-white
+           hover:bg-gray-700
+           active:bg-gray-800
+           focus:ring-gray-300;
+}
+
+/* FAB-Style Success */
+.btn-fab-success {
+    @apply bg-green-600 text-white
+           hover:bg-green-700
+           active:bg-green-800
+           focus:ring-green-300;
+}
+
+/* FAB-Style Danger */
+.btn-fab-danger {
+    @apply bg-red-600 text-white
+           hover:bg-red-700
+           active:bg-red-800
+           focus:ring-red-300;
+}
+
+/* FAB-Style Accent */
+.btn-fab-accent {
+    @apply bg-teal-600 text-white
+           hover:bg-teal-700
+           active:bg-teal-800
+           focus:ring-teal-300;
+}
+
+/* FAB-Style sizes */
+.btn-fab-sm {
+    @apply px-4 py-2 text-sm;
+}
+
+.btn-fab-lg {
+    @apply px-8 py-4 text-lg;
+}
+
+/* ===================================
    SORTABLE.JS DRAG & DROP STYLES - RECIPE INGREDIENTS
    =================================== */
 
