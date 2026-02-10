@@ -1,22 +1,23 @@
 /* ===================================
    MODERN DESIGN SYSTEM - FREIZEIT APP
+   Material Design 3 Inspired
    =================================== */
 
 /* === COLOR PALETTE === */
 :root {
-    /* Primary - Modern Indigo/Violet */
-    --color-primary-50: #f5f3ff;
-    --color-primary-100: #ede9fe;
-    --color-primary-200: #ddd6fe;
-    --color-primary-300: #c4b5fd;
-    --color-primary-400: #a78bfa;
-    --color-primary-500: #8b5cf6;
-    --color-primary-600: #7c3aed;
-    --color-primary-700: #6d28d9;
-    --color-primary-800: #5b21b6;
-    --color-primary-900: #4c1d95;
+    /* Primary - Indigo (consistent across app) */
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
 
-    /* Accent - Fresh Turquoise */
+    /* Accent - Fresh Teal */
     --color-accent-50: #f0fdfa;
     --color-accent-100: #ccfbf1;
     --color-accent-200: #99f6e4;
@@ -55,7 +56,7 @@
     --color-gray-800: #292524;
     --color-gray-900: #1c1917;
 
-    /* Shadows */
+    /* Shadows - Material Design Elevation */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -95,65 +96,63 @@
 }
 
 /* ===================================
-   BUTTON SYSTEM - MODERN & CONSISTENT
+   BUTTON SYSTEM - Material Design 3
+   Unified: all buttons use these classes
    =================================== */
 
+/* Base Button */
 .btn {
-    @apply inline-flex items-center justify-center font-semibold rounded-lg
+    @apply inline-flex items-center justify-center font-semibold rounded-xl
            transition-all duration-200 focus:outline-none focus:ring-4
            disabled:opacity-50 disabled:cursor-not-allowed select-none;
     letter-spacing: 0.025em;
 }
 
-/* Primary Button - Material Design Solid */
+/* Filled Primary - main CTA (Indigo) */
 .btn-primary {
     @apply px-5 py-2.5 text-white bg-indigo-600
            hover:bg-indigo-700 hover:shadow-lg
            active:bg-indigo-800
-           focus:ring-indigo-300 shadow-md
-           transform hover:translate-y-[-2px] active:translate-y-0;
+           focus:ring-indigo-300 shadow-md;
 }
 
-/* Secondary Button - Material Design */
+/* Outlined Secondary */
 .btn-secondary {
-    @apply px-5 py-2.5 text-gray-700 bg-white
+    @apply px-5 py-2.5 text-gray-700 bg-white border border-gray-300
            hover:bg-gray-50 hover:shadow-md
            active:bg-gray-100 focus:ring-gray-200
-           shadow-sm transform hover:translate-y-[-2px] active:translate-y-0;
+           shadow-sm;
 }
 
-/* Success Button - Material Design */
+/* Filled Success (green) */
 .btn-success {
     @apply px-5 py-2.5 text-white bg-green-600
            hover:bg-green-700 hover:shadow-lg
            active:bg-green-800
-           focus:ring-green-300 shadow-md
-           transform hover:translate-y-[-2px] active:translate-y-0;
+           focus:ring-green-300 shadow-md;
 }
 
-/* Danger Button - Material Design */
+/* Filled Danger (red) */
 .btn-danger {
     @apply px-5 py-2.5 text-white bg-red-600
            hover:bg-red-700 hover:shadow-lg
            active:bg-red-800
-           focus:ring-red-300 shadow-md
-           transform hover:translate-y-[-2px] active:translate-y-0;
+           focus:ring-red-300 shadow-md;
 }
 
-/* Accent Button - Material Design */
+/* Filled Accent (teal) - secondary CTA */
 .btn-accent {
     @apply px-5 py-2.5 text-white bg-teal-600
            hover:bg-teal-700 hover:shadow-lg
            active:bg-teal-800
-           focus:ring-teal-300 shadow-md
-           transform hover:translate-y-[-2px] active:translate-y-0;
+           focus:ring-teal-300 shadow-md;
 }
 
-/* Ghost Button - Minimal */
+/* Ghost Button - minimal background */
 .btn-ghost {
-    @apply px-4 py-2 text-gray-600 bg-transparent
+    @apply px-4 py-2 text-gray-600 bg-transparent rounded-xl
            hover:bg-gray-100 hover:text-gray-900
-           active:bg-gray-200 focus:ring-gray-200 rounded-lg;
+           active:bg-gray-200 focus:ring-gray-200;
 }
 
 /* Button Sizes */
@@ -166,18 +165,54 @@
 }
 
 .btn-lg {
-    @apply px-6 py-3.5 text-lg;
+    @apply px-6 py-3 text-lg;
 }
 
-/* Icon Button */
+/* Icon-only Button */
 .btn-icon {
-    @apply p-2.5 rounded-lg transition-all duration-200
+    @apply p-2.5 rounded-xl transition-all duration-200
            hover:bg-gray-100 active:bg-gray-200
            focus:ring-4 focus:ring-gray-200;
 }
 
 /* ===================================
-   FORM ELEMENTS - ENHANCED VISIBILITY
+   FLOATING ACTION BUTTONS (FAB) - Material Design
+   Used at bottom-right of pages for primary actions
+   =================================== */
+
+/* FAB Container - wraps multiple FABs */
+.fab-container {
+    @apply fixed bottom-6 right-6 flex flex-col gap-3 z-50;
+}
+
+/* Extended FAB (with icon + text label) */
+.fab-extended {
+    @apply inline-flex items-center px-5 py-3 text-sm font-semibold text-white
+           rounded-full shadow-lg
+           transition-all duration-200
+           hover:shadow-xl
+           active:shadow-md
+           focus:outline-none focus:ring-4;
+}
+
+.fab-extended-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-300;
+}
+
+.fab-extended-accent {
+    @apply bg-teal-600 hover:bg-teal-700 focus:ring-teal-300;
+}
+
+.fab-extended-danger {
+    @apply bg-red-600 hover:bg-red-700 focus:ring-red-300;
+}
+
+.fab-extended-purple {
+    @apply bg-purple-600 hover:bg-purple-700 focus:ring-purple-300;
+}
+
+/* ===================================
+   FORM ELEMENTS - Material Design Outlined
    =================================== */
 
 .form-group {
@@ -192,15 +227,15 @@
 .form-input {
     display: block;
     width: 100%;
-    padding: 0.3rem 0.6rem;
+    padding: 0.625rem 0.875rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #1c1917;
     background-color: #ffffff;
-    border: 3px solid #78716c;
-    border-radius: 0.625rem;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 2px solid #a8a29e;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .form-input::placeholder {
@@ -210,18 +245,18 @@
 
 .form-input:hover {
     border-color: #6366f1;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-input:focus {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
 .form-input:focus-visible {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
@@ -232,15 +267,15 @@
 .form-textarea {
     display: block;
     width: 100%;
-    padding: 0.875rem 1.125rem;
+    padding: 0.625rem 0.875rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #1c1917;
     background-color: #ffffff;
-    border: 3px solid #78716c;
-    border-radius: 0.625rem;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 2px solid #a8a29e;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     resize: vertical;
     min-height: 120px;
 }
@@ -252,63 +287,63 @@
 
 .form-textarea:hover {
     border-color: #6366f1;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-textarea:focus {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
 .form-textarea:focus-visible {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
 .form-select {
     display: block;
     width: 100%;
-    padding: 0.875rem 1.125rem;
+    padding: 0.625rem 0.875rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #1c1917;
     background-color: #ffffff;
-    border: 3px solid #78716c;
-    border-radius: 0.625rem;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 2px solid #a8a29e;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     cursor: pointer;
 }
 
 .form-select:hover {
     border-color: #6366f1;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-select:focus {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
 .form-select:focus-visible {
     border-color: #4f46e5;
-    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     outline: none;
 }
 
 .form-checkbox {
-    @apply w-5 h-5 text-purple-600 border-2 border-gray-300 rounded
-           focus:ring-4 focus:ring-purple-200 transition-all duration-200
-           cursor-pointer hover:border-purple-500;
+    @apply w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded
+           focus:ring-4 focus:ring-indigo-200 transition-all duration-200
+           cursor-pointer hover:border-indigo-500;
 }
 
 .form-radio {
-    @apply w-5 h-5 text-purple-600 border-2 border-gray-300
-           focus:ring-4 focus:ring-purple-200 transition-all duration-200
-           cursor-pointer hover:border-purple-500;
+    @apply w-5 h-5 text-indigo-600 border-2 border-gray-300
+           focus:ring-4 focus:ring-indigo-200 transition-all duration-200
+           cursor-pointer hover:border-indigo-500;
 }
 
 .form-input-color {
@@ -326,22 +361,22 @@
 }
 
 /* ===================================
-   CARD SYSTEM - MODERN SHADOWS
+   CARD SYSTEM - Material Design Surfaces
    =================================== */
 
 .card {
     @apply bg-white rounded-2xl shadow-md p-6
-           transition-all duration-300 hover:shadow-lg;
+           transition-all duration-300;
 }
 
 .card-hover {
     @apply bg-white rounded-2xl shadow-md p-6
-           transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px]
+           transition-all duration-300 hover:shadow-lg
            cursor-pointer;
 }
 
 .card-header {
-    @apply flex items-center justify-between mb-5 pb-4 border-b-2 border-gray-200;
+    @apply flex items-center justify-between mb-5 pb-4 border-b border-gray-200;
 }
 
 .card-title {
@@ -358,15 +393,13 @@
    =================================== */
 
 .sidebar-nav-item {
-    @apply flex items-center w-full px-4 py-3.5 text-base font-semibold
-           text-blue-100 rounded-xl transition-all duration-200
-           hover:bg-blue-600 hover:bg-opacity-50 hover:text-white
-           hover:shadow-lg hover:translate-x-1;
+    @apply flex items-center px-3 py-2.5 text-sm font-medium
+           rounded-lg transition-all duration-200
+           hover:bg-indigo-700 hover:bg-opacity-50;
 }
 
 .sidebar-nav-item-active {
-    @apply bg-indigo-600 text-white shadow-lg
-           border-l-4 border-indigo-400 translate-x-1 font-bold;
+    @apply bg-indigo-600 text-white shadow-md font-semibold;
 }
 
 /* ===================================
@@ -376,7 +409,7 @@
 .recipe-card {
     @apply bg-white rounded-xl shadow-md
            overflow-hidden transition-all duration-300
-           hover:shadow-2xl hover:translate-y-[-4px]
+           hover:shadow-xl
            cursor-pointer;
 }
 
@@ -408,8 +441,8 @@
 
 .recipe-tag {
     @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold
-           bg-purple-100 text-purple-800 border border-purple-200
-           transition-all duration-200 hover:bg-purple-200;
+           bg-indigo-100 text-indigo-800 border border-indigo-200
+           transition-all duration-200 hover:bg-indigo-200;
 }
 
 /* ===================================
@@ -423,17 +456,13 @@
 }
 
 .meal-cell-dropzone.sortable-drag-over {
-    @apply border-purple-400 bg-purple-50;
+    @apply border-indigo-400 bg-indigo-50;
 }
 
 .recipe-card-draggable {
     @apply bg-white rounded-lg shadow-md
            p-3 mb-2 cursor-move transition-all duration-200
-           hover:shadow-lg hover:translate-y-[-2px];
-}
-
-.recipe-card-draggable:hover {
-    @apply shadow-xl;
+           hover:shadow-lg;
 }
 
 .recipe-card-draggable.sortable-ghost {
@@ -441,13 +470,12 @@
 }
 
 .recipe-card-draggable.sortable-chosen {
-    @apply shadow-2xl ring-4 ring-purple-300 scale-105;
+    @apply shadow-xl ring-2 ring-indigo-300;
 }
 
 .recipe-card-planned {
-    @apply bg-white rounded-lg p-3 mb-2 shadow-md hover:shadow-xl
-           transition-all duration-200 cursor-move
-           hover:translate-y-[-2px];
+    @apply bg-white rounded-lg p-3 mb-2 shadow-md hover:shadow-lg
+           transition-all duration-200 cursor-move;
 }
 
 /* ===================================
@@ -462,7 +490,7 @@
     @apply flex items-center justify-between py-4 px-6
            bg-gray-50
            rounded-xl cursor-pointer transition-all duration-200
-           hover:bg-gray-100 hover:shadow-md;
+           hover:bg-gray-100;
 }
 
 .shopping-category-title {
@@ -476,9 +504,9 @@
 }
 
 .shopping-item-checkbox {
-    @apply w-5 h-5 text-purple-600 border-2 border-gray-300 rounded
-           focus:ring-4 focus:ring-purple-200 transition-all duration-200
-           cursor-pointer hover:border-purple-500;
+    @apply w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded
+           focus:ring-4 focus:ring-indigo-200 transition-all duration-200
+           cursor-pointer hover:border-indigo-500;
 }
 
 .shopping-item-name {
@@ -496,7 +524,7 @@
 .stat-card {
     @apply bg-white rounded-xl
            shadow-md p-6 text-center
-           transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px];
+           transition-all duration-300 hover:shadow-lg;
 }
 
 .stat-number {
@@ -523,7 +551,7 @@
 .progress-bar-fill {
     @apply h-3 rounded-full transition-all duration-500
            bg-indigo-600
-           shadow-md;
+           shadow-sm;
 }
 
 /* ===================================
@@ -531,7 +559,7 @@
    =================================== */
 
 .alert {
-    @apply p-5 rounded-xl mb-4 border-2 shadow-md;
+    @apply p-5 rounded-xl mb-4 border shadow-sm;
 }
 
 .alert-success {
@@ -556,11 +584,11 @@
 
 .badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
-           border-2 transition-all duration-200;
+           border transition-all duration-200;
 }
 
 .badge-primary {
-    @apply bg-purple-100 text-purple-800 border-purple-300;
+    @apply bg-indigo-100 text-indigo-800 border-indigo-300;
 }
 
 .badge-success {
@@ -580,31 +608,38 @@
 }
 
 /* ===================================
-   TABS
+   TABS - Material Design
    =================================== */
 
 .tab-list {
-    @apply flex space-x-2 bg-white p-2 border-2 border-gray-300 rounded-lg shadow-sm;
+    @apply flex border-b border-gray-200;
 }
 
 .tab-button {
-    @apply w-full rounded-lg py-3 px-4 text-sm font-bold leading-5
-           text-gray-600 transition-all duration-200
-           border-2 border-transparent
-           hover:bg-gray-100 hover:text-gray-900;
+    @apply whitespace-nowrap py-3 px-6 border-b-2 font-semibold text-sm
+           text-gray-500 transition-all duration-200
+           border-transparent
+           hover:text-gray-700 hover:border-gray-300;
 }
 
-.tab-button.active {
-    @apply bg-indigo-600 text-white
-           shadow-lg border-2 border-indigo-700 transform scale-105;
+.tab-button-active {
+    @apply border-indigo-600 text-indigo-600;
 }
 
 /* ===================================
    MODAL
    =================================== */
 
+.modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4;
+}
+
+.modal-content {
+    @apply bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto;
+}
+
 .modal-header {
-    @apply flex items-center justify-between pb-5 border-b-2 border-gray-200 mb-5;
+    @apply flex items-center justify-between pb-5 border-b border-gray-200 mb-5;
 }
 
 .modal-title {
@@ -635,25 +670,25 @@
     overflow: hidden;
 }
 
-/* Info Cards - Material Design */
+/* Info Cards */
 .info-card {
-    @apply rounded-xl p-6 shadow-md;
+    @apply rounded-xl p-6 shadow-sm border;
 }
 
 .info-card-orange {
-    @apply bg-orange-50;
+    @apply bg-orange-50 border-orange-200;
 }
 
 .info-card-purple {
-    @apply bg-purple-50;
+    @apply bg-purple-50 border-purple-200;
 }
 
 .info-card-blue {
-    @apply bg-blue-50;
+    @apply bg-blue-50 border-blue-200;
 }
 
 .info-card-green {
-    @apply bg-green-50;
+    @apply bg-green-50 border-green-200;
 }
 
 /* ===================================
@@ -733,147 +768,11 @@ a:focus-visible,
 input:not(.form-input):focus-visible,
 textarea:not(.form-textarea):focus-visible,
 select:not(.form-select):focus-visible {
-    @apply ring-4 ring-purple-300 ring-opacity-50;
+    @apply ring-4 ring-indigo-300 ring-opacity-50;
 }
 
 /* ===================================
-   FLOATING ACTION BUTTONS (FAB) - MATERIAL DESIGN
-   =================================== */
-
-.fab {
-    @apply fixed bottom-6 right-6 z-50
-           w-14 h-14 rounded-full shadow-2xl
-           flex items-center justify-center
-           transition-all duration-300
-           hover:shadow-xl hover:scale-110
-           active:scale-95
-           focus:outline-none focus:ring-4;
-}
-
-.fab-primary {
-    @apply bg-indigo-600 text-white
-           hover:bg-indigo-700
-           focus:ring-indigo-300;
-}
-
-.fab-secondary {
-    @apply bg-teal-600 text-white
-           hover:bg-teal-700
-           focus:ring-teal-300;
-}
-
-.fab-success {
-    @apply bg-green-600 text-white
-           hover:bg-green-700
-           focus:ring-green-300;
-}
-
-.fab-danger {
-    @apply bg-red-600 text-white
-           hover:bg-red-700
-           focus:ring-red-300;
-}
-
-/* Large FAB */
-.fab-lg {
-    @apply w-16 h-16;
-}
-
-/* Extended FAB with Text */
-.fab-extended {
-    @apply w-auto px-6 rounded-full;
-}
-
-/* FAB Animation - Ripple Effect */
-@keyframes ripple {
-    0% {
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 20px rgba(139, 92, 246, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
-    }
-}
-
-.fab:active {
-    animation: ripple 0.6s ease-out;
-}
-
-/* Mini FABs for multiple actions */
-.fab-mini {
-    @apply w-10 h-10 text-sm;
-}
-
-/* ===================================
-   FAB-STYLE BUTTONS (Non-Floating)
-   Material Design buttons with FAB aesthetics but not fixed positioned
-   =================================== */
-
-/* Base FAB-Style Button */
-.btn-fab {
-    @apply inline-flex items-center justify-center font-semibold
-           px-6 py-3 rounded-full shadow-2xl
-           transition-all duration-300
-           hover:shadow-xl hover:scale-110
-           active:scale-95
-           focus:outline-none focus:ring-4
-           disabled:opacity-50 disabled:cursor-not-allowed select-none;
-    letter-spacing: 0.025em;
-}
-
-/* FAB-Style Primary */
-.btn-fab-primary {
-    @apply bg-indigo-600 text-white
-           hover:bg-indigo-700
-           active:bg-indigo-800
-           focus:ring-indigo-300;
-}
-
-/* FAB-Style Secondary */
-.btn-fab-secondary {
-    @apply bg-gray-600 text-white
-           hover:bg-gray-700
-           active:bg-gray-800
-           focus:ring-gray-300;
-}
-
-/* FAB-Style Success */
-.btn-fab-success {
-    @apply bg-green-600 text-white
-           hover:bg-green-700
-           active:bg-green-800
-           focus:ring-green-300;
-}
-
-/* FAB-Style Danger */
-.btn-fab-danger {
-    @apply bg-red-600 text-white
-           hover:bg-red-700
-           active:bg-red-800
-           focus:ring-red-300;
-}
-
-/* FAB-Style Accent */
-.btn-fab-accent {
-    @apply bg-teal-600 text-white
-           hover:bg-teal-700
-           active:bg-teal-800
-           focus:ring-teal-300;
-}
-
-/* FAB-Style sizes */
-.btn-fab-sm {
-    @apply px-4 py-2 text-sm;
-}
-
-.btn-fab-lg {
-    @apply px-8 py-4 text-lg;
-}
-
-/* ===================================
-   SORTABLE.JS DRAG & DROP STYLES - RECIPE INGREDIENTS
+   SORTABLE.JS DRAG & DROP STYLES
    =================================== */
 
 .sortable-ghost {
@@ -881,37 +780,21 @@ select:not(.form-select):focus-visible {
 }
 
 .sortable-chosen {
-    @apply shadow-2xl ring-4 ring-indigo-300 scale-105 cursor-grabbing;
+    @apply shadow-xl ring-2 ring-indigo-300 cursor-grabbing;
 }
 
 .sortable-drag {
-    @apply opacity-90 rotate-2 shadow-2xl;
-}
-
-/* ===================================
-   LEGACY COMPATIBILITY
-   =================================== */
-
-.nav-item {
-    @apply flex items-center w-full px-3 py-2 text-sm font-medium
-           text-gray-700 rounded-lg transition-colors
-           hover:bg-gray-100 hover:text-gray-900;
-}
-
-.nav-item-active {
-    @apply bg-purple-100 text-purple-700 border-r-2 border-purple-600;
+    @apply opacity-90 shadow-xl;
 }
 
 /* ===================================
    SIDEBAR CONTENT MARGIN TRANSITION
    =================================== */
 
-/* Sidebar: NO transitions on page load/change, only on mobile toggle */
 .sidebar-no-animation {
     transition: none;
 }
 
-/* Only animate transform on mobile (for slide-in/out) */
 @media (max-width: 1024px) {
     .sidebar-no-animation {
         transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);

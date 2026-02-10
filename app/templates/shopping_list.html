@@ -134,7 +134,7 @@
                         <label class="flex items-center justify-between cursor-pointer group">
                             <div class="flex items-center flex-1">
                                 <input type="checkbox"
-                                       class="shopping-item-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                                       class="shopping-item-checkbox"
                                        @change="toggleItem('{{ item.ingredient.name }}')"
                                        :checked="checkedItems.includes('{{ item.ingredient.name }}')">
                                 <span class="shopping-item-name ml-3 text-sm text-gray-900 font-normal group-hover:text-blue-600 transition-colors"
@@ -172,7 +172,7 @@
                 </div>
             </div>
             <button @click="clearAll()"
-                    class="inline-flex items-center justify-center px-6 py-3 text-base font-bold rounded-xl text-white bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-2xl hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-orange-300">
+                    class="btn btn-secondary">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
@@ -201,26 +201,26 @@
     {% endif %}
 
     <!-- Floating Action Buttons (FABs) -->
-    <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+    <div class="fab-container">
         <!-- Excel Export - Secondary FAB -->
         <a href="/export/shopping-list/excel/{{ camp.id }}"
-           class="flex items-center px-4 py-3 bg-teal-600 text-white rounded-full shadow-2xl hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
+           class="fab-extended fab-extended-accent"
            title="Als Excel exportieren">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path>
                 <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path>
             </svg>
-            <span class="text-sm font-semibold">Excel Export</span>
+            <span>Excel Export</span>
         </a>
 
         <!-- PDF Export - Primary FAB -->
         <a href="/export/shopping-list/pdf/{{ camp.id }}"
-           class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-full shadow-2xl hover:bg-indigo-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+           class="fab-extended fab-extended-primary"
            title="Als PDF exportieren">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
             </svg>
-            <span class="text-sm font-semibold">PDF Export</span>
+            <span>PDF Export</span>
         </a>
     </div>
 </div>
