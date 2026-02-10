@@ -4,28 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Freizeit Rezepturverwaltung{% endblock %}</title>
-    
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="/static/css/custom.css" rel="stylesheet">
-    
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
     <script src="https://unpkg.com/htmx.org@2.0.0/dist/ext/loading-states.js"></script>
-    
+
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         primary: {
-                            50: '#eff6ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8'
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81'
+                        },
+                        accent: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e'
                         }
                     }
                 }
@@ -41,87 +60,94 @@
             {% block content %}{% endblock %}
         </div>
     </div>
-    
+
     <!-- Global Modal -->
-    <div id="global-modal" x-data="{ show: false }" 
-         @open-modal.window="show = true" 
+    <div id="global-modal" x-data="{ show: false }"
+         @open-modal.window="show = true"
          @close-modal.window="show = false"
          x-show="show" x-cloak
          class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
             <div id="modal-content" class="p-6">
                 <!-- Modal content will be loaded here via HTMX -->
             </div>
         </div>
     </div>
-    
+
     <!-- Loading Spinner -->
     <div id="loading-spinner" class="htmx-indicator fixed top-4 right-4 z-50">
-        <div class="bg-white rounded-lg shadow-lg p-4 flex items-center space-x-3">
-            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
-            <span class="text-sm text-gray-700">Laden...</span>
+        <div class="bg-white rounded-xl shadow-lg p-4 flex items-center space-x-3 border border-indigo-200">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+            <span class="text-sm font-semibold text-gray-700">Laden...</span>
         </div>
     </div>
-    
+
     <!-- Toast Notifications -->
     <div id="toast-container" class="fixed top-4 right-4 z-40 space-y-2">
         <!-- Toasts will be added here dynamically -->
     </div>
-    
+
     {% block extra_js %}{% endblock %}
-    
+
     <script>
         // Global JavaScript utilities
         window.FreizeitApp = {
             showToast: function(message, type = 'info') {
                 const toast = document.createElement('div');
-                toast.className = `toast toast-${type} bg-white rounded-lg shadow-lg p-4 mb-2 transform transition-all duration-300 translate-x-full`;
-                
-                const colors = {
-                    success: 'border-l-4 border-green-500',
-                    error: 'border-l-4 border-red-500',
-                    warning: 'border-l-4 border-yellow-500',
-                    info: 'border-l-4 border-blue-500'
+                const icons = {
+                    success: '&#10003;',
+                    error: '&#10005;',
+                    warning: '&#9888;',
+                    info: '&#8505;'
                 };
-                
-                toast.className += ' ' + colors[type];
+                const colors = {
+                    success: 'bg-green-50 border-green-400 text-green-900',
+                    error: 'bg-red-50 border-red-400 text-red-900',
+                    warning: 'bg-yellow-50 border-yellow-400 text-yellow-900',
+                    info: 'bg-indigo-50 border-indigo-400 text-indigo-900'
+                };
+
+                toast.className = `${colors[type]} border rounded-xl shadow-lg p-4 transform transition-all duration-300 translate-x-full`;
                 toast.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-700">${message}</span>
-                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
-                            ✕
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-current bg-opacity-20 mr-3 font-bold">
+                            <span class="text-base">${icons[type]}</span>
+                        </span>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold">${message}</p>
+                        </div>
+                        <button onclick="this.closest('div').parentElement.remove()" class="ml-4 text-current opacity-60 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-black hover:bg-opacity-10">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
                         </button>
                     </div>
                 `;
-                
+
                 document.getElementById('toast-container').appendChild(toast);
-                
-                // Animate in
                 setTimeout(() => toast.classList.remove('translate-x-full'), 100);
-                
-                // Auto remove after 5 seconds
                 setTimeout(() => {
                     toast.classList.add('translate-x-full');
                     setTimeout(() => toast.remove(), 300);
                 }, 5000);
             },
-            
+
             openModal: function(url) {
                 htmx.ajax('GET', url, {target: '#modal-content'}).then(() => {
                     window.dispatchEvent(new CustomEvent('open-modal'));
                 });
             },
-            
+
             closeModal: function() {
                 window.dispatchEvent(new CustomEvent('close-modal'));
             }
         };
-        
+
         // HTMX event listeners
         document.addEventListener('htmx:responseError', function(event) {
             FreizeitApp.showToast('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.', 'error');
         });
-        
+
         document.addEventListener('htmx:sendError', function(event) {
             FreizeitApp.showToast('Verbindungsfehler. Bitte überprüfen Sie Ihre Internetverbindung.', 'error');
         });

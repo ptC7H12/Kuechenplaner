@@ -5,39 +5,28 @@
     - buttons: list of dicts with keys:
         - href: string (optional, for links)
         - onclick: string (optional, for JS actions)
-        - color: string (e.g., "indigo", "teal", "red")
+        - color: string (e.g., "primary", "accent", "danger", "purple")
         - icon: HTML string for SVG icon
-        - label: string (tooltip text)
-        - primary: boolean (if true, make it larger/primary)
+        - label: string (button text and tooltip)
 #}
-<div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+<div class="fab-container">
     {% for button in buttons %}
     <div class="relative group">
         {% if button.href %}
         <a href="{{ button.href }}"
-           class="flex items-center justify-center w-{{ '16' if button.primary else '14' }} h-{{ '16' if button.primary else '14' }}
-                  bg-{{ button.color }}-600 hover:bg-{{ button.color }}-700 text-white rounded-full shadow-lg
-                  hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+           class="fab-extended fab-extended-{{ button.color }}"
            title="{{ button.label }}">
             {{ button.icon|safe }}
+            <span>{{ button.label }}</span>
         </a>
         {% elif button.onclick %}
         <button onclick="{{ button.onclick }}"
-                class="flex items-center justify-center w-{{ '16' if button.primary else '14' }} h-{{ '16' if button.primary else '14' }}
-                       bg-{{ button.color }}-600 hover:bg-{{ button.color }}-700 text-white rounded-full shadow-lg
-                       hover:shadow-xl transition-all duration-200 transform hover:scale-110"
+                class="fab-extended fab-extended-{{ button.color }}"
                 title="{{ button.label }}">
             {{ button.icon|safe }}
+            <span>{{ button.label }}</span>
         </button>
         {% endif %}
-
-        <!-- Tooltip -->
-        <div class="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-                    transition-opacity duration-200 pointer-events-none">
-            <div class="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap shadow-lg">
-                {{ button.label }}
-            </div>
-        </div>
     </div>
     {% endfor %}
 </div>

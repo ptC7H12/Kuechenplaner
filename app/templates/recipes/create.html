@@ -272,16 +272,16 @@
                         >
                     </div>
 
-                    <!-- Add Button - FAB Style -->
+                    <!-- Add Button -->
                     <div class="flex justify-start mt-4">
                         <button
                             type="button"
                             @click="addIngredient"
-                            class="inline-flex items-center justify-center px-6 py-3 text-base font-bold rounded-xl text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-2xl hover:shadow-xl transition-all duration-200 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300"
+                            class="btn btn-accent"
                             :disabled="!canAddIngredient()"
                             :class="{ 'opacity-50 cursor-not-allowed': !canAddIngredient() }"
                         >
-                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/>
                             </svg>
                             Zutat hinzufügen
@@ -435,15 +435,15 @@
         </div>
 
         <!-- Floating Action Buttons (FABs) -->
-        <div class="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-            <!-- Abbrechen - Secondary FAB -->
+        <div class="fab-container">
+            <!-- Abbrechen - Danger FAB -->
             <a href="/recipes/"
-               class="flex items-center px-4 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-full shadow-2xl hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-red-300"
+               class="fab-extended fab-extended-danger"
                title="Abbrechen">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
-                <span class="text-sm font-semibold">Abbrechen</span>
+                <span>Abbrechen</span>
             </a>
 
             <!-- Rezept speichern - Primary FAB -->
@@ -451,7 +451,7 @@
                 type="submit"
                 :disabled="isSubmitting"
                 x-bind:class="{ 'opacity-50 cursor-not-allowed': isSubmitting }"
-                class="flex items-center px-4 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-full shadow-2xl hover:from-teal-700 hover:to-emerald-700 hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95 focus:outline-none focus:ring-4 focus:ring-teal-300 disabled:hover:scale-100 disabled:hover:shadow-2xl"
+                class="fab-extended fab-extended-primary"
                 title="Rezept speichern">
                 <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -460,7 +460,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span class="text-sm font-semibold" x-text="isSubmitting ? 'Speichern...' : 'Rezept speichern'"></span>
+                <span x-text="isSubmitting ? 'Speichern...' : 'Rezept speichern'"></span>
             </button>
         </div>
     </form>
