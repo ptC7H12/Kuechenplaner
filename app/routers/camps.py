@@ -1,21 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from typing import Optional
-import logging
 
 from app.database import get_db
-from app.dependencies import get_current_camp, get_template_context
+from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas
 from app.services.calculation import get_camp_statistics
+from app.logging_config import get_logger
 
-logger = logging.getLogger("kuechenplaner.camps")
+logger = get_logger("camps")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/create", response_class=HTMLResponse)
 async def create_camp_form(
@@ -34,47 +31,24 @@ async def create_camp(
     db: Session = Depends(get_db)
 ):
     """Create a new camp"""
-    try:
-        # Parse dates
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        
-        # Validate dates
-        if end_dt <= start_dt:
-            raise HTTPException(status_code=400, detail="End date must be after start date")
-        
-        # Create camp
-        camp_data = schemas.CampCreate(
-            name=name,
-            start_date=start_dt,
-            end_date=end_dt,
-            participant_count=participant_count
-        )
-        
-        camp = crud.create_camp(db, camp_data)
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
 
-        logger.info(f"Camp created: {camp.name} (ID: {camp.id})")
+    camp_data = schemas.CampCreate(
+        name=name,
+        start_date=start_dt,
+        end_date=end_dt,
+        participant_count=participant_count
+    )
 
-        # Set as current camp
-        crud.set_setting_value(db, "last_selected_camp_id", camp.id)
+    camp = crud.create_camp(db, camp_data)
+    logger.info(f"Camp created: {camp.name} (ID: {camp.id})")
 
-        # Redirect to dashboard with cookie
-        response = RedirectResponse(url="/dashboard", status_code=302)
-        response.set_cookie(key="current_camp_id", value=str(camp.id))
-        return response
+    crud.set_setting_value(db, "last_selected_camp_id", camp.id)
 
-    except ValueError as e:
-        logger.warning(f"Invalid date format in camp creation: {e}")
-        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat")
-    except SQLAlchemyError as e:
-        logger.error(f"Database error creating camp: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen der Freizeit")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error creating camp: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
+    response = RedirectResponse(url="/dashboard", status_code=302)
+    response.set_cookie(key="current_camp_id", value=str(camp.id))
+    return response
 
 @router.post("/{camp_id}/select", response_class=RedirectResponse)
 async def select_camp(
@@ -85,12 +59,10 @@ async def select_camp(
     camp = crud.get_camp(db, camp_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
-    
-    # Update last accessed and set as current
+
     crud.update_camp_last_accessed(db, camp_id)
     crud.set_setting_value(db, "last_selected_camp_id", camp_id)
-    
-    # Redirect to dashboard with cookie
+
     response = RedirectResponse(url="/dashboard", status_code=302)
     response.set_cookie(key="current_camp_id", value=str(camp_id))
     return response
@@ -105,13 +77,11 @@ async def delete_camp(
     camp = crud.delete_camp(db, camp_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
-    
-    # If this was the current camp, clear the setting
+
     current_camp_id = crud.get_setting_value(db, "last_selected_camp_id")
     if current_camp_id == camp_id:
         crud.set_setting_value(db, "last_selected_camp_id", None)
-    
-    # Return empty response (HTMX will remove the element)
+
     return ""
 
 @router.get("/{camp_id}/stats", response_class=HTMLResponse)
@@ -122,8 +92,7 @@ async def get_camp_stats(
 ):
     """Get camp statistics (for HTMX updates)"""
     stats = get_camp_statistics(db, camp_id)
-    
-    # Return just the stats part as HTML fragment
+
     return templates.TemplateResponse("components/camp_stats.html", {
         "request": request,
         "stats": stats
@@ -139,7 +108,7 @@ async def edit_camp_modal(
     camp = crud.get_camp(db, camp_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
-    
+
     return templates.TemplateResponse("components/edit_camp_modal.html", {
         "request": request,
         "camp": camp
@@ -156,43 +125,23 @@ async def update_camp(
     db: Session = Depends(get_db)
 ):
     """Update a camp"""
-    try:
-        update_data = {}
-        
-        if name is not None:
-            update_data["name"] = name
-        if participant_count is not None:
-            update_data["participant_count"] = participant_count
-        if start_date is not None:
-            update_data["start_date"] = datetime.strptime(start_date, "%Y-%m-%d")
-        if end_date is not None:
-            update_data["end_date"] = datetime.strptime(end_date, "%Y-%m-%d")
-        
-        # Validate dates if both are provided
-        if "start_date" in update_data and "end_date" in update_data:
-            if update_data["end_date"] <= update_data["start_date"]:
-                raise HTTPException(status_code=400, detail="End date must be after start date")
-        
-        camp_update = schemas.CampUpdate(**update_data)
-        camp = crud.update_camp(db, camp_id, camp_update)
+    update_data = {}
 
-        if not camp:
-            raise HTTPException(status_code=404, detail="Camp not found")
+    if name is not None:
+        update_data["name"] = name
+    if participant_count is not None:
+        update_data["participant_count"] = participant_count
+    if start_date is not None:
+        update_data["start_date"] = datetime.strptime(start_date, "%Y-%m-%d")
+    if end_date is not None:
+        update_data["end_date"] = datetime.strptime(end_date, "%Y-%m-%d")
 
-        logger.info(f"Camp updated: {camp.name} (ID: {camp_id})")
+    camp_update = schemas.CampUpdate(**update_data)
+    camp = crud.update_camp(db, camp_id, camp_update)
 
-        # Return success response (HTMX will close modal and refresh page)
-        return '<script>window.location.reload();</script>'
+    if not camp:
+        raise HTTPException(status_code=404, detail="Camp not found")
 
-    except ValueError as e:
-        logger.warning(f"Invalid date format in camp update: {e}")
-        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat")
-    except SQLAlchemyError as e:
-        logger.error(f"Database error updating camp {camp_id}: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Datenbankfehler beim Aktualisieren der Freizeit")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error updating camp {camp_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
+    logger.info(f"Camp updated: {camp.name} (ID: {camp_id})")
+
+    return '<script>window.location.reload();</script>'

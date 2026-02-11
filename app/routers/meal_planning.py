@@ -1,22 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
-import logging
-import traceback
 
 from app.database import get_db
-from app.dependencies import get_current_camp, get_template_context
+from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
+from app.logging_config import get_logger
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = get_logger("meal_planning")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def meal_planning_page(
@@ -26,14 +21,10 @@ async def meal_planning_page(
     db: Session = Depends(get_db)
 ):
     """Meal planning page with calendar grid"""
-
     if not current_camp:
         return templates.TemplateResponse("meal_planning/no_camp.html", context)
 
-    # Get all meal plans for this camp
     meal_plans = crud.get_meal_plans_for_camp(db, current_camp.id)
-
-    # Get all recipes for the sidebar
     recipes = crud.get_recipes(db, skip=0, limit=1000)
 
     # Generate date range for the camp
@@ -73,13 +64,11 @@ async def get_meal_plans(
     db: Session = Depends(get_db)
 ):
     """Get all meal plans for a camp (API endpoint)"""
-
     camp = crud.get_camp(db, camp_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
 
-    meal_plans = crud.get_meal_plans_for_camp(db, camp_id)
-    return meal_plans
+    return crud.get_meal_plans_for_camp(db, camp_id)
 
 @router.post("/api/meal-plans", response_model=schemas.MealPlan)
 async def create_meal_plan(
@@ -87,55 +76,16 @@ async def create_meal_plan(
     db: Session = Depends(get_db)
 ):
     """Create a new meal plan (API endpoint)"""
+    camp = crud.get_camp(db, meal_plan.camp_id)
+    if not camp:
+        raise HTTPException(status_code=404, detail="Camp not found")
 
-    logger.info("=" * 80)
-    logger.info("CREATE MEAL PLAN REQUEST")
-    logger.info(f"Camp ID: {meal_plan.camp_id}")
-    logger.info(f"Recipe ID: {meal_plan.recipe_id}")
-    logger.info(f"Meal Date: {meal_plan.meal_date}")
-    logger.info(f"Meal Type: {meal_plan.meal_type}")
-    logger.info(f"Position: {meal_plan.position}")
-    logger.info(f"Notes: {meal_plan.notes}")
-    logger.info("=" * 80)
+    if meal_plan.recipe_id is not None:
+        recipe = crud.get_recipe(db, meal_plan.recipe_id)
+        if not recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
 
-    try:
-        # Verify camp exists
-        logger.info(f"Verifying camp exists: {meal_plan.camp_id}")
-        camp = crud.get_camp(db, meal_plan.camp_id)
-        if not camp:
-            logger.error(f"Camp not found: {meal_plan.camp_id}")
-            raise HTTPException(status_code=404, detail="Camp not found")
-        logger.info(f"Camp found: {camp.name}")
-
-        # Verify recipe exists (only if recipe_id is provided)
-        if meal_plan.recipe_id is not None:
-            logger.info(f"Verifying recipe exists: {meal_plan.recipe_id}")
-            recipe = crud.get_recipe(db, meal_plan.recipe_id)
-            if not recipe:
-                logger.error(f"Recipe not found: {meal_plan.recipe_id}")
-                raise HTTPException(status_code=404, detail="Recipe not found")
-            logger.info(f"Recipe found: {recipe.name}")
-        else:
-            logger.info("No recipe ID provided - creating 'Kein Essen' entry")
-
-        logger.info("Creating meal plan in database...")
-        created_meal_plan = crud.create_meal_plan(db, meal_plan)
-        logger.info(f"SUCCESS: Meal plan created with ID: {created_meal_plan.id}")
-
-        return created_meal_plan
-
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    except Exception as e:
-        logger.error("=" * 80)
-        logger.error("FATAL ERROR CREATING MEAL PLAN")
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error("Full traceback:")
-        logger.error(traceback.format_exc())
-        logger.error("=" * 80)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    return crud.create_meal_plan(db, meal_plan)
 
 @router.put("/api/meal-plans/{meal_plan_id}", response_model=schemas.MealPlan)
 async def update_meal_plan(
@@ -144,7 +94,6 @@ async def update_meal_plan(
     db: Session = Depends(get_db)
 ):
     """Update a meal plan (API endpoint)"""
-
     meal_plan = crud.update_meal_plan(db, meal_plan_id, meal_plan_update)
     if not meal_plan:
         raise HTTPException(status_code=404, detail="Meal plan not found")
@@ -157,12 +106,11 @@ async def delete_meal_plan(
     db: Session = Depends(get_db)
 ):
     """Delete a meal plan (API endpoint)"""
-
     meal_plan = crud.delete_meal_plan(db, meal_plan_id)
     if not meal_plan:
         raise HTTPException(status_code=404, detail="Meal plan not found")
 
-    return {"success": True, "message": "Meal plan deleted"}
+    return ""
 
 @router.post("/api/meal-plans/bulk")
 async def create_bulk_meal_plans(
@@ -170,7 +118,6 @@ async def create_bulk_meal_plans(
     db: Session = Depends(get_db)
 ):
     """Create multiple meal plans at once (bulk operation)"""
-
     created_plans = []
     for meal_plan_data in meal_plans:
         meal_plan = crud.create_meal_plan(db, meal_plan_data)
@@ -190,19 +137,16 @@ async def copy_meal_plan(
     db: Session = Depends(get_db)
 ):
     """Copy a meal plan to another date/meal type"""
-
-    # Get original meal plan
     original = crud.get_meal_plan(db, meal_plan_id)
     if not original:
         raise HTTPException(status_code=404, detail="Meal plan not found")
 
-    # Create new meal plan with copied data
     new_meal_plan = schemas.MealPlanCreate(
         camp_id=original.camp_id,
         recipe_id=original.recipe_id,
         meal_date=target_date,
         meal_type=target_meal_type or original.meal_type,
-        position=0,  # Will be calculated by create_meal_plan
+        position=0,
         notes=original.notes
     )
 

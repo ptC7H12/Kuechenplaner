@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from datetime import datetime
 from typing import List, Optional
 from app.models import MealType
@@ -8,7 +8,13 @@ class CampBase(BaseModel):
     name: str
     start_date: datetime
     end_date: datetime
-    participant_count: int
+    participant_count: int = Field(gt=0)
+
+    @model_validator(mode='after')
+    def check_dates(self):
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValueError('end_date muss nach start_date liegen')
+        return self
 
 class CampCreate(CampBase):
     pass
@@ -17,16 +23,15 @@ class CampUpdate(BaseModel):
     name: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    participant_count: Optional[int] = None
+    participant_count: Optional[int] = Field(None, gt=0)
 
 class Camp(CampBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     updated_at: datetime
     last_accessed: datetime
-    
-    class Config:
-        from_attributes = True
 
 # Recipe schemas
 class IngredientBase(BaseModel):
@@ -38,29 +43,27 @@ class IngredientCreate(IngredientBase):
     pass
 
 class Ingredient(IngredientBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class RecipeIngredientBase(BaseModel):
     ingredient_id: int
-    quantity: float
+    quantity: float = Field(gt=0)
     unit: str
 
 class RecipeIngredientCreate(RecipeIngredientBase):
     pass
 
 class RecipeIngredient(RecipeIngredientBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     ingredient: Ingredient
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class TagBase(BaseModel):
     name: str
@@ -71,12 +74,11 @@ class TagCreate(TagBase):
     pass
 
 class Tag(TagBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Allergen schemas
 class AllergenBase(BaseModel):
@@ -87,20 +89,19 @@ class AllergenCreate(AllergenBase):
     pass
 
 class Allergen(AllergenBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class RecipeBase(BaseModel):
     name: str
     description: Optional[str] = None
-    base_servings: int = 30
+    base_servings: int = Field(30, gt=0)
     instructions: Optional[str] = None
-    preparation_time: Optional[int] = None
-    cooking_time: Optional[int] = None
+    preparation_time: Optional[int] = Field(None, ge=0)
+    cooking_time: Optional[int] = Field(None, ge=0)
     allergen_notes: Optional[str] = None
     image_path: Optional[str] = None
 
@@ -112,10 +113,10 @@ class RecipeCreate(RecipeBase):
 class RecipeUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    base_servings: Optional[int] = None
+    base_servings: Optional[int] = Field(None, gt=0)
     instructions: Optional[str] = None
-    preparation_time: Optional[int] = None
-    cooking_time: Optional[int] = None
+    preparation_time: Optional[int] = Field(None, ge=0)
+    cooking_time: Optional[int] = Field(None, ge=0)
     allergen_notes: Optional[str] = None
     image_path: Optional[str] = None
     ingredients: Optional[List[RecipeIngredientCreate]] = None
@@ -123,6 +124,8 @@ class RecipeUpdate(BaseModel):
     allergen_ids: Optional[List[int]] = None
 
 class Recipe(RecipeBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     version_number: int
     created_at: datetime
@@ -130,9 +133,6 @@ class Recipe(RecipeBase):
     ingredients: List[RecipeIngredient] = []
     tags: List[Tag] = []
     allergens: List[Allergen] = []
-
-    class Config:
-        from_attributes = True
 
 # Meal Plan schemas
 class MealPlanBase(BaseModel):
@@ -150,14 +150,13 @@ class MealPlanUpdate(BaseModel):
     notes: Optional[str] = None
 
 class MealPlan(MealPlanBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     camp_id: int
     recipe: Optional[Recipe] = None  # Optional for "no meal" entries
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Settings schemas
 class AppSettingsBase(BaseModel):
@@ -168,10 +167,9 @@ class AppSettingsCreate(AppSettingsBase):
     pass
 
 class AppSettings(AppSettingsBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    
-    class Config:
-        from_attributes = True
 
 # Shopping list schemas
 class ShoppingListItem(BaseModel):
@@ -203,8 +201,7 @@ class RecipeVersionCreate(RecipeVersionBase):
     pass
 
 class RecipeVersion(RecipeVersionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True

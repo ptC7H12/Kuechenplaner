@@ -1,10 +1,17 @@
 from fastapi import Depends, HTTPException, Request, Cookie
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from app.database import get_db
 from app import crud, models
+
+# Centralized templates instance - import this in routers
+_BASE_DIR = Path(__file__).parent
+templates = Jinja2Templates(directory=_BASE_DIR / "templates")
+
 
 def get_current_camp(
     request: Request,
@@ -12,16 +19,16 @@ def get_current_camp(
     db: Session = Depends(get_db)
 ) -> Optional[models.Camp]:
     """Get the currently selected camp from cookie or session"""
-    
+
     camp_id = None
-    
+
     # Try to get from cookie first
     if current_camp_id:
         try:
             camp_id = int(current_camp_id)
         except (ValueError, TypeError):
             pass
-    
+
     # If no cookie, try to get last selected from settings
     if not camp_id:
         last_selected = crud.get_setting_value(db, "last_selected_camp_id")
@@ -30,7 +37,7 @@ def get_current_camp(
                 camp_id = int(last_selected)
             except (ValueError, TypeError):
                 pass
-    
+
     # Get the camp from database
     if camp_id:
         camp = crud.get_camp(db, camp_id)
@@ -38,7 +45,7 @@ def get_current_camp(
             # Update last accessed time
             crud.update_camp_last_accessed(db, camp_id)
             return camp
-    
+
     return None
 
 def require_current_camp(
@@ -52,13 +59,11 @@ def require_current_camp(
 def get_template_context(
     request: Request,
     current_camp: Optional[models.Camp] = Depends(get_current_camp),
-    db: Session = Depends(get_db)
 ) -> dict:
     """Get common template context"""
     return {
         "request": request,
         "current_camp": current_camp,
-        "db": db,
         "timedelta": timedelta,
         "datetime": datetime
     }
