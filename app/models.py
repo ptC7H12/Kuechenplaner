@@ -1,10 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey, Table, Boolean, CheckConstraint, UniqueConstraint, Index, Enum
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey, Table, CheckConstraint, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 
-Base = declarative_base()
+from app.database import Base
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
 
 # Enums
 class MealType(enum.Enum):
@@ -35,9 +39,9 @@ class Camp(Base):
     start_date = Column(DateTime, nullable=False, index=True)
     end_date = Column(DateTime, nullable=False)
     participant_count = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_accessed = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+    last_accessed = Column(DateTime, default=_utcnow)
 
     # Relationships
     meal_plans = relationship("MealPlan", back_populates="camp", cascade="all, delete-orphan")
@@ -61,14 +65,14 @@ class Recipe(Base):
     allergen_notes = Column(Text)
     image_path = Column(String(500))  # path to recipe image
     version_number = Column(Integer, nullable=False, default=1)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     ingredients = relationship("RecipeIngredient", back_populates="recipe", cascade="all, delete-orphan")
     tags = relationship("Tag", secondary=recipe_tag_table, back_populates="recipes")
     allergens = relationship("Allergen", secondary=recipe_allergen_table, back_populates="recipes")
-    meal_plans = relationship("MealPlan", back_populates="recipe")
+    meal_plans = relationship("MealPlan", back_populates="recipe", passive_deletes=True)
     versions = relationship("RecipeVersion", back_populates="recipe", cascade="all, delete-orphan")
 
 class Ingredient(Base):
@@ -78,8 +82,8 @@ class Ingredient(Base):
     name = Column(String(255), nullable=False, unique=True, index=True)
     unit = Column(String(50), nullable=False)  # g, kg, L, ml, Stück, custom
     category = Column(String(100), nullable=False, index=True)  # Obst, Gemüse, Milchprodukte, etc.
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     recipe_ingredients = relationship("RecipeIngredient", back_populates="ingredient")
@@ -92,8 +96,8 @@ class RecipeIngredient(Base):
     ingredient_id = Column(Integer, ForeignKey('ingredients.id'), nullable=False, index=True)
     quantity = Column(Float, nullable=False)
     unit = Column(String(50), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     recipe = relationship("Recipe", back_populates="ingredients")
@@ -106,8 +110,8 @@ class Tag(Base):
     name = Column(String(100), nullable=False, unique=True, index=True)
     color = Column(String(7), default="#3B82F6")  # Hex color
     icon = Column(String(50))  # Icon name or emoji
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     recipes = relationship("Recipe", secondary=recipe_tag_table, back_populates="tags")
@@ -117,13 +121,13 @@ class MealPlan(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     camp_id = Column(Integer, ForeignKey('camps.id'), nullable=False, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'), nullable=True, index=True)  # nullable for "no meal" entries
+    recipe_id = Column(Integer, ForeignKey('recipes.id', ondelete="SET NULL"), nullable=True, index=True)
     meal_date = Column(DateTime, nullable=False, index=True)
     meal_type = Column(Enum(MealType), nullable=False, index=True)
     position = Column(Integer, default=0)  # for multiple recipes per slot
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     camp = relationship("Camp", back_populates="meal_plans")
@@ -140,9 +144,9 @@ class Allergen(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True, index=True)
-    icon = Column(String(50))  # Icon/emoji for allergen (🥜, 🥛, 🌾, etc.)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    icon = Column(String(50))  # Icon/emoji for allergen
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     recipes = relationship("Recipe", secondary=recipe_allergen_table, back_populates="allergens")
@@ -163,7 +167,7 @@ class RecipeVersion(Base):
     ingredients_snapshot = Column(Text)  # JSON snapshot of ingredients at this version
     tags_snapshot = Column(Text)  # JSON snapshot of tags at this version
     allergens_snapshot = Column(Text)  # JSON snapshot of allergens at this version
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
 
     # Relationships
     recipe = relationship("Recipe", back_populates="versions")

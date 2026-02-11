@@ -1,41 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from typing import Optional, List
+from typing import Optional
 import json
-import logging
 
 from app.database import get_db
-from app.dependencies import get_current_camp, get_template_context
+from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
+from app.logging_config import get_logger
 
-logger = logging.getLogger("kuechenplaner.recipes")
+logger = get_logger("recipes")
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 def parse_recipe_form_data(ingredients: str, tag_ids: str):
-    """
-    Parse JSON form data for recipe creation/update
-
-    Args:
-        ingredients: JSON string of ingredients
-        tag_ids: JSON string of tag IDs
-
-    Returns:
-        Tuple of (ingredient_objects, tag_ids_list)
-
-    Raises:
-        HTTPException: If JSON parsing fails
-    """
+    """Parse JSON form data for recipe creation/update"""
     try:
         ingredients_list = json.loads(ingredients)
         tag_ids_list = json.loads(tag_ids)
 
-        # Convert ingredients to RecipeIngredientCreate objects
         ingredient_objects = [
             schemas.RecipeIngredientCreate(**ing) for ing in ingredients_list
         ]
@@ -43,10 +27,8 @@ def parse_recipe_form_data(ingredients: str, tag_ids: str):
         return ingredient_objects, tag_ids_list
 
     except json.JSONDecodeError as e:
-        logger.warning(f"Invalid JSON data in recipe form: {e}")
         raise HTTPException(status_code=400, detail=f"Ungültige JSON-Daten: {str(e)}")
     except (ValueError, KeyError, TypeError) as e:
-        logger.warning(f"Invalid ingredient data format: {e}")
         raise HTTPException(status_code=400, detail=f"Ungültige Zutatendaten: {str(e)}")
 
 @router.get("/", response_class=HTMLResponse)
@@ -58,11 +40,7 @@ async def list_recipes(
     db: Session = Depends(get_db)
 ):
     """List all recipes with optional filtering"""
-
-    # Get all recipes (for now, without filtering)
     recipes = crud.get_recipes(db, skip=0, limit=100)
-
-    # Get all tags and allergens for filter dropdowns
     all_tags = crud.get_tags(db)
     all_allergens = crud.get_allergens(db)
 
@@ -83,16 +61,14 @@ async def create_recipe_form(
     db: Session = Depends(get_db)
 ):
     """Show create recipe form"""
-    
-    # Get all ingredients and tags for the form
     ingredients = crud.get_ingredients(db)
     tags = crud.get_tags(db)
-    
+
     context.update({
         "ingredients": ingredients,
         "tags": tags
     })
-    
+
     return templates.TemplateResponse("recipes/create.html", context)
 
 @router.post("/", response_class=HTMLResponse)
@@ -107,45 +83,27 @@ async def create_recipe(
     allergen_notes: Optional[str] = Form(None),
     ingredients: str = Form(...),  # JSON string
     tag_ids: str = Form("[]"),  # JSON string
-    context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
     """Create a new recipe"""
+    ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
 
-    try:
-        # Parse form data using helper function
-        ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
+    recipe_data = schemas.RecipeCreate(
+        name=name,
+        description=description,
+        base_servings=base_servings,
+        instructions=instructions,
+        preparation_time=preparation_time,
+        cooking_time=cooking_time,
+        allergen_notes=allergen_notes,
+        ingredients=ingredient_objects,
+        tag_ids=tag_ids_list
+    )
 
-        # Create recipe data
-        recipe_data = schemas.RecipeCreate(
-            name=name,
-            description=description,
-            base_servings=base_servings,
-            instructions=instructions,
-            preparation_time=preparation_time,
-            cooking_time=cooking_time,
-            allergen_notes=allergen_notes,
-            ingredients=ingredient_objects,
-            tag_ids=tag_ids_list
-        )
+    recipe = crud.create_recipe(db, recipe_data)
+    logger.info(f"Recipe created: {recipe.name} (ID: {recipe.id})")
 
-        # Create recipe in database
-        recipe = crud.create_recipe(db, recipe_data)
-
-        logger.info(f"Recipe created: {recipe.name} (ID: {recipe.id})")
-
-        # Redirect to recipe detail page
-        return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=303)
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error creating recipe: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen des Rezepts")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error creating recipe: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
+    return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=303)
 
 @router.get("/{recipe_id}", response_class=HTMLResponse)
 async def get_recipe(
@@ -155,7 +113,6 @@ async def get_recipe(
     db: Session = Depends(get_db)
 ):
     """Get recipe details"""
-
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -171,12 +128,10 @@ async def edit_recipe_form(
     db: Session = Depends(get_db)
 ):
     """Show edit recipe form"""
-
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    # Get all tags for the form
     tags = crud.get_tags(db)
 
     context.update({
@@ -186,7 +141,7 @@ async def edit_recipe_form(
 
     return templates.TemplateResponse("recipes/edit.html", context)
 
-@router.post("/{recipe_id}", response_class=HTMLResponse)
+@router.put("/{recipe_id}", response_class=HTMLResponse)
 async def update_recipe(
     recipe_id: int,
     request: Request,
@@ -199,50 +154,31 @@ async def update_recipe(
     allergen_notes: Optional[str] = Form(None),
     ingredients: str = Form(...),  # JSON string
     tag_ids: str = Form("[]"),  # JSON string
-    context: dict = Depends(get_template_context),
     db: Session = Depends(get_db)
 ):
     """Update an existing recipe"""
+    existing_recipe = crud.get_recipe(db, recipe_id)
+    if not existing_recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
 
-    try:
-        # Check if recipe exists
-        existing_recipe = crud.get_recipe(db, recipe_id)
-        if not existing_recipe:
-            raise HTTPException(status_code=404, detail="Recipe not found")
+    ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
 
-        # Parse form data using helper function
-        ingredient_objects, tag_ids_list = parse_recipe_form_data(ingredients, tag_ids)
+    recipe_update = schemas.RecipeUpdate(
+        name=name,
+        description=description,
+        base_servings=base_servings,
+        instructions=instructions,
+        preparation_time=preparation_time,
+        cooking_time=cooking_time,
+        allergen_notes=allergen_notes,
+        ingredients=ingredient_objects,
+        tag_ids=tag_ids_list
+    )
 
-        # Create update data
-        recipe_update = schemas.RecipeUpdate(
-            name=name,
-            description=description,
-            base_servings=base_servings,
-            instructions=instructions,
-            preparation_time=preparation_time,
-            cooking_time=cooking_time,
-            allergen_notes=allergen_notes,
-            ingredients=ingredient_objects,
-            tag_ids=tag_ids_list
-        )
+    updated_recipe = crud.update_recipe(db, recipe_id, recipe_update)
+    logger.info(f"Recipe updated: {updated_recipe.name} (ID: {recipe_id})")
 
-        # Update recipe in database
-        updated_recipe = crud.update_recipe(db, recipe_id, recipe_update)
-
-        logger.info(f"Recipe updated: {updated_recipe.name} (ID: {recipe_id})")
-
-        # Redirect to recipe detail page
-        return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=303)
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error updating recipe {recipe_id}: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Datenbankfehler beim Aktualisieren des Rezepts")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error updating recipe {recipe_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
+    return RedirectResponse(url=f"/recipes/{recipe_id}", status_code=303)
 
 @router.get("/{recipe_id}/versions", response_class=HTMLResponse)
 async def get_recipe_versions(
@@ -252,29 +188,16 @@ async def get_recipe_versions(
     db: Session = Depends(get_db)
 ):
     """Get all versions of a recipe"""
-
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     versions = crud.get_recipe_versions(db, recipe_id)
 
-    # Parse JSON snapshots for each version
     for version in versions:
-        if version.ingredients_snapshot:
-            version.ingredients_parsed = json.loads(version.ingredients_snapshot)
-        else:
-            version.ingredients_parsed = []
-
-        if version.tags_snapshot:
-            version.tags_parsed = json.loads(version.tags_snapshot)
-        else:
-            version.tags_parsed = []
-
-        if version.allergens_snapshot:
-            version.allergens_parsed = json.loads(version.allergens_snapshot)
-        else:
-            version.allergens_parsed = []
+        version.ingredients_parsed = json.loads(version.ingredients_snapshot) if version.ingredients_snapshot else []
+        version.tags_parsed = json.loads(version.tags_snapshot) if version.tags_snapshot else []
+        version.allergens_parsed = json.loads(version.allergens_snapshot) if version.allergens_snapshot else []
 
     context.update({
         "recipe": recipe,
@@ -291,12 +214,10 @@ async def delete_recipe(
     db: Session = Depends(get_db)
 ):
     """Delete a recipe"""
-
     recipe = crud.delete_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    # Return empty response (HTMX will remove the element)
     return ""
 
 # API Endpoints for frontend
@@ -310,14 +231,11 @@ async def search_recipes(
     db: Session = Depends(get_db)
 ):
     """Search recipes with filters (API endpoint)"""
-
-    # Parse tag_ids and allergen_ids from comma-separated string
     tag_id_list = [int(id) for id in tag_ids.split(",")] if tag_ids else None
     allergen_id_list = [int(id) for id in allergen_ids.split(",")] if allergen_ids else None
 
     recipes = crud.get_recipes(db, skip=skip, limit=limit, search=search, tag_ids=tag_id_list)
 
-    # Filter by allergens if provided (exclude recipes with these allergens)
     if allergen_id_list:
         recipes = [
             recipe for recipe in recipes
@@ -333,32 +251,21 @@ async def search_ingredients(
     db: Session = Depends(get_db)
 ):
     """Search ingredients with fuzzy matching for autocomplete"""
-
     if not q or len(q) < 1:
         return []
 
-    # Use fuzzy search from crud
-    ingredients = crud.search_ingredients_fuzzy(db, q, limit=limit)
+    # Fuzzy search now returns (ingredient, usage_count) tuples
+    results = crud.search_ingredients_fuzzy(db, q, limit=limit)
 
-    # Calculate usage count for each ingredient
-    from sqlalchemy import func
-    usage_counts = {}
-    for ingredient in ingredients:
-        count = db.query(func.count(models.RecipeIngredient.id)).filter(
-            models.RecipeIngredient.ingredient_id == ingredient.id
-        ).scalar()
-        usage_counts[ingredient.id] = count
-
-    # Return formatted results
     return [
         {
             "id": ingredient.id,
             "name": ingredient.name,
             "unit": ingredient.unit,
             "category": ingredient.category,
-            "usage_count": usage_counts.get(ingredient.id, 0)
+            "usage_count": usage_count
         }
-        for ingredient in ingredients
+        for ingredient, usage_count in results
     ]
 
 @router.post("/api/ingredients/quick-create")
@@ -369,51 +276,34 @@ async def quick_create_ingredient(
     db: Session = Depends(get_db)
 ):
     """Quick create a new ingredient during recipe creation"""
+    existing = db.query(models.Ingredient).filter(
+        models.Ingredient.name == name
+    ).first()
 
-    try:
-        # Check if ingredient already exists
-        existing = db.query(models.Ingredient).filter(
-            models.Ingredient.name == name
-        ).first()
-
-        if existing:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Zutat existiert bereits", "ingredient": {
-                    "id": existing.id,
-                    "name": existing.name,
-                    "unit": existing.unit,
-                    "category": existing.category
-                }}
-            )
-
-        # Create new ingredient
-        ingredient_data = schemas.IngredientCreate(
-            name=name,
-            unit=unit,
-            category=category
+    if existing:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Zutat existiert bereits", "ingredient": {
+                "id": existing.id,
+                "name": existing.name,
+                "unit": existing.unit,
+                "category": existing.category
+            }}
         )
-        new_ingredient = crud.create_ingredient(db, ingredient_data)
 
-        logger.info(f"Ingredient quick-created: {new_ingredient.name} (ID: {new_ingredient.id})")
+    ingredient_data = schemas.IngredientCreate(
+        name=name,
+        unit=unit,
+        category=category
+    )
+    new_ingredient = crud.create_ingredient(db, ingredient_data)
 
-        return {
-            "id": new_ingredient.id,
-            "name": new_ingredient.name,
-            "unit": new_ingredient.unit,
-            "category": new_ingredient.category,
-            "usage_count": 0
-        }
+    logger.info(f"Ingredient quick-created: {new_ingredient.name} (ID: {new_ingredient.id})")
 
-    except SQLAlchemyError as e:
-        logger.error(f"Database error creating ingredient '{name}': {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Datenbankfehler beim Erstellen der Zutat")
-    except (ValueError, KeyError) as e:
-        logger.warning(f"Invalid input data for ingredient creation: {e}")
-        raise HTTPException(status_code=400, detail=f"Ungültige Eingabedaten: {str(e)}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error creating ingredient: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Unerwarteter Fehler")
+    return {
+        "id": new_ingredient.id,
+        "name": new_ingredient.name,
+        "unit": new_ingredient.unit,
+        "category": new_ingredient.category,
+        "usage_count": 0
+    }

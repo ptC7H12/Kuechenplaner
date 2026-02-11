@@ -972,7 +972,7 @@ function recipeForm() {
                 formData.append('tag_ids', JSON.stringify(this.formData.tag_ids));
 
                 const response = await fetch('/recipes/{{ recipe.id }}', {
-                    method: 'POST',
+                    method: 'PUT',
                     body: formData
                 });
 

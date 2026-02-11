@@ -1,7 +1,5 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import os
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pathlib import Path
 import logging
 
@@ -16,16 +14,28 @@ SQLALCHEMY_DATABASE_URL = f"sqlite:///{DATA_DIR}/app.db"
 
 # Create engine
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
+    SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
     echo=False  # Set to True for SQL debugging
 )
 
+
+# Enable WAL mode for better concurrency with SQLite
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
+
+
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class
-Base = declarative_base()
+
+# Base class for all models
+class Base(DeclarativeBase):
+    pass
+
 
 # Dependency to get DB session
 def get_db():
@@ -35,10 +45,12 @@ def get_db():
     finally:
         db.close()
 
+
 # Create all tables
 def create_tables():
-    from app.models import Base
+    import app.models  # noqa: F401 - ensure models are registered with Base.metadata
     Base.metadata.create_all(bind=engine)
+
 
 # Run database migrations
 def run_migrations():
@@ -46,7 +58,6 @@ def run_migrations():
     try:
         from alembic.config import Config
         from alembic import command
-        import os
 
         # Get the alembic.ini path
         alembic_ini_path = Path(__file__).parent.parent / "alembic.ini"
@@ -63,5 +74,3 @@ def run_migrations():
         logger.info("Database migrations completed successfully")
     except Exception as e:
         logger.error(f"Error running migrations: {e}", exc_info=True)
-        # Don't fail the application if migrations fail
-        pass
