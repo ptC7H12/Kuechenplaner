@@ -429,13 +429,26 @@
    =================================== */
 
 .sidebar-nav-item {
-    @apply flex items-center px-3 py-2.5 text-sm font-medium
-           rounded-lg transition-all duration-200
-           hover:bg-indigo-700 hover:bg-opacity-50;
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    color: #c7d2fe; /* indigo-200 */
+    text-decoration: none;
+}
+
+.sidebar-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
 }
 
 .sidebar-nav-item-active {
-    @apply bg-indigo-600 text-white shadow-md font-semibold;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff !important;
+    font-weight: 600;
 }
 
 /* ===================================
