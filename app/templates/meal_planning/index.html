@@ -216,29 +216,31 @@
         </div>
     </div>
 
-    <!-- Floating Action Buttons (FABs) -->
-    <div class="fab-container">
-        <!-- Plan exportieren (PDF) - Primary FAB -->
-        <a href="/export/meal-plan/pdf/{{ current_camp.id }}"
-           class="fab-extended fab-extended-primary"
-           title="Plan exportieren (PDF)">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
-            </svg>
-            <span>PDF Export</span>
-        </a>
-
-        <!-- Rezeptbuch (PDF) - Secondary FAB -->
-        <a href="/export/recipe-book/pdf/{{ current_camp.id }}"
-           class="fab-extended fab-extended-accent"
-           title="Rezeptbuch (PDF)">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
-            </svg>
-            <span>Rezeptbuch</span>
-        </a>
-    </div>
 </div>
+
+{% block fab %}
+<div class="fab-container">
+    <!-- Plan exportieren (PDF) - Primary FAB -->
+    <a href="/export/meal-plan/pdf/{{ current_camp.id }}"
+       class="fab-extended fab-extended-primary"
+       title="Plan exportieren (PDF)">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path>
+        </svg>
+        <span>PDF Export</span>
+    </a>
+
+    <!-- Rezeptbuch (PDF) - Secondary FAB -->
+    <a href="/export/recipe-book/pdf/{{ current_camp.id }}"
+       class="fab-extended fab-extended-accent"
+       title="Rezeptbuch (PDF)">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+        </svg>
+        <span>Rezeptbuch</span>
+    </a>
+</div>
+{% endblock %}
 
 <script>
 function mealPlanning() {
