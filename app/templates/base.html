@@ -157,27 +157,6 @@
 
             <!-- Main Content Area -->
             <div class="flex-1 flex flex-col overflow-hidden">
-                <!-- Top Bar -->
-                <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center px-6 z-10">
-                    <div class="flex-1">
-                        <h2 class="text-xl font-bold text-gray-900">
-                            {% block page_title %}
-                                {% if request.url.path == '/dashboard' %}Dashboard
-                                {% elif '/recipes' in request.url.path %}Rezepte
-                                {% elif '/meal-planning' in request.url.path %}Speiseplan
-                                {% elif '/shopping-list' in request.url.path %}Einkaufsliste
-                                {% elif '/settings' in request.url.path %}Einstellungen
-                                {% else %}Freizeit Rezepte
-                                {% endif %}
-                            {% endblock %}
-                        </h2>
-                    </div>
-                    <!-- Quick Actions -->
-                    <div class="flex items-center space-x-2">
-                        {% block header_actions %}{% endblock %}
-                    </div>
-                </header>
-
                 <!-- Page Content -->
                 <main class="flex-1 overflow-auto bg-gray-50">
                     <div class="{% if '/meal-planning' in request.url.path %}w-full{% else %}max-w-7xl mx-auto{% endif %} p-6">
