@@ -31,7 +31,7 @@ if "%BUILD_MODE%"=="standalone" (
     python build.py
     if errorlevel 1 exit /b 1
 ) else if "%BUILD_MODE%"=="debug" (
-    echo Building with debug symbols...
+    echo Building with console enabled for debug output...
     python -m nuitka ^
         --standalone ^
         --output-dir=dist ^
@@ -40,8 +40,6 @@ if "%BUILD_MODE%"=="standalone" (
         --include-data-dir=app/static=app/static ^
         --include-package=app ^
         --follow-imports ^
-        --debug ^
-        --windows-disable-console ^
         app/main.py
     if errorlevel 1 exit /b 1
 ) else if "%BUILD_MODE%"=="fast" (
@@ -54,7 +52,7 @@ if "%BUILD_MODE%"=="standalone" (
         --include-data-dir=app/static=app/static ^
         --include-package=app ^
         --follow-imports ^
-        --windows-disable-console ^
+        --windows-console-mode=disable ^
         app/main.py
     if errorlevel 1 exit /b 1
 ) else (
