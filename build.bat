@@ -5,6 +5,7 @@ setlocal enabledelayedexpansion
 
 set BUILD_MODE=%1
 if "%BUILD_MODE%"=="" set BUILD_MODE=standalone
+set CLEAN_BUILD=%2
 
 echo ========================================
 echo Freizeit Rezepturverwaltung Build
@@ -19,9 +20,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Clean previous builds
+REM Always clean dist (output), only clean build cache if "clean" is passed
 if exist dist rmdir /s /q dist
-if exist build rmdir /s /q build
+if /i "%CLEAN_BUILD%"=="clean" (
+    echo Cleaning build cache...
+    if exist build rmdir /s /q build
+) else (
+    echo Keeping build cache for incremental compilation.
+    echo Use '.\build.bat %BUILD_MODE% clean' to force a full rebuild.
+)
 
 echo Build mode: %BUILD_MODE%
 echo.
