@@ -31,7 +31,7 @@ def build():
 
         # Include data files (templates, static files)
         f"--include-data-dir={project_dir}/app/templates=app/templates",
-        f"--include-data-dir={project_dir}/app/static=app/static",
+        f"--include-data-dir={project_dir}/app/static=static",
 
         # Include package data - EXPLIZIT statt --follow-imports
         "--include-package=app",
