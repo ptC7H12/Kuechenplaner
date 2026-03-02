@@ -37,7 +37,7 @@ if "%BUILD_MODE%"=="standalone" (
         --output-dir=dist ^
         --output-filename=FreizeitRezepturverwaltung-debug.exe ^
         --include-data-dir=app/templates=app/templates ^
-        --include-data-dir=app/static=app/static ^
+        --include-data-dir=app/static=static ^
         --include-package=app ^
         --include-package=fastapi ^
         --include-package=uvicorn ^
@@ -78,7 +78,7 @@ if "%BUILD_MODE%"=="standalone" (
         --output-dir=dist ^
         --output-filename=FreizeitRezepturverwaltung.exe ^
         --include-data-dir=app/templates=app/templates ^
-        --include-data-dir=app/static=app/static ^
+        --include-data-dir=app/static=static ^
         --include-package=app ^
         --follow-imports ^
         --windows-console-mode=disable ^
