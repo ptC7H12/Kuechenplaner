@@ -31,7 +31,7 @@ if "%BUILD_MODE%"=="standalone" (
     python build.py
     if errorlevel 1 exit /b 1
 ) else if "%BUILD_MODE%"=="debug" (
-    echo Building with console enabled for debug output...
+    echo Building with console enabled for debug output ^(RAM-optimized^)...
     python -m nuitka ^
         --standalone ^
         --output-dir=dist ^
@@ -39,7 +39,36 @@ if "%BUILD_MODE%"=="standalone" (
         --include-data-dir=app/templates=app/templates ^
         --include-data-dir=app/static=app/static ^
         --include-package=app ^
-        --follow-imports ^
+        --include-package=fastapi ^
+        --include-package=uvicorn ^
+        --include-package=sqlalchemy ^
+        --include-package=pydantic ^
+        --include-package=webview ^
+        --include-package=jinja2 ^
+        --include-package=reportlab ^
+        --include-package=openpyxl ^
+        --include-package=starlette ^
+        --include-package=pydantic_core ^
+        --nofollow-import-to=webview.platforms.android ^
+        --nofollow-import-to=webview.platforms.gtk ^
+        --nofollow-import-to=webview.platforms.cocoa ^
+        --nofollow-import-to=webview.platforms.qt ^
+        --nofollow-import-to=reportlab.lib.testutils ^
+        --nofollow-import-to=reportlab.graphics.testshapes ^
+        --nofollow-import-to=sqlalchemy.dialects.postgresql ^
+        --nofollow-import-to=sqlalchemy.dialects.mysql ^
+        --nofollow-import-to=sqlalchemy.dialects.oracle ^
+        --nofollow-import-to=sqlalchemy.dialects.mssql ^
+        --nofollow-import-to=sqlalchemy.ext.mypy ^
+        --nofollow-import-to=dns ^
+        --nofollow-import-to=email_validator ^
+        --nofollow-import-to=numpy ^
+        --nofollow-import-to=pandas ^
+        --nofollow-import-to=scipy ^
+        --nofollow-import-to=matplotlib ^
+        --nofollow-import-to=pytest ^
+        --lto=no ^
+        --jobs=1 ^
         app/main.py
     if errorlevel 1 exit /b 1
 ) else if "%BUILD_MODE%"=="fast" (
