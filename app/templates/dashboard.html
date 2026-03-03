@@ -136,11 +136,12 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
+                    {% set weekdays = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] %}
                     {% for day in stats.daily_overview %}
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="py-3 px-3 text-sm">
-                            <div class="font-medium text-gray-900">Tag {{ day.day_number }}</div>
-                            <div class="text-xs text-gray-500">{{ day.date.strftime('%d.%m.') }}</div>
+                            <div class="font-medium text-gray-900">{{ weekdays[day.date.weekday()] }}</div>
+                            <div class="text-xs text-gray-500">{{ day.date.strftime('%d.%m.%Y') }}</div>
                         </td>
                         <td class="text-center py-3 px-3">
                             {% if day.meals.BREAKFAST %}
