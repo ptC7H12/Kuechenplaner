@@ -77,6 +77,11 @@ if "%BUILD_MODE%"=="standalone" (
         --jobs=1 ^
         app/main.py
     if errorlevel 1 exit /b 1
+    REM Modules in _internal verstecken, Launcher in dist\ ablegen
+    if exist dist\_internal rmdir /s /q dist\_internal
+    move "dist\main.dist" "dist\_internal" > nul
+    echo @echo off> "dist\FreizeitRezepturverwaltung-debug.bat"
+    echo "%%~dp0_internal\FreizeitRezepturverwaltung-debug.exe" %%*>> "dist\FreizeitRezepturverwaltung-debug.bat"
 ) else if "%BUILD_MODE%"=="fast" (
     echo Building without onefile ^(faster startup^)...
     python -m nuitka ^
@@ -90,6 +95,11 @@ if "%BUILD_MODE%"=="standalone" (
         --windows-console-mode=disable ^
         app/main.py
     if errorlevel 1 exit /b 1
+    REM Modules in _internal verstecken, Launcher in dist\ ablegen
+    if exist dist\_internal rmdir /s /q dist\_internal
+    move "dist\main.dist" "dist\_internal" > nul
+    echo @echo off> "dist\FreizeitRezepturverwaltung.bat"
+    echo "%%~dp0_internal\FreizeitRezepturverwaltung.exe" %%*>> "dist\FreizeitRezepturverwaltung.bat"
 ) else (
     echo Unknown build mode: %BUILD_MODE%
     echo Available modes: standalone, debug, fast
@@ -100,4 +110,12 @@ echo.
 echo ========================================
 echo Build complete!
 echo ========================================
-echo Output directory: .\dist
+if "%BUILD_MODE%"=="debug" (
+    echo Starten:  dist\FreizeitRezepturverwaltung-debug.bat
+    echo Module:   dist\_internal\
+) else if "%BUILD_MODE%"=="fast" (
+    echo Starten:  dist\FreizeitRezepturverwaltung.bat
+    echo Module:   dist\_internal\
+) else (
+    echo Output directory: .\dist
+)

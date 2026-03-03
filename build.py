@@ -127,11 +127,23 @@ def build():
     # Run Nuitka
     try:
         result = subprocess.run(nuitka_args, check=True)
+
+        # Modules in _internal verstecken, Launcher in dist\ ablegen
+        import shutil
+        src = project_dir / "dist" / "main.dist"
+        dst = project_dir / "dist" / "_internal"
+        if dst.exists():
+            shutil.rmtree(dst)
+        src.rename(dst)
+        launcher = project_dir / "dist" / "KuechenApp.bat"
+        launcher.write_text('@echo off\n"%~dp0_internal\\KuechenApp.exe" %*\n', encoding="utf-8")
+
         print()
         print("=" * 70)
         print("✓ Build successful!")
         print("=" * 70)
-        print(f"Output directory: {project_dir / 'dist'}")
+        print(f"Starten:  dist\\KuechenApp.bat")
+        print(f"Module:   dist\\_internal\\")
         return 0
     except subprocess.CalledProcessError as e:
         print()
