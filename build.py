@@ -60,7 +60,8 @@ def build():
         "--nofollow-import-to=reportlab.graphics.testshapes",
 
         # SQLAlchemy: Nur SQLite wird benötigt - andere Dialekte ausschließen
-        "--nofollow-import-to=sqlalchemy.dialects.postgresql",
+        # HINWEIS: postgresql NICHT ausschließen - alembic.ddl.postgresql importiert
+        # sqlalchemy.dialects.postgresql auch bei reiner SQLite-Nutzung (zur Laufzeit benötigt)
         "--nofollow-import-to=sqlalchemy.dialects.mysql",
         "--nofollow-import-to=sqlalchemy.dialects.oracle",
         "--nofollow-import-to=sqlalchemy.dialects.mssql",

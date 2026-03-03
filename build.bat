@@ -62,7 +62,6 @@ if "%BUILD_MODE%"=="standalone" (
         --nofollow-import-to=webview.platforms.qt ^
         --nofollow-import-to=reportlab.lib.testutils ^
         --nofollow-import-to=reportlab.graphics.testshapes ^
-        --nofollow-import-to=sqlalchemy.dialects.postgresql ^
         --nofollow-import-to=sqlalchemy.dialects.mysql ^
         --nofollow-import-to=sqlalchemy.dialects.oracle ^
         --nofollow-import-to=sqlalchemy.dialects.mssql ^
