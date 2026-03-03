@@ -686,8 +686,14 @@
    =================================== */
 
 .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
-           border transition-all duration-200;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid;
+    transition: all 0.2s ease;
 }
 
 .badge-primary {
