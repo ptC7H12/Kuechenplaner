@@ -6,6 +6,7 @@ setlocal enabledelayedexpansion
 set BUILD_MODE=%1
 if "%BUILD_MODE%"=="" set BUILD_MODE=standalone
 set CLEAN_BUILD=%2
+set PROJ_DIR=%~dp0
 
 echo ========================================
 echo Freizeit Rezepturverwaltung Build
@@ -80,8 +81,7 @@ if "%BUILD_MODE%"=="standalone" (
     REM Modules in _internal verstecken, Launcher in dist\ ablegen
     if exist dist\_internal rmdir /s /q dist\_internal
     move "dist\main.dist" "dist\_internal" > nul
-    echo @echo off> "dist\FreizeitRezepturverwaltung-debug.bat"
-    echo "%%~dp0_internal\FreizeitRezepturverwaltung-debug.exe" %%*>> "dist\FreizeitRezepturverwaltung-debug.bat"
+    powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung-debug.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung-debug.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
 ) else if "%BUILD_MODE%"=="fast" (
     echo Building without onefile ^(faster startup^)...
     python -m nuitka ^
@@ -98,8 +98,7 @@ if "%BUILD_MODE%"=="standalone" (
     REM Modules in _internal verstecken, Launcher in dist\ ablegen
     if exist dist\_internal rmdir /s /q dist\_internal
     move "dist\main.dist" "dist\_internal" > nul
-    echo @echo off> "dist\FreizeitRezepturverwaltung.bat"
-    echo "%%~dp0_internal\FreizeitRezepturverwaltung.exe" %%*>> "dist\FreizeitRezepturverwaltung.bat"
+    powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
 ) else (
     echo Unknown build mode: %BUILD_MODE%
     echo Available modes: standalone, debug, fast
@@ -111,10 +110,10 @@ echo ========================================
 echo Build complete!
 echo ========================================
 if "%BUILD_MODE%"=="debug" (
-    echo Starten:  dist\FreizeitRezepturverwaltung-debug.bat
+    echo Starten:  dist\FreizeitRezepturverwaltung-debug.lnk
     echo Module:   dist\_internal\
 ) else if "%BUILD_MODE%"=="fast" (
-    echo Starten:  dist\FreizeitRezepturverwaltung.bat
+    echo Starten:  dist\FreizeitRezepturverwaltung.lnk
     echo Module:   dist\_internal\
 ) else (
     echo Output directory: .\dist

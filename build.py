@@ -135,14 +135,23 @@ def build():
         if dst.exists():
             shutil.rmtree(dst)
         src.rename(dst)
-        launcher = project_dir / "dist" / "KuechenApp.bat"
-        launcher.write_text('@echo off\n"%~dp0_internal\\KuechenApp.exe" %*\n', encoding="utf-8")
+        if sys.platform == "win32":
+            shortcut = project_dir / "dist" / "KuechenApp.lnk"
+            exe = project_dir / "dist" / "_internal" / "KuechenApp.exe"
+            ps = (
+                f"$ws=New-Object -ComObject WScript.Shell;"
+                f"$s=$ws.CreateShortcut('{shortcut}');"
+                f"$s.TargetPath='{exe}';"
+                f"$s.WorkingDirectory='{exe.parent}';"
+                f"$s.Save()"
+            )
+            subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
 
         print()
         print("=" * 70)
         print("✓ Build successful!")
         print("=" * 70)
-        print(f"Starten:  dist\\KuechenApp.bat")
+        print(f"Starten:  dist\\KuechenApp.lnk")
         print(f"Module:   dist\\_internal\\")
         return 0
     except subprocess.CalledProcessError as e:
