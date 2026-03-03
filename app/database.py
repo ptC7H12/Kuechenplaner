@@ -1,13 +1,30 @@
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pathlib import Path
+import sys
 import logging
 
 logger = logging.getLogger("kuechenplaner.database")
 
-# Create data directory if it doesn't exist
-DATA_DIR = Path(__file__).parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+
+def _get_data_dir() -> Path:
+    # "__compiled__" is injected into every module's globals by Nuitka.
+    # In regular Python (development), it is absent.
+    if "__compiled__" in dir():
+        import os
+        if sys.platform == "win32":
+            base = Path(os.environ["APPDATA"]) / "KuechenApp"
+        else:
+            xdg = os.environ.get("XDG_DATA_HOME", "")
+            base = (Path(xdg) if xdg else Path.home() / ".local" / "share") / "KuechenApp"
+    else:
+        # Development: keep data/ next to the project root
+        base = Path(__file__).parent.parent / "data"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+DATA_DIR = _get_data_dir()
 
 # Database URL
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DATA_DIR}/app.db"

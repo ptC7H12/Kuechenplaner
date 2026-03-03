@@ -62,3 +62,6 @@ Thumbs.db
 # Standalone Build
 .download_cache/
 releases/
+
+# Inno Setup Output
+installer/*.exe
