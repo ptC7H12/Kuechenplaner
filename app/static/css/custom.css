@@ -563,9 +563,16 @@
 }
 
 .recipe-card-draggable {
-    @apply bg-white rounded-lg shadow-md
-           p-3 mb-2 cursor-move transition-all duration-200
-           hover:shadow-lg;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+.recipe-card-draggable:hover {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
 }
 
 .recipe-card-draggable.sortable-ghost {
@@ -577,8 +584,16 @@
 }
 
 .recipe-card-planned {
-    @apply bg-white rounded-lg p-3 mb-2 shadow-md hover:shadow-lg
-           transition-all duration-200 cursor-move;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    transition: all 0.2s ease;
+    cursor: move;
+}
+.recipe-card-planned:hover {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
 }
 
 /* ===================================
@@ -686,8 +701,14 @@
    =================================== */
 
 .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
-           border transition-all duration-200;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid;
+    transition: all 0.2s ease;
 }
 
 .badge-primary {
