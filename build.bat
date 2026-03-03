@@ -6,6 +6,7 @@ setlocal enabledelayedexpansion
 set BUILD_MODE=%1
 if "%BUILD_MODE%"=="" set BUILD_MODE=standalone
 set CLEAN_BUILD=%2
+set PROJ_DIR=%~dp0
 
 echo ========================================
 echo Freizeit Rezepturverwaltung Build
@@ -45,6 +46,8 @@ if "%BUILD_MODE%"=="standalone" (
         --output-filename=FreizeitRezepturverwaltung-debug.exe ^
         --include-data-dir=app/templates=app/templates ^
         --include-data-dir=app/static=static ^
+        --include-data-dir=alembic=alembic ^
+        --include-data-file=alembic.ini=alembic.ini ^
         --include-package=app ^
         --include-package=fastapi ^
         --include-package=uvicorn ^
@@ -62,7 +65,6 @@ if "%BUILD_MODE%"=="standalone" (
         --nofollow-import-to=webview.platforms.qt ^
         --nofollow-import-to=reportlab.lib.testutils ^
         --nofollow-import-to=reportlab.graphics.testshapes ^
-        --nofollow-import-to=sqlalchemy.dialects.postgresql ^
         --nofollow-import-to=sqlalchemy.dialects.mysql ^
         --nofollow-import-to=sqlalchemy.dialects.oracle ^
         --nofollow-import-to=sqlalchemy.dialects.mssql ^
@@ -78,6 +80,10 @@ if "%BUILD_MODE%"=="standalone" (
         --jobs=1 ^
         app/main.py
     if errorlevel 1 exit /b 1
+    REM Modules in _internal verstecken, Launcher in dist\ ablegen
+    if exist dist\_internal rmdir /s /q dist\_internal
+    move "dist\main.dist" "dist\_internal" > nul
+    powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung-debug.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung-debug.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
 ) else if "%BUILD_MODE%"=="fast" (
     echo Building without onefile ^(faster startup^)...
     python -m nuitka ^
@@ -91,6 +97,10 @@ if "%BUILD_MODE%"=="standalone" (
         --windows-console-mode=disable ^
         app/main.py
     if errorlevel 1 exit /b 1
+    REM Modules in _internal verstecken, Launcher in dist\ ablegen
+    if exist dist\_internal rmdir /s /q dist\_internal
+    move "dist\main.dist" "dist\_internal" > nul
+    powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
 ) else (
     echo Unknown build mode: %BUILD_MODE%
     echo Available modes: standalone, debug, fast
@@ -101,4 +111,12 @@ echo.
 echo ========================================
 echo Build complete!
 echo ========================================
-echo Output directory: .\dist
+if "%BUILD_MODE%"=="debug" (
+    echo Starten:  dist\FreizeitRezepturverwaltung-debug.lnk
+    echo Module:   dist\_internal\
+) else if "%BUILD_MODE%"=="fast" (
+    echo Starten:  dist\FreizeitRezepturverwaltung.lnk
+    echo Module:   dist\_internal\
+) else (
+    echo Output directory: .\dist
+)

@@ -29,9 +29,11 @@ def build():
         "--output-filename=KuechenApp",
         "--output-dir=dist",
 
-        # Include data files (templates, static files)
+        # Include data files (templates, static files, alembic migrations)
         f"--include-data-dir={project_dir}/app/templates=app/templates",
         f"--include-data-dir={project_dir}/app/static=static",
+        f"--include-data-dir={project_dir}/alembic=alembic",
+        f"--include-data-file={project_dir}/alembic.ini=alembic.ini",
 
         # Include package data - EXPLIZIT statt --follow-imports
         "--include-package=app",
@@ -60,7 +62,8 @@ def build():
         "--nofollow-import-to=reportlab.graphics.testshapes",
 
         # SQLAlchemy: Nur SQLite wird benötigt - andere Dialekte ausschließen
-        "--nofollow-import-to=sqlalchemy.dialects.postgresql",
+        # HINWEIS: postgresql NICHT ausschließen - alembic.ddl.postgresql importiert
+        # sqlalchemy.dialects.postgresql auch bei reiner SQLite-Nutzung (zur Laufzeit benötigt)
         "--nofollow-import-to=sqlalchemy.dialects.mysql",
         "--nofollow-import-to=sqlalchemy.dialects.oracle",
         "--nofollow-import-to=sqlalchemy.dialects.mssql",
@@ -126,11 +129,54 @@ def build():
     # Run Nuitka
     try:
         result = subprocess.run(nuitka_args, check=True)
+
+        # Modules in _internal verstecken, Verknüpfung in dist\ ablegen
+        import shutil, os
+        src = project_dir / "dist" / "main.dist"
+        dst = project_dir / "dist" / "_internal"
+        if dst.exists():
+            shutil.rmtree(dst)
+        src.rename(dst)
+
+        if sys.platform == "win32":
+            shortcut = project_dir / "dist" / "KuechenApp.lnk"
+            exe = dst / "KuechenApp.exe"
+            ps = (
+                f"$ws=New-Object -ComObject WScript.Shell;"
+                f"$s=$ws.CreateShortcut('{shortcut}');"
+                f"$s.TargetPath='{exe}';"
+                f"$s.WorkingDirectory='{exe.parent}';"
+                f"$s.Save()"
+            )
+            subprocess.run(["powershell", "-NoProfile", "-Command", ps], check=True)
+
+            # Installer bauen wenn Inno Setup 6 vorhanden
+            iscc_paths = [
+                Path(os.environ.get("ProgramFiles(x86)", "")) / "Inno Setup 6" / "ISCC.exe",
+                Path(os.environ.get("ProgramFiles", ""))       / "Inno Setup 6" / "ISCC.exe",
+            ]
+            iscc = next((p for p in iscc_paths if p.exists()), None)
+            iss_file = project_dir / "installer.iss"
+            if iscc and iss_file.exists():
+                print()
+                print("Building installer...")
+                (project_dir / "installer").mkdir(exist_ok=True)
+                r = subprocess.run([str(iscc), str(iss_file)])
+                if r.returncode == 0:
+                    print("Installer erstellt: installer\\")
+                else:
+                    print("[Warnung] Installer-Build fehlgeschlagen")
+            else:
+                print()
+                print("[Hinweis] Inno Setup 6 nicht gefunden – Installer wurde nicht gebaut.")
+                print("          Download: https://jrsoftware.org/isinfo.php")
+
         print()
         print("=" * 70)
         print("✓ Build successful!")
         print("=" * 70)
-        print(f"Output directory: {project_dir / 'dist'}")
+        print(f"Starten:  dist\\KuechenApp.lnk")
+        print(f"Module:   dist\\_internal\\")
         return 0
     except subprocess.CalledProcessError as e:
         print()
