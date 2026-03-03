@@ -161,7 +161,9 @@ def build():
                 print()
                 print("Building installer...")
                 (project_dir / "installer").mkdir(exist_ok=True)
-                r = subprocess.run([str(iscc), str(iss_file)])
+                version_file = project_dir / "version.txt"
+                version = version_file.read_text(encoding="utf-8").strip() if version_file.exists() else "1.0.0"
+                r = subprocess.run([str(iscc), f"/DAppVersion={version}", str(iss_file)])
                 if r.returncode == 0:
                     print("Installer erstellt: installer\\")
                 else:
