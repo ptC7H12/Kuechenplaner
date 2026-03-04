@@ -85,9 +85,9 @@ if "%BUILD_MODE%"=="standalone" (
     move "dist\main.dist" "dist\_internal" > nul
     powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung-debug.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung-debug.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
     REM Debug-Installer bauen wenn Inno Setup 6 vorhanden
-    set ISCC_EXE=
-    if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set ISCC_EXE=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe
-    if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe"       set ISCC_EXE=%ProgramFiles%\Inno Setup 6\ISCC.exe
+    set "ISCC_EXE="
+    if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC_EXE=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
+    if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe"       set "ISCC_EXE=%ProgramFiles%\Inno Setup 6\ISCC.exe"
     if not "%ISCC_EXE%"=="" (
         set /p APP_VERSION=<version.txt
         mkdir installer 2>nul
