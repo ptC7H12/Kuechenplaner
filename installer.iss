@@ -8,7 +8,11 @@
 ; ==============================================================================
 
 #define AppName    "Freizeit Rezepturverwaltung"
-#define AppVersion Trim(ReadFile("version.txt"))
+; AppVersion kann per Kommandozeile übergeben werden: iscc /DAppVersion=1.2.3 installer.iss
+; Fallback: ISPP liest version.txt (FileRead/FileOpen - ReadFile existiert nicht in ISPP)
+#ifndef AppVersion
+  #define AppVersion Trim(FileRead(FileOpen("version.txt")))
+#endif
 #define AppExe     "KuechenApp.exe"
 #define AppId      "{{D27C6B10-7A89-4768-BB9F-D5123DB65703}"
 
