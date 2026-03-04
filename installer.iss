@@ -13,7 +13,14 @@
 #ifndef AppVersion
   #define AppVersion Trim(FileRead(FileOpen("version.txt")))
 #endif
-#define AppExe     "KuechenApp.exe"
+; AppExe und NameSuffix können für den Debug-Installer überschrieben werden:
+;   iscc /DAppExe=FreizeitRezepturverwaltung-debug.exe /DNameSuffix=-debug installer.iss
+#ifndef AppExe
+  #define AppExe "KuechenApp.exe"
+#endif
+#ifndef NameSuffix
+  #define NameSuffix ""
+#endif
 #define AppId      "{{D27C6B10-7A89-4768-BB9F-D5123DB65703}"
 
 [Setup]
@@ -30,7 +37,7 @@ DisableProgramGroupPage=yes
 
 ; Ausgabe
 OutputDir=installer
-OutputBaseFilename=FreizeitRezepturverwaltung-Setup-{#AppVersion}
+OutputBaseFilename=FreizeitRezepturverwaltung-Setup-{#AppVersion}{#NameSuffix}
 SetupIconFile=app\static\icon.ico
 
 ; Kompression

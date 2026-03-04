@@ -84,6 +84,23 @@ if "%BUILD_MODE%"=="standalone" (
     if exist dist\_internal rmdir /s /q dist\_internal
     move "dist\main.dist" "dist\_internal" > nul
     powershell -NoProfile -Command "$ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut('%PROJ_DIR%dist\FreizeitRezepturverwaltung-debug.lnk'); $s.TargetPath='%PROJ_DIR%dist\_internal\FreizeitRezepturverwaltung-debug.exe'; $s.WorkingDirectory='%PROJ_DIR%dist\_internal'; $s.Save()"
+    REM Debug-Installer bauen wenn Inno Setup 6 vorhanden
+    set ISCC_EXE=
+    if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set ISCC_EXE=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe
+    if exist "%ProgramFiles%\Inno Setup 6\ISCC.exe"       set ISCC_EXE=%ProgramFiles%\Inno Setup 6\ISCC.exe
+    if not "%ISCC_EXE%"=="" (
+        set /p APP_VERSION=<version.txt
+        mkdir installer 2>nul
+        echo Building debug installer...
+        "%ISCC_EXE%" /DAppVersion=!APP_VERSION! /DAppExe=FreizeitRezepturverwaltung-debug.exe /DNameSuffix=-debug installer.iss
+        if errorlevel 1 (
+            echo [Warnung] Debug-Installer-Build fehlgeschlagen
+        ) else (
+            echo Debug-Installer erstellt: installer\
+        )
+    ) else (
+        echo [Hinweis] Inno Setup 6 nicht gefunden - Debug-Installer wurde nicht gebaut.
+    )
 ) else if "%BUILD_MODE%"=="fast" (
     echo Building without onefile ^(faster startup^)...
     python -m nuitka ^
