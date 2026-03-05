@@ -86,7 +86,7 @@ def run_migrations():
         # Create Alembic config
         alembic_cfg = Config(str(alembic_ini_path))
         # Override script_location with absolute path so it works regardless of CWD
-        alembic_cfg.set_main_option("script_location", str(alembic_ini_path.parent / "alembic"))
+        alembic_cfg.set_main_option("script_location", str(alembic_ini_path.parent / "alembic_migration"))
 
         # Run migrations to the latest version
         command.upgrade(alembic_cfg, "head")
