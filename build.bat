@@ -46,7 +46,7 @@ if "%BUILD_MODE%"=="standalone" (
         --output-filename=FreizeitRezepturverwaltung-debug.exe ^
         --include-data-dir=app/templates=app/templates ^
         --include-data-dir=app/static=static ^
-        --include-data-dir=alembic=alembic ^
+        --include-data-dir=alembic=alembic_migration ^
         --include-data-file=alembic.ini=alembic.ini ^
         --include-package=app ^
         --include-package=fastapi ^
