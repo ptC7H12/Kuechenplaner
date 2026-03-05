@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 import json
+import tempfile
+import os
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
@@ -177,3 +179,182 @@ async def delete_tag(
     db.commit()
 
     return HTMLResponse(content="", status_code=200)
+
+
+# Excel Recipe Import
+def _guess_ingredient_category(ingredient_name: str) -> str:
+    """Guess ingredient category based on name"""
+    ingredient_lower = ingredient_name.lower()
+
+    categories = {
+        "Gemüse": ['kartoffel', 'zwiebel', 'knoblauch', 'tomat', 'gurke', 'paprika',
+                    'möhre', 'karotte', 'sellerie', 'lauch', 'zucchini', 'aubergine',
+                    'brokkoli', 'blumenkohl', 'kohl', 'salat', 'spinat', 'erbsen'],
+        "Obst": ['apfel', 'birne', 'banane', 'orange', 'zitrone', 'beeren',
+                  'erdbeere', 'himbeere', 'kirsche', 'pflaume', 'pfirsich'],
+        "Fleisch": ['fleisch', 'hack', 'rind', 'schwein', 'hähnchen', 'huhn',
+                     'pute', 'schnitzel', 'würstchen', 'wurst', 'speck', 'schinken'],
+        "Fisch": ['fisch', 'lachs', 'thunfisch', 'forelle', 'garnele', 'krabbe'],
+        "Milchprodukte": ['milch', 'sahne', 'butter', 'käse', 'quark', 'joghurt',
+                           'schmand', 'creme', 'frischkäse'],
+        "Getreide": ['mehl', 'reis', 'nudel', 'pasta', 'brot', 'brötchen',
+                      'haferflocken', 'müsli', 'couscous', 'bulgur'],
+        "Backwaren": ['zucker', 'backpulver', 'hefe', 'vanille', 'kakao'],
+        "Öle & Fette": ['öl', 'olivenöl', 'sonnenblumenöl', 'margarine', 'fett'],
+        "Gewürze": ['salz', 'pfeffer', 'paprika', 'curry', 'zimt', 'muskat',
+                     'kräuter', 'petersilie', 'basilikum', 'oregano', 'thymian',
+                     'rosmarin', 'majoran', 'kümmel', 'koriander'],
+        "Konserven": ['dose', 'konserve', 'passiert', 'geschält', 'tomatenmark'],
+    }
+
+    for category, keywords in categories.items():
+        if any(kw in ingredient_lower for kw in keywords):
+            return category
+
+    if 'ei' in ingredient_lower or 'eier' in ingredient_lower:
+        return "Milchprodukte"
+
+    return "Sonstiges"
+
+
+def _import_recipe_from_sheet(db: Session, sheet):
+    """Import a single recipe from an Excel sheet"""
+    recipe_name = sheet['A1'].value
+    if not recipe_name:
+        return None, f"Blatt '{sheet.title}': Kein Rezeptname in A1"
+
+    recipe_name = str(recipe_name).strip()
+
+    # Check for duplicate
+    existing = db.query(models.Recipe).filter(models.Recipe.name == recipe_name).first()
+    if existing:
+        return None, f"'{recipe_name}': Existiert bereits"
+
+    base_servings = sheet['A4'].value
+    if not base_servings or not isinstance(base_servings, (int, float)):
+        base_servings = 30
+    else:
+        base_servings = int(base_servings)
+
+    ingredients = []
+    for row in range(5, 31):
+        quantity_cell = sheet[f'A{row}'].value
+        unit_cell = sheet[f'C{row}'].value
+        ingredient_cell = sheet[f'D{row}'].value
+
+        if not ingredient_cell:
+            break
+        if not quantity_cell:
+            continue
+
+        try:
+            if isinstance(quantity_cell, str):
+                quantity_cell = quantity_cell.replace(',', '.')
+            quantity = float(quantity_cell)
+        except (ValueError, TypeError):
+            continue
+
+        unit = str(unit_cell).strip() if unit_cell else "Stück"
+        ingredient_name = str(ingredient_cell).strip()
+        category = _guess_ingredient_category(ingredient_name)
+
+        db_ingredient = crud.get_or_create_ingredient(db, name=ingredient_name, unit=unit, category=category)
+        ingredients.append({
+            'ingredient_id': db_ingredient.id,
+            'quantity': quantity,
+            'unit': unit
+        })
+
+    instructions_lines = []
+    for row in range(31, sheet.max_row + 1):
+        cell_value = sheet[f'A{row}'].value
+        if cell_value:
+            instructions_lines.append(str(cell_value).strip())
+
+    instructions = "\n".join(instructions_lines) if instructions_lines else None
+
+    recipe_data = schemas.RecipeCreate(
+        name=recipe_name,
+        base_servings=base_servings,
+        instructions=instructions,
+        ingredients=[schemas.RecipeIngredientCreate(**ing) for ing in ingredients],
+        tag_ids=[],
+        allergen_ids=[]
+    )
+
+    db_recipe = crud.create_recipe(db, recipe_data)
+    return db_recipe, None
+
+
+@router.post("/api/import-recipes")
+async def import_recipes_from_excel(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Import recipes from an Excel file"""
+    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+        return HTMLResponse(
+            content='<div class="alert alert-error">Bitte eine Excel-Datei (.xlsx) hochladen.</div>',
+            status_code=400
+        )
+
+    try:
+        from openpyxl import load_workbook
+
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            workbook = load_workbook(tmp_path, data_only=True)
+        finally:
+            os.unlink(tmp_path)
+
+        imported = []
+        skipped = []
+
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            try:
+                recipe, error = _import_recipe_from_sheet(db, sheet)
+                if recipe:
+                    imported.append(recipe.name)
+                elif error:
+                    skipped.append(error)
+            except Exception as e:
+                skipped.append(f"'{sheet_name}': {str(e)}")
+
+        logger.info(f"Excel import: {len(imported)} imported, {len(skipped)} skipped")
+
+        # Build result HTML
+        result_parts = []
+        if imported:
+            recipes_list = "".join(f"<li>{name}</li>" for name in imported)
+            result_parts.append(
+                f'<div class="alert alert-success mb-3">'
+                f'<strong>{len(imported)} Rezept(e) erfolgreich importiert:</strong>'
+                f'<ul class="list-disc ml-6 mt-2">{recipes_list}</ul></div>'
+            )
+        if skipped:
+            skip_list = "".join(f"<li>{msg}</li>" for msg in skipped)
+            result_parts.append(
+                f'<div class="alert alert-warning">'
+                f'<strong>{len(skipped)} übersprungen:</strong>'
+                f'<ul class="list-disc ml-6 mt-2">{skip_list}</ul></div>'
+            )
+        if not imported and not skipped:
+            result_parts.append(
+                '<div class="alert alert-warning">Keine Rezepte in der Datei gefunden.</div>'
+            )
+
+        return HTMLResponse(content="".join(result_parts))
+
+    except Exception as e:
+        logger.error(f"Excel import error: {e}", exc_info=True)
+        return HTMLResponse(
+            content=f'<div class="alert alert-error">Fehler beim Import: {str(e)}</div>',
+            status_code=500
+        )
