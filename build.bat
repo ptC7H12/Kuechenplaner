@@ -47,6 +47,8 @@ if "%BUILD_MODE%"=="standalone" (
         --include-data-dir=app/templates=app/templates ^
         --include-data-dir=app/static=static ^
         --include-data-dir=alembic=alembic_migration ^
+        --include-data-files=alembic/env.py=alembic_migration/env.py ^
+        --include-data-files=alembic/versions/*.py=alembic_migration/versions/ ^
         --include-data-file=alembic.ini=alembic.ini ^
         --include-package=app ^
         --include-package=fastapi ^
