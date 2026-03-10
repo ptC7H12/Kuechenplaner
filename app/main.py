@@ -1,8 +1,16 @@
 import uvicorn
 from threading import Thread
 import os
+import sys
 import logging
 from contextlib import asynccontextmanager
+
+# In console-disabled Nuitka builds, sys.stdout/stderr can be None.
+# Guard against AttributeError when anything tries to write to them.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
 
 # Setup logging first
 from app.logging_config import setup_logging
