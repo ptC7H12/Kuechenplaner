@@ -37,8 +37,10 @@ ENV/
 *~
 
 # Database
-data/app.db
+data/
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
