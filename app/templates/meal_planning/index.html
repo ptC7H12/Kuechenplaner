@@ -274,6 +274,7 @@ function mealPlanning() {
                         onAdd: async (evt) => {
                             const recipeId = evt.item.dataset.recipeId;
                             const recipeName = evt.item.dataset.recipeName;
+                            const mealPlanId = evt.item.dataset.mealPlanId;
                             const mealDate = evt.to.dataset.mealDate;
                             const mealType = evt.to.dataset.mealType;
                             const campId = evt.to.dataset.campId;
@@ -284,41 +285,49 @@ function mealPlanning() {
                                 placeholder.remove();
                             }
 
-                            // Remove the cloned draggable element
+                            // Remove the cloned/moved draggable element
                             evt.item.remove();
 
-                            // Calculate position (number of existing recipes)
-                            const existingRecipes = evt.to.querySelectorAll('.recipe-card-planned');
-                            const position = existingRecipes.length;
-
-                            // Make API call to save meal plan
                             try {
+                                // If "Kein Essen" (recipeId 0): delete all existing meals in this cell
+                                if (recipeId === '0') {
+                                    const existingPlanned = evt.to.querySelectorAll('.recipe-card-planned');
+                                    for (const card of existingPlanned) {
+                                        const id = card.dataset.mealPlanId;
+                                        if (id) {
+                                            await fetch(`/meal-planning/api/meal-plans/${id}`, { method: 'DELETE' });
+                                        }
+                                    }
+                                }
+
+                                // If moving from another cell (not sidebar), delete the old meal plan
+                                if (mealPlanId) {
+                                    await fetch(`/meal-planning/api/meal-plans/${mealPlanId}`, { method: 'DELETE' });
+                                }
+
+                                // Create new meal plan in target cell
                                 const requestBody = {
                                     camp_id: parseInt(campId),
                                     recipe_id: recipeId === '0' ? null : parseInt(recipeId),
                                     meal_date: mealDate + 'T00:00:00',
                                     meal_type: mealType,
-                                    position: position
+                                    position: 0
                                 };
 
                                 const response = await fetch('/meal-planning/api/meal-plans', {
                                     method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
+                                    headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify(requestBody)
                                 });
 
                                 if (response.ok) {
-                                    // Reload the page to show updated meal plan
                                     window.location.reload();
-                                    window.FreizeitApp.showToast(`"${recipeName}" hinzugefügt`, 'success');
                                 } else {
                                     throw new Error('Failed to save meal plan');
                                 }
                             } catch (error) {
                                 console.error('Error saving meal plan:', error);
-                                window.FreizeitApp.showToast('Fehler beim Hinzufügen des Rezepts', 'error');
+                                window.location.reload();
                             }
                         },
 
