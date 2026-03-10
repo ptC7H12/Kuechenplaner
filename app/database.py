@@ -10,7 +10,7 @@ logger = logging.getLogger("kuechenplaner.database")
 def _get_data_dir() -> Path:
     # "__compiled__" is injected into every module's globals by Nuitka.
     # In regular Python (development), it is absent.
-    if "__compiled__" in dir():
+    if "__compiled__" in globals():
         import os
         if sys.platform == "win32":
             base = Path(os.environ["APPDATA"]) / "KuechenApp"
