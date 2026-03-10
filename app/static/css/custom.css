@@ -470,7 +470,7 @@
 }
 
 .card-title {
-    @apply text-xl font-bold text-gray-900;
+    @apply text-2xl font-bold text-gray-900;
     letter-spacing: -0.025em;
 }
 
@@ -736,18 +736,18 @@
    =================================== */
 
 .tab-list {
-    @apply flex border-b border-gray-200;
+    @apply flex gap-1 bg-gray-100 p-1.5 rounded-xl;
 }
 
 .tab-button {
-    @apply whitespace-nowrap py-3 px-6 border-b-2 font-semibold text-sm
+    @apply whitespace-nowrap py-2.5 px-5 font-semibold text-sm
            text-gray-500 transition-all duration-200
-           border-transparent
-           hover:text-gray-700 hover:border-gray-300;
+           rounded-lg
+           hover:text-gray-700 hover:bg-gray-200;
 }
 
 .tab-button-active {
-    @apply border-indigo-600 text-indigo-600;
+    @apply bg-white text-indigo-700 shadow-md;
 }
 
 /* ===================================
