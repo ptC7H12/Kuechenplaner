@@ -91,41 +91,90 @@ Als Küchenplaner möchte ich eine kompaktere Einkaufsliste als PDF exportieren 
 **Aufwand:** Mittel | **Machbarkeit:** Gut
 
 ### Beschreibung
-Als Küchenplaner möchte ich eine PDF exportieren können, in der die Rezepte tageweise gruppiert dargestellt werden, damit ich am jeweiligen Tag schnell sehe, was gekocht wird und welche Zutaten/Anleitungen ich brauche.
+Als Küchenplaner möchte ich eine PDF exportieren können, in der die Rezepte tageweise gruppiert dargestellt werden (wie die "Tageslisten" in der bisherigen Excel-Planung), damit ich am jeweiligen Tag schnell sehe, was gekocht wird, welche Zutaten ich brauche und wie die Zubereitung geht.
 
 ### Ist-Zustand
 - **Speiseplan-PDF:** Nur Rezeptnamen in Tabelle (kein Rezeptinhalt)
 - **Rezeptbuch-PDF:** Alle Rezepte nacheinander, ohne Tagesbezug
 - Es gibt keine Kombination aus beidem
+- Der User nutzt bisher eine Excel-Tabelle mit Reiter "Tageslisten" für diesen Zweck
+
+### Referenz-Layout (aus User-Screenshot)
+Das gewünschte Format orientiert sich an der bisherigen Excel-Tagesliste:
+```
+╔══════════════════════════════════════════════════════════╗
+║  Samstag, 10.01.2026                                    ║
+╠══════════════════════════════════════════════════════════╣
+║                                                          ║
+║  Frühstück: Creps                                        ║
+║  ┌──────────┬──────────────┬─────────────────────────┐   ║
+║  │ 1750 g   │ Weizenmehl   │ 1. Mehl, Salz, Eier und │   ║
+║  │ 350 g    │ Butter       │    Milch verrühren.      │   ║
+║  │ 1400 ml  │ Milch        │ 2. Nach und nach Wasser  │   ║
+║  │ 1750 ml  │ Wasser       │    und zerlassene Butter │   ║
+║  │ 14       │ Eier         │    zufügen               │   ║
+║  │ 7 Prisen │ Salz         │                          │   ║
+║  └──────────┴──────────────┴─────────────────────────┘   ║
+║                                                          ║
+║  Mittag: Pizzasuppe                                      ║
+║  ┌──────────┬──────────────┬─────────────────────────┐   ║
+║  │ 4,5 kg   │ Hackfleisch  │ 1. Hackfleisch mit      │   ║
+║  │ 6,75     │ Zwiebeln     │    Zwiebeln braten.      │   ║
+║  │ 9        │ Paprika      │ 2. Paprika würfeln.      │   ║
+║  │ ...      │ ...          │ 3. Wasser mit Fleisch-   │   ║
+║  │          │              │    brühe anrühren...     │   ║
+║  └──────────┴──────────────┴─────────────────────────┘   ║
+║                                                          ║
+║  Nachtisch: Schneewitchennachtisch                       ║
+║  ┌──────────┬────────────────────┬───────────────────┐   ║
+║  │ 600 g    │ Zartbitterschoko.. │ 1. Schokolade in  │   ║
+║  │ ...      │ ...                │    Stücke teilen.. │   ║
+║  └──────────┴────────────────────┴───────────────────┘   ║
+║                                                          ║
+║  Abendbrot                                               ║
+║    Vorspeise: Nachos                                     ║
+║    ┌──────────┬──────────────┐                           ║
+║    │ 9 Pack.  │ Nachos       │                           ║
+║    │ 7 Pack.  │ gerieb. Käse │                           ║
+║    │ ...      │ ...          │                           ║
+║    └──────────┴──────────────┘                           ║
+║    Hauptgang: Kartoffeln mit Hähnchen im Bacon           ║
+║    ┌──────────┬──────────────┐                           ║
+║    │ 12,31 kg │ Kartoffel    │                           ║
+║    │ ...      │ ...          │                           ║
+║    └──────────┴──────────────┘                           ║
+╚══════════════════════════════════════════════════════════╝
+```
+
+**Kernmerkmale aus dem Screenshot:**
+- Tagesüberschrift mit Datum + Wochentag
+- Mahlzeit-Überschrift mit Rezeptname (z.B. "Frühstück: Creps")
+- Zutaten (Menge + Name) und Zubereitung nebeneinander in einer Tabelle
+- Mehrere Rezepte pro Mahlzeit möglich (Vorspeise, Hauptgang, Salat beim Abendessen)
+- Mengen sind bereits auf Teilnehmerzahl skaliert
 
 ### Akzeptanzkriterien
-- [ ] Neuer Export-Endpunkt: "Tages-Kochbuch" PDF
-- [ ] Gliederung: Tag → Mahlzeit (Frühstück/Mittag/Abend) → Rezept(e) mit Details
-- [ ] Pro Rezept: Name, skalierte Zutaten, Zubereitung
-- [ ] Seitenumbruch zwischen Tagen (oder zumindest klare visuelle Trennung)
-- [ ] Teilnehmeranzahl und Skalierung korrekt angezeigt
-- [ ] Export-Button in der Wochenübersicht verfügbar
+- [ ] Neuer Export-Endpunkt: "Tageslisten" PDF
+- [ ] Gliederung: Tag → Mahlzeit → Rezept(e) mit Zutaten und Zubereitung
+- [ ] Zutaten und Zubereitungsschritte nebeneinander (3-Spalten-Tabelle: Menge | Zutat | Anleitung)
+- [ ] Mehrere Rezepte pro Mahlzeit werden untereinander dargestellt
+- [ ] Mengen sind auf `participant_count` (oder `custom_servings` aus Story 1) skaliert
+- [ ] Seitenumbruch zwischen Tagen
+- [ ] Export-Button in der Wochenübersicht verfügbar ("Tageslisten PDF")
 
 ### Technische Umsetzung
-- Neuer Endpunkt in `export.py`: `GET /export/daily-cookbook/pdf/{camp_id}`
+- Neuer Endpunkt in `export.py`: `GET /export/daily-lists/pdf/{camp_id}`
 - Daten: `meal_plans` nach Datum gruppieren, dann nach MealType sortieren
-- Layout pro Tag:
-  ```
-  === Tag 1: Montag, 15.07.2025 ===
-
-  --- Frühstück ---
-  Rezept: Müsli mit Obst (45 Portionen)
-  Zutaten: ...
-  Zubereitung: ...
-
-  --- Mittagessen ---
-  Rezept: Nudeln mit Tomatensoße (45 Portionen)
-  ...
-  ```
+- Pro Rezept eine Tabelle mit 3 Spalten: Menge+Einheit | Zutatname | Zubereitungsschritte
+  - Zubereitungsschritte aus `recipe.instructions` parsen (zeilenweise nummeriert)
+  - Schritte auf die Tabellenzeilen verteilen (Schritt 1 in Zeile 1, Schritt 2 in Zeile 2, etc.)
+- Falls ein Rezept keine Zubereitung hat: 2-Spalten-Tabelle (nur Menge | Zutat)
 - Export-Button in `meal_planning/index.html` hinzufügen
 
-### Hinweis
-- Warte auf das Foto vom User, um das genaue Layout zu klären
+### Hinweis zu Sub-Kategorien (Vorspeise/Hauptgang/Salat)
+Im Screenshot hat das Abendessen Untergruppen (Vorspeise, Hauptgang, Salat). Das aktuelle Datenmodell kennt nur BREAKFAST/LUNCH/DINNER ohne Sub-Kategorien. Zwei Optionen:
+- **Option A:** Mehrere Rezepte pro Slot werden einfach nacheinander angezeigt (ohne Unter-Label). Das funktioniert schon heute mit dem `position`-Feld.
+- **Option B:** Das `notes`-Feld im MealPlan könnte als Sub-Kategorie genutzt werden (z.B. "Vorspeise", "Hauptgang", "Salat"). Kein Schema-Change nötig, nur UI-Anpassung.
 
 ---
 
