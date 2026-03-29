@@ -1,20 +1,8 @@
 # User Stories - Neue Anforderungen
 
-## Kritische Bewertung & Offene Fragen
+## Status
 
-Bevor wir loslegen, hier meine Einschätzung und ein paar Rückfragen:
-
-### Offene Fragen
-
-1. **Bemerkungszeile Einkaufsliste (Story 2):** Ist damit eine Bemerkung *pro Zutat* gemeint (z.B. "Bio kaufen", "nur bei Rewe") oder eine allgemeine Bemerkungszeile am Ende der Liste (z.B. "Bitte alles bis Freitag besorgen")?
-
-2. **Tageweise Rezept-PDF (Story 3):** Du sagst, du schickst noch ein Foto. Ohne das Foto vermute ich: Ihr wollt eine PDF, die Tag für Tag auflistet welche Rezepte mit Zutaten und Zubereitung dran sind - quasi ein "Tages-Kochbuch". Stimmt das? Oder reicht der Speiseplan-Export nur mit besserem Layout?
-
-3. **Reste-Tracker (Story 5):** Das ist das größte Feature. Dazu bräuchte ich mehr Details:
-   - Was genau wird erfasst? Beispiel: "Nudeln mit Tomatensoße → 3kg Nudeln übrig, 2L Soße übrig" (pro Zutat) oder eher "Nudeln mit Tomatensoße → ca. 15 Portionen übrig" (pro Rezept)?
-   - Wann wird das eingetragen? Nach jeder Mahlzeit?
-   - Was für eine Statistik? Z.B. "Bei Rezept X bleiben im Schnitt 20% übrig" über mehrere Freizeiten hinweg?
-   - Soll die Statistik helfen, beim nächsten Mal weniger einzukaufen (also die Skalierung anpassen)?
+> Alle offenen Fragen sind geklaert (Stand: 29.03.2026). Details siehe `offene-fragen-und-anmerkungen.md`.
 
 ---
 
@@ -68,7 +56,8 @@ Als Küchenplaner möchte ich eine kompaktere Einkaufsliste als PDF exportieren 
 - [ ] Abstände zwischen Kategorien verringert
 - [ ] Schriftgrößen etwas kleiner (Titel 18pt, Überschriften 13pt)
 - [ ] Tabellenzeilen kompakter (weniger Padding)
-- [ ] Bemerkungszeile vorhanden (abhängig von Klärung - siehe offene Fragen)
+- [ ] Zusaetzliche Spalte "Bemerkung" pro Zutat in der PDF-Tabelle
+- [ ] Eingabefeld fuer Bemerkungen pro Zutat in der Einkaufslisten-Ansicht
 - [ ] Die Liste passt auf weniger Seiten als vorher
 
 ### Technische Umsetzung
@@ -77,12 +66,9 @@ Als Küchenplaner möchte ich eine kompaktere Einkaufsliste als PDF exportieren 
   - Spacer verkleinern
   - Font-Sizes reduzieren
   - TableStyle: Padding reduzieren
-- Für Bemerkungen: Entweder neue Spalte in Tabelle oder Textfeld am Ende
-
-### Varianten für Bemerkungszeile (zu klären)
-**Option A:** Zusätzliche Spalte "Bemerkung" in der Tabelle pro Zutat
-**Option B:** Freitext-Bereich am Ende der gesamten Liste
-**Option C:** Freitext-Bereich pro Kategorie
+- Neue Spalte "Bemerkung" in der Zutat-Tabelle
+- Neues Feld `note` auf dem Einkaufslisten-Eintrag (oder `ShoppingListItem`) fuer Bemerkungen pro Zutat
+- UI: Editierbares Textfeld in der Einkaufslisten-Ansicht pro Zutat
 
 ---
 
@@ -171,10 +157,8 @@ Das gewünschte Format orientiert sich an der bisherigen Excel-Tagesliste:
 - Falls ein Rezept keine Zubereitung hat: 2-Spalten-Tabelle (nur Menge | Zutat)
 - Export-Button in `meal_planning/index.html` hinzufügen
 
-### Hinweis zu Sub-Kategorien (Vorspeise/Hauptgang/Salat)
-Im Screenshot hat das Abendessen Untergruppen (Vorspeise, Hauptgang, Salat). Das aktuelle Datenmodell kennt nur BREAKFAST/LUNCH/DINNER ohne Sub-Kategorien. Zwei Optionen:
-- **Option A:** Mehrere Rezepte pro Slot werden einfach nacheinander angezeigt (ohne Unter-Label). Das funktioniert schon heute mit dem `position`-Feld.
-- **Option B:** Das `notes`-Feld im MealPlan könnte als Sub-Kategorie genutzt werden (z.B. "Vorspeise", "Hauptgang", "Salat"). Kein Schema-Change nötig, nur UI-Anpassung.
+### Sub-Kategorien (Vorspeise/Hauptgang/Salat)
+**Entscheidung:** Neues optionales Feld `sub_category` auf MealPlan. Moegliche Werte: Vorspeise, Hauptgang, Beilage, Salat, Nachtisch (oder leer). Braucht DB-Migration und UI-Anpassung (Dropdown beim Zuweisen eines Rezepts zum Abendessen).
 
 ---
 
@@ -216,24 +200,33 @@ Als Küchenplaner möchte ich in der Wochenübersicht mit einem Klick auf ein ge
 
 ## Story 5: Reste-Tracker mit Statistik
 
-**Aufwand:** Groß | **Machbarkeit:** Gut, aber klärungsbedürftig
+**Aufwand:** Gross | **Machbarkeit:** Gut
 
 ### Beschreibung
-Als Küchenplaner möchte ich nach jeder Mahlzeit erfassen können, was und wie viel übrig geblieben ist, und über mehrere Freizeiten eine Statistik pro Rezept sehen, damit ich beim nächsten Mal besser planen kann.
+Als Kuechenplaner moechte ich nach jeder Mahlzeit erfassen koennen, was und wie viel uebrig geblieben ist, und ueber mehrere Freizeiten eine Statistik pro Rezept sehen, damit ich beim naechsten Mal besser planen kann.
 
 ### Ist-Zustand
 - Kein Reste-Tracking in der App
 - Wird aktuell manuell (Zettel/Notizen) erfasst
 
-### Akzeptanzkriterien
-- [ ] Neuer Navigations-Reiter "Reste" in der Sidebar
-- [ ] Erfassung von Resten pro Mahlzeit/Rezept nach der Zubereitung
-- [ ] Freitext-Feld für Art der Reste + Mengenangabe
-- [ ] Übersicht aller erfassten Reste für das aktuelle Camp
-- [ ] Statistik pro Rezept über mehrere Camps hinweg
-- [ ] Statistik zeigt z.B. Durchschnitt, Trend, Empfehlung
+### Geklarte Anforderungen
 
-### Technische Umsetzung (Entwurf - abhängig von Klärung)
+- **Granularitaet:** Flexibel - je nach Rezept pro Rezept oder pro Zutat. Bei Nachtisch waere pro Zutat unpraktisch, bei Nudeln mit Sosse ist es sinnvoll. Der User waehlt bei jeder Erfassung selbst.
+- **Einheit:** Prozent (z.B. "20% uebrig") oder Freitext (z.B. "3kg Nudeln, 2L Sosse")
+- **Zeitpunkt:** Nach jeder Mahlzeit - Button "Reste erfassen" pro geplanter Mahlzeit im Kalender
+- **Statistik:** Durchschnittliche Restmenge pro Person, pro Rezept ueber mehrere Freizeiten
+- **Skalierung:** Nur als Vorschlag anzeigen, nicht automatisch anpassen
+
+### Akzeptanzkriterien
+- [ ] Button "Reste erfassen" pro geplanter Mahlzeit in der Wochenuebersicht
+- [ ] Erfassungs-Dialog: Auswahl ob pro Rezept oder pro Zutat erfasst wird
+- [ ] Prozent-Feld (optional) fuer schnelle Schaetzung (z.B. "20% uebrig")
+- [ ] Freitext-Feld fuer Details (z.B. "3kg Nudeln, 2L Sosse")
+- [ ] Uebersicht aller erfassten Reste fuer das aktuelle Camp
+- [ ] Statistik pro Rezept ueber mehrere Camps hinweg: Durchschnittliche Restmenge pro Person
+- [ ] Skalierungs-Vorschlag in der Statistik (z.B. "Naechstes Mal fuer 35 statt 45 Personen skalieren") - nicht automatisch, nur als Hinweis
+
+### Technische Umsetzung
 
 **Neues Model:**
 ```python
@@ -244,27 +237,22 @@ class Leftover(Base):
     meal_plan_id = Column(Integer, ForeignKey('meal_plans.id'))
     recipe_id = Column(Integer, ForeignKey('recipes.id'))
     camp_id = Column(Integer, ForeignKey('camps.id'))
-    description = Column(Text)           # "3kg Nudeln, 2L Soße"
-    quantity_estimate = Column(Float)     # Geschätzte Portionen übrig
-    notes = Column(Text)                 # Freitext
+    tracking_type = Column(String)       # "per_recipe" oder "per_ingredient"
+    ingredient_id = Column(Integer, ForeignKey('ingredients.id'), nullable=True)  # nur bei per_ingredient
+    percentage_left = Column(Float, nullable=True)  # z.B. 20.0 fuer 20%
+    description = Column(Text)           # Freitext: "3kg Nudeln, 2L Sosse"
     created_at = Column(DateTime)
 ```
 
 **Neue Dateien:**
 - `app/routers/leftovers.py` - CRUD + Statistik-Endpunkte
-- `app/templates/leftovers/index.html` - Übersicht + Erfassung
+- `app/templates/leftovers/index.html` - Uebersicht + Erfassung
 - `app/templates/leftovers/statistics.html` - Statistik-Ansicht
 
-**Statistik-Ideen:**
-- Durchschnittliche Restmenge pro Rezept (über alle Camps)
-- "Rezept X: In 3 von 5 Freizeiten blieben ca. 15 Portionen übrig"
-- Vorschlag: "Nächstes Mal nur für 35 statt 45 Personen skalieren"
-
-### Offene Punkte (müssen geklärt werden)
-1. Granularität: Pro Rezept oder pro Zutat?
-2. Einheit: Portionen, kg, Freitext?
-3. Zeitpunkt der Erfassung: Nach jeder Mahlzeit oder am Ende des Tages?
-4. Soll die Statistik automatisch die Skalierung für nächstes Mal anpassen?
+**Statistik:**
+- Durchschnittliche Restmenge pro Person pro Rezept (ueber alle Camps)
+- "Pizzasuppe: In 3 von 5 Freizeiten blieben Reste (Ø 20%)"
+- Vorschlag: "Naechstes Mal fuer 35 statt 45 Personen skalieren" (nur Anzeige, kein Auto-Anpassen)
 
 ---
 
@@ -275,5 +263,5 @@ class Leftover(Base):
 | 1 | Story 2: Kompaktere Einkaufsliste | Klein | Quick Win, sofort spürbar |
 | 2 | Story 4: Rezept-Vorschau | Klein-Mittel | Verbessert tägliche Nutzung stark |
 | 3 | Story 1: Individuelle Personenanzahl | Mittel | Wichtig für flexible Planung |
-| 4 | Story 3: Tageweise Rezept-PDF | Mittel | Wartet auf Foto/Klärung vom User |
-| 5 | Story 5: Reste-Tracker | Groß | Braucht noch Klärung, größtes Feature |
+| 4 | Story 3: Tageweise Rezept-PDF | Mittel | Layout geklaert (Tages-Kochbuch mit Untergruppen) |
+| 5 | Story 5: Reste-Tracker | Gross | Alle Fragen geklaert, groesstes Feature |
