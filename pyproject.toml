@@ -1,0 +1,69 @@
+[project]
+name = "kuechenplaner"
+version = "1.3.0"
+description = "Freizeit-/Camp-Rezepturverwaltung (FastAPI + HTMX + pywebview)"
+requires-python = ">=3.11"
+
+# Runtime/dev dependencies sind in requirements.txt bzw. requirements-dev.txt
+# gepflegt — pip install -r requirements.txt -r requirements-dev.txt
+# Diese Datei dient primaer als Tool-Konfiguration (ruff, mypy, pytest).
+
+# --------------------------------------------------------------------------
+# Ruff (Linter + Formatter)
+# --------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [
+    "dist",
+    "build",
+    "releases",
+    "alembic/versions",  # generierte Migrationen folgen anderen Konventionen
+    "OLD_Templates",
+    ".download_cache",
+]
+
+[tool.ruff.lint]
+# Basis-Set: pycodestyle (E,W), pyflakes (F), isort (I), pyupgrade (UP),
+# flake8-bugbear (B), flake8-simplify (SIM)
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",  # Line length wird vom Formatter erzwungen, hier weniger streng
+    "B008",  # FastAPI Depends() / Field() im Default ist hier idiomatisch
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401", "F811"]  # Fixtures-Imports/Re-Definitionen sind im Test-Setup OK
+"app/seeders.py" = ["E501"]
+"build*.py" = ["E501", "T201"]  # print() in Build-Skripten erlaubt
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# --------------------------------------------------------------------------
+# Mypy (Type Checker — lockerer Modus, da das Projekt nicht vollstaendig getypt ist)
+# --------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = true
+warn_redundant_casts = true
+# Vorerst keine erzwungenen Annotations — das wuerde die ganze Codebasis erschlagen.
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["alembic.*", "webview.*", "thefuzz.*", "Levenshtein.*", "openpyxl.*", "reportlab.*"]
+ignore_errors = true
+
+# --------------------------------------------------------------------------
+# Pytest
+# --------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = [
+    "ignore::DeprecationWarning:reportlab.*",
+]

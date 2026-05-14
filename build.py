@@ -9,10 +9,15 @@ import sys
 import os
 from pathlib import Path
 
+from build_logging import setup_build_log
+
+
 def build():
     """Build the application using Nuitka"""
 
     project_dir = Path(__file__).parent
+    log_path = setup_build_log("nuitka", project_dir / "logs")
+    print(f"Build-Log: {log_path}")
 
     # Nuitka build command
     nuitka_args = [
@@ -34,6 +39,12 @@ def build():
         f"--include-data-dir={project_dir}/app/static=static",
         f"--include-data-dir={project_dir}/alembic=alembic",
         f"--include-data-file={project_dir}/alembic.ini=alembic.ini",
+        # Nuitka excludes .py files from --include-data-dir (treats them as modules).
+        # Alembic needs env.py and version scripts as actual .py files on disk
+        # because it loads them at runtime via exec(). Include them explicitly.
+        f"--include-data-files={project_dir}/alembic/env.py=alembic/env.py",
+        f"--include-data-files={project_dir}/alembic/script.py.mako=alembic/script.py.mako",
+        f"--include-data-files={project_dir}/alembic/versions/*.py=alembic/versions/",
 
         # Include package data - EXPLIZIT statt --follow-imports
         "--include-package=app",
@@ -100,10 +111,15 @@ def build():
             "--windows-product-name=Freizeit Rezepturverwaltung",
             "--windows-file-version=1.0.0",
             "--windows-product-version=1.0.0",
-            # In nuitka_args Liste:
-            "--show-scons",  # Zeigt detaillierte Compiler-Fehler
-            "--verbose",     # Mehr Ausgaben
+            "--show-scons",  # detaillierte Compiler-/Scons-Ausgabe bei Fehlern
         ])
+        if os.environ.get("NUITKA_VERBOSE", "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            nuitka_args.append("--verbose")
 
     # Linux-specific options
     elif sys.platform.startswith("linux"):
@@ -131,7 +147,7 @@ def build():
         result = subprocess.run(nuitka_args, check=True)
 
         # Modules in _internal verstecken, Verknüpfung in dist\ ablegen
-        import shutil, os
+        import shutil
         src = project_dir / "dist" / "main.dist"
         dst = project_dir / "dist" / "_internal"
         if dst.exists():

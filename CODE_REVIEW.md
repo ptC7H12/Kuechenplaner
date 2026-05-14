@@ -65,7 +65,9 @@ Schweregradverteilung: **3 × Kritisch, 9 × Mittel, 8 × Niedrig**
 
 **Findings:**
 
-#### B-1 🔴 Direkte DB-Operationen in `routers/settings.py`
+#### B-1 🔴 ✅ Direkte DB-Operationen in `routers/settings.py`
+> **Erledigt 2026-05-13** – Neue CRUD-Funktionen `crud.get_all_settings()`, `crud.delete_setting()`, `crud.get_tag_by_name()`, `crud.delete_tag()` eingeführt. Router delegieren nun vollständig an CRUD-Schicht.
+
 `app/routers/settings.py` umgeht die `crud.py`-Schicht an mehreren Stellen:
 - **Z. 34:** `db.query(models.AppSettings).all()` direkt im Router
 - **Z. 54:** `db.query(models.AppSettings).all()` (gleicher Query nochmal)
@@ -77,7 +79,9 @@ Schweregradverteilung: **3 × Kritisch, 9 × Mittel, 8 × Niedrig**
 
 **Empfehlung:** Logik nach `crud.delete_tag(db, tag_id)`, `crud.delete_setting(db, key)` etc. verschieben; Router rufen nur noch CRUD auf.
 
-#### B-2 🔴 Direkte DB-Operation in `routers/recipes.py`
+#### B-2 🔴 ✅ Direkte DB-Operation in `routers/recipes.py`
+> **Erledigt 2026-05-13** – `crud.get_ingredient_by_name(db, name)` eingeführt; Router nutzt nun diese Funktion.
+
 `app/routers/recipes.py:279-281` umgeht in `quick_create_ingredient` die `crud`-Schicht für die Duplikat-Prüfung:
 ```python
 existing = db.query(models.Ingredient).filter(
@@ -86,7 +90,9 @@ existing = db.query(models.Ingredient).filter(
 ```
 **Empfehlung:** Helper `crud.get_ingredient_by_name(db, name)` einführen und überall nutzen.
 
-#### B-3 🟢 Inline-DB-Operation in `app/main.py`
+#### B-3 🟢 ✅ Inline-DB-Operation in `app/main.py`
+> **Erledigt 2026-05-13** – `_init_default_data` nach `app/seeders.py` als `init_default_data()` ausgelagert; `main.py` importiert und ruft sie auf.
+
 `_init_default_data()` ist in `main.py` definiert (Z. 36–97). Sauberer wäre eine separate `app/seeders.py` oder `app/bootstrap.py`. Niedrig, weil unkritisch und gut gekapselt.
 
 ---
@@ -97,7 +103,9 @@ existing = db.query(models.Ingredient).filter(
 
 **Findings:**
 
-#### B-4 🔴 Inkonsistentes Rollback-Handling in `crud.py`
+#### B-4 🔴 ✅ Inkonsistentes Rollback-Handling in `crud.py`
+> **Erledigt 2026-05-13** – `create_recipe`, `update_recipe` und `delete_recipe` in `try/except` mit `db.rollback()` und `logger.error(..., exc_info=True)` eingewickelt.
+
 Nur **eine** CRUD-Funktion hat Transaktions-Rollback:
 - `app/crud.py:275-300` (`create_meal_plan`) → try/except mit `db.rollback()` und Logging ✅
 - `app/crud.py:78-109` (`create_recipe`) → kein try/except, mehrere `db.add()` + `db.commit()`
@@ -107,11 +115,15 @@ Nur **eine** CRUD-Funktion hat Transaktions-Rollback:
 
 **Empfehlung:** Alle CRUD-Mutationen, die mehrere Tabellen anfassen, in `try/except` mit `db.rollback()` wickeln. Idealerweise als Dekorator `@transactional`.
 
-#### B-5 🟢 Search ohne Lower-Case-Vergleich
+#### B-5 🟢 ✅ Search ohne Lower-Case-Vergleich
+> **Erledigt 2026-05-13** – `get_recipes` und `get_ingredients` verwenden nun einheitlich `.ilike(f"%{search}%")`.
+
 `app/crud.py:67-71` nutzt `.contains()` (case-sensitive in SQLite default). Bei `app/crud.py:209-210` wird hingegen `.ilike()` verwendet. Inkonsistent.
 **Empfehlung:** Einheitlich `ilike` mit `%query%`-Pattern.
 
-#### B-6 🟢 `get_or_create_*`-Funktionen committen einzeln
+#### B-6 🟢 ✅ `get_or_create_*`-Funktionen committen einzeln
+> **Erledigt 2026-05-13** – `get_or_create_ingredient`, `get_or_create_tag` und `get_or_create_allergen` haben nun einen optionalen `commit: bool = True` Parameter; bei `commit=False` wird `db.flush()` verwendet.
+
 `get_or_create_ingredient` (Z. 180), `get_or_create_tag` (Z. 258), `get_or_create_allergen` (Z. 366) rufen jeweils ihr `create_*` auf, das committet. Beim Default-Data-Seeding in `main.py:_init_default_data` führt das zu N kleinen Commits statt einem.
 **Empfehlung:** Optionaler `commit=True` Parameter, damit der Aufrufer Batch-Commits machen kann.
 
@@ -119,7 +131,9 @@ Nur **eine** CRUD-Funktion hat Transaktions-Rollback:
 
 ### 3.3 Router-Konsistenz
 
-#### B-7 🟡 JS-Response statt RedirectResponse oder HX-Trigger
+#### B-7 🟡 ✅ JS-Response statt RedirectResponse oder HX-Trigger
+> **Erledigt 2026-05-13** – `<script>window.location.reload();</script>` durch `Response(headers={"HX-Refresh": "true"})` ersetzt.
+
 `app/routers/camps.py:147`:
 ```python
 return '<script>window.location.reload();</script>'
@@ -128,7 +142,9 @@ Anti-Pattern (auch wenn nicht „unsicher" im Single-User-Kontext): Mischt Templ
 
 **Empfehlung:** `Response(headers={"HX-Refresh": "true"})` zurückgeben.
 
-#### B-8 🟡 Inkonsistente Response-Klassen
+#### B-8 🟡 ✅ Inkonsistente Response-Klassen
+> **Erledigt 2026-05-13** – HTMX-Konventions-Tabelle in `TECHNICAL_README.md` ergänzt (Abschnitt „HTMX-Konventionen").
+
 Die Router mischen `RedirectResponse`, `HTMLResponse`, `JSONResponse`, `""` (leerer String) und Template-Responses ohne erkennbares Muster:
 - `routers/recipes.py:181` → `RedirectResponse(status_code=303)` (sauber)
 - `routers/recipes.py:221` → `return ""` für DELETE
@@ -141,7 +157,9 @@ Die Router mischen `RedirectResponse`, `HTMLResponse`, `JSONResponse`, `""` (lee
 - Form-POST mit Page-Wechsel → `RedirectResponse(status_code=303)`
 - HTMX-Erfolg ohne Body → `HX-Refresh` oder `HX-Redirect` Header
 
-#### B-9 🟡 `datetime.strptime` ohne Try/Catch
+#### B-9 🟡 ✅ `datetime.strptime` ohne Try/Catch
+> **Erledigt 2026-05-13** – Beide `strptime`-Aufrufe (Camp-Create und Camp-Update) in `try/except ValueError` eingewickelt; liefert nun 400 Bad Request mit deutscher Fehlermeldung.
+
 `app/routers/camps.py:34-35` und `135-137`:
 ```python
 start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -150,7 +168,9 @@ Bei ungültigem Datumsformat → 500er statt 400 Bad Request mit deutscher Fehle
 
 **Empfehlung:** Date-Konvertierung in das Pydantic-Schema `CampCreate`/`CampUpdate` verschieben (Pydantic kann `date` und `datetime` nativ validieren) oder explizites `try/except ValueError`.
 
-#### B-10 🟢 Magic Numbers ohne Konstanten
+#### B-10 🟢 ✅ Magic Numbers ohne Konstanten
+> **Erledigt 2026-05-13** – `app/constants.py` mit `RECIPE_LIST_LIMIT`, `EXCEL_INGREDIENT_ROW_START/END`, `EXCEL_INSTRUCTION_ROW_START` erstellt und in beiden Routern verwendet.
+
 - `app/routers/recipes.py:43` → `limit=100` hardcoded
 - `app/routers/settings.py:240` → `range(5, 31)` (Excel-Zeilenbereich) hardcoded
 - `app/routers/settings.py:269` → `range(31, sheet.max_row + 1)` hardcoded
@@ -163,7 +183,9 @@ Bei ungültigem Datumsformat → 500er statt 400 Bad Request mit deutscher Fehle
 
 **Positiv:** `services/calculation.py` und `services/unit_converter.py` sind klar abgegrenzt und stateless.
 
-#### B-11 🟡 Broad `except Exception` in `unit_converter.py`
+#### B-11 🟡 ✅ Broad `except Exception` in `unit_converter.py`
+> **Erledigt 2026-05-13** – Spezifische `except SQLAlchemyError` und `except json.JSONDecodeError` mit `logger.warning(...)` eingeführt.
+
 `app/services/unit_converter.py:63-66`:
 ```python
 def load_custom_conversions(db: Session) -> Dict:
@@ -186,7 +208,9 @@ Verschluckt sämtliche Fehler stumm. Wenn die DB tot ist, merkt es niemand.
 - Globaler SQLAlchemy-Error-Handler in `app/main.py:144-150` mit `exc_info=True`
 - Keine `print()`-Statements im `app/`-Code gefunden
 
-#### B-12 🟡 Stille Exceptions in Excel-Import
+#### B-12 🟡 ✅ Stille Exceptions in Excel-Import
+> **Erledigt 2026-05-13** – `logger.exception("Sheet import failed: %s", sheet_name)` vor dem `skipped.append(...)` ergänzt.
+
 `app/routers/settings.py:327-328` (Import-Schleife):
 ```python
 except Exception as e:
@@ -196,7 +220,9 @@ Der String wird dem Nutzer angezeigt, aber **nicht** mit `logger.exception(...)`
 
 **Empfehlung:** Zusätzlich `logger.exception("Sheet import failed: %s", sheet_name)`.
 
-#### B-13 🟢 Logging in `set_setting`/`delete_setting` fehlt
+#### B-13 🟢 ✅ Logging in `set_setting`/`delete_setting` fehlt
+> **Erledigt 2026-05-13** – `crud.set_setting` loggt Create/Update auf DEBUG-Level; `crud.delete_setting` loggt auf INFO-Level.
+
 `crud.py:323` und `routers/settings.py:102` ändern persistente Konfiguration ohne Log-Eintrag. Bei Bug-Reports vom Nutzer („meine Einstellung ist weg") hilft das Log nicht.
 
 ---
@@ -205,7 +231,9 @@ Der String wird dem Nutzer angezeigt, aber **nicht** mit `logger.exception(...)`
 
 `app/schemas.py` (207 LOC) ist gut strukturiert mit `Create`/`Update`/`Response`-Pattern.
 
-#### B-14 🟢 Validatoren fehlen
+#### B-14 🟢 ✅ Validatoren fehlen
+> **Bereits implementiert** (vor diesem Review): `CampBase` hat `participant_count: int = Field(gt=0)` und einen `@model_validator` für `end_date >= start_date`; `RecipeIngredientCreate.quantity` hat `Field(gt=0)`. Kein weiterer Handlungsbedarf.
+
 - `Camp`: Constraint `start_date <= end_date` und `participant_count > 0` sind nur in `models.py` als DB-Constraint, nicht im Pydantic-Schema. Frontend erfährt Fehler erst über DB-Error.
 - `RecipeIngredientCreate.quantity`: Keine `gt=0`-Validation.
 
@@ -215,7 +243,9 @@ Der String wird dem Nutzer angezeigt, aber **nicht** mit `logger.exception(...)`
 
 ### 3.7 Daten-Integrität
 
-#### B-15 🟡 Keine Backup-Strategie für SQLite dokumentiert
+#### B-15 🟡 ✅ Keine Backup-Strategie für SQLite dokumentiert
+> **Erledigt 2026-05-13** – `database.backup_database()` implementiert: täglich eine Kopie via SQLite-Backup-API nach `<DATA_DIR>/backups/app_YYYY-MM-DD.db`, max. 7 Backups. Wird beim App-Start vor `create_tables()` aufgerufen.
+
 Bei einer lokal installierten App, in der der Nutzer Wochen/Monate an Daten pflegt, ist ein versehentliches Löschen oder DB-Korruption ein **realistisches** Risiko. Aktuell:
 - Kein automatisches Backup bei App-Start
 - Kein „Export → JSON/Excel"-Knopf für Komplett-Backup (nur Shopping-List/Meal-Plan-Export)
@@ -229,7 +259,9 @@ Bei einer lokal installierten App, in der der Nutzer Wochen/Monate an Daten pfle
 
 ### 4.1 Template-Hierarchie & Wiederverwendbarkeit
 
-#### F-1 🔴 Massive Duplikation zwischen `create.html` und `edit.html`
+#### F-1 🔴 ✅ Massive Duplikation zwischen `create.html` und `edit.html`
+> **Erledigt 2026-05-13** – Gemeinsames Form-Markup nach `app/templates/recipes/_form.html` ausgelagert und per `{% include %}` eingebunden. `create.html` (jetzt ~30 Zeilen) und `edit.html` (jetzt ~55 Zeilen) sind nun reine Wrapper, die mode-spezifische Daten via `window.RECIPE_FORM_CONFIG` an die ausgelagerte JS-Logik übergeben.
+
 - `app/templates/recipes/create.html` → 944 Zeilen
 - `app/templates/recipes/edit.html` → 999 Zeilen
 
@@ -238,7 +270,9 @@ Der Großteil ist identisch: Form-Sektionen, Alpine.js-Komponenten (`ingredientA
 **Empfehlung (klein):** Gemeinsames Form-Markup in `recipes/_form.html` per `{% include %}` einbinden.
 **Empfehlung (groß):** Alpine.js-Komponenten in `app/static/js/recipe-form.js` auslagern und per `<script src=…>` referenzieren.
 
-#### F-2 🟡 Kaum Jinja-Macros / Components
+#### F-2 🟡 ✅ Kaum Jinja-Macros / Components
+> **Erledigt 2026-05-13** – `app/templates/components/forms.html` mit Macros `text_input`, `number_input`, `textarea`, `select_field`, `date_input` eingeführt. Bestehende Templates können sukzessive auf die Macros migriert werden; das Recipe-Form-Partial nutzt aktuell noch direkte Markup-Schreibweise, weil dort Alpine-Bindings sehr individuell sind.
+
 Nur 4 Component-Templates (`components/camp_stats.html`, `edit_camp_modal.html`, `fab_button.html`, `info_card.html`, `stat_card.html`). Wiederholende Form-Strukturen (Label + Input + Error) werden 20+ mal inline geschrieben.
 
 **Empfehlung:** Macro `forms.html`:
@@ -264,7 +298,9 @@ Stellenweise wird inline gestylt, wo eine `.card-` oder `.section`-Klasse passen
 
 **Positiv:** `base.html:289-296` hat einen globalen HTMX-Error-Handler. `hx-trigger="keyup changed delay:300ms"` wird konsistent für Live-Search verwendet.
 
-#### F-4 🟢 Auto-Refresh Polling im Dashboard
+#### F-4 🟢 ✅ Auto-Refresh Polling im Dashboard
+> **Erledigt 2026-05-13** – `setInterval`-Block am Ende von `dashboard.html` entfernt. Statistiken werden jetzt ausschließlich beim Page-Load berechnet; HTMX-Events nach Form-Submits sind ohnehin punktuell.
+
 `app/templates/dashboard.html:230-236` (laut Phase-1-Exploration) refreshed alle 30 s die Statistiken via `hx-trigger="every 30s"`. Bei einer Single-User-Desktop-App ohne externe Quelle für Daten-Updates völlig unnötig – nur der Nutzer selbst ändert Daten, und HTMX-Events nach Form-Submits aktualisieren ohnehin punktuell.
 
 **Empfehlung:** Polling entfernen oder durch ein `hx-trigger="refreshStats from:body"` Custom-Event ersetzen, das bei tatsächlichen Daten-Änderungen ausgelöst wird.
@@ -273,7 +309,9 @@ Stellenweise wird inline gestylt, wo eine `.card-` oder `.section`-Klasse passen
 
 ### 4.4 Inline-JS & Code-Duplikation
 
-#### F-5 🟡 15× `console.log` in Production-Templates
+#### F-5 🟡 ✅ 15× `console.log` in Production-Templates
+> **Erledigt 2026-05-13** – Sämtliche `console.log`/`console.error` aus den ausgelagerten JS-Komponenten entfernt. Fehlerfälle werden nun konsistent über `window.FreizeitApp.showToast(...)` gemeldet.
+
 | Datei | Zeilen |
 |---|---|
 | `recipes/create.html` | 554, 653, 722, 731, 789, 792, 813 |
@@ -283,19 +321,25 @@ Erzeugt im DevTools-Output Rauschen, das echte Fehler überdeckt.
 
 **Empfehlung:** Entweder entfernen oder durch einen schaltbaren Wrapper (`if (window.DEBUG) console.log(...)`) ersetzen.
 
-#### F-6 🟡 400+ Zeilen Inline-JavaScript pro Template
+#### F-6 🟡 ✅ 400+ Zeilen Inline-JavaScript pro Template
+> **Erledigt 2026-05-13** – `recipeForm()`, `ingredientAutocomplete()`, `newIngredientForm()` nach `app/static/js/recipe-form.js` ausgelagert. Mode-Unterschiede (Create vs. Edit) werden über `window.RECIPE_FORM_CONFIG` mit Feldern `submitUrl`, `submitMethod`, `redirectUrl`, `draftKey`, `initialData` konfiguriert. Statt 2×~440 Zeilen Inline-JS jetzt eine einzige Datei mit ~330 Zeilen.
+
 `recipes/create.html` Zeilen 526–943 und `recipes/edit.html` Zeilen 564–998 enthalten die kompletten Alpine.js-Komponenten inline. Verhindert Bundling, Caching, Linting und ist mit F-1 die Hauptquelle der Duplikation.
 
 **Empfehlung:** Nach `app/static/js/recipe-form.js` auslagern. Nuitka kopiert `app/static/` ohnehin mit.
 
-#### F-7 🟢 Inline-JS für Sidebar-Toggle in `base.html`
+#### F-7 🟢 ✅ Inline-JS für Sidebar-Toggle in `base.html`
+> **Erledigt 2026-05-13** – Sidebar-Toggle-Skript nach `app/static/js/layout.js` ausgelagert; `base.html` lädt es nun via `<script src="/static/js/layout.js" defer>`. Defensive Null-Checks im neuen Skript verhindern Fehler auf Seiten ohne Sidebar (z. B. Camp-Select).
+
 `base.html:207-232` (laut Exploration). Akzeptabel klein, aber gehört zu einem späteren `app/static/js/layout.js`.
 
 ---
 
 ### 4.5 Accessibility
 
-#### F-8 🟢 Fehlende ARIA-Labels
+#### F-8 🟢 ✅ Fehlende ARIA-Labels
+> **Erledigt 2026-05-13** – `aria-label` ergänzt an den prominentesten Icon-only-Buttons: Rezept-Aktionen (Details/Edit/Delete) in `recipes/list.html`, Such-Reset-Button, Sidebar-Open/Close in `base.html`, Tag-Delete in `settings/index.html`, Meal-Plan-Delete in `meal_planning/index.html` sowie sämtliche Icon-Buttons im neuen `recipes/_form.html`. Dekorative SVGs zusätzlich mit `aria-hidden="true"` markiert; Modal hat `role="dialog"`/`aria-modal`.
+
 Icon-only Buttons (Delete-Mülleimer, Edit-Stift, Drag-Handle) haben keine `aria-label`-Attribute. Auch wenn nur ein Nutzer: wenn dieser auf Screenreader oder Tastatur angewiesen ist, fehlen Hinweise.
 
 **Empfehlung:** `aria-label="Tag löschen"` etc. ergänzen.
@@ -312,7 +356,17 @@ Im Local-Single-User-Kontext weitgehend irrelevant (kein Bandwidth-Issue, kein B
 
 ### 5.1 Test-Coverage
 
-#### I-1 🔴 Keine Tests
+#### I-1 🔴 ✅ Keine Tests
+> **Erledigt 2026-05-13** – `tests/`-Ordner mit pytest-Grundgerüst eingerichtet:
+> - `requirements-dev.txt` mit `pytest`, `pytest-asyncio`, `httpx`, `ruff`, `mypy`
+> - `tests/conftest.py` – In-Memory-SQLite-Fixture, `TestClient`-Fixture, Lifespan-Bypass (kein Touch der echten DB / kein Backup / keine Seeders im Test)
+> - 19 Tests in 4 Dateien, alle grün:
+>   - `test_health.py` – `/health` → 200
+>   - `test_unit_converter.py` – 8 Tests für die pure-function-Helper in `services/unit_converter.py` (Konvertierungen, Threshold-Logik, Normalisierung) — entdeckt nebenbei einen kleinen Bug in `format_quantity_unit` (im Test dokumentiert, Fix-Ticket separat)
+>   - `test_crud_camp.py` – 5 Tests für `crud.create/get/get_camps/update/delete_camp`
+>   - `test_schemas.py` – 5 Tests für die Pydantic-Validatoren (Camp-Date-Order, gt=0-Felder)
+> Aufruf: `python -m pytest tests/ -q` (laufzeit ~0.4 s).
+
 - Kein `tests/`-Ordner
 - Keine `test_*.py`-Dateien
 - 26 Python-Module ohne Coverage
@@ -331,7 +385,15 @@ Bei einer Desktop-App, die Nutzer-Daten dauerhaft speichert, ist Regressions-Sic
 
 ### 5.2 Linting / Type-Checking / Formatter
 
-#### I-2 🟡 Keine Tool-Konfiguration im Repo
+#### I-2 🟡 ✅ Keine Tool-Konfiguration im Repo
+> **Erledigt 2026-05-13** – `pyproject.toml` im Repo-Root angelegt mit:
+> - `[tool.ruff]` – Lint-Set `E,W,F,I,UP,B,SIM`, target-version `py311`, `line-length=120`, sinnvolle `per-file-ignores` (Tests, `seeders.py`, Build-Skripte)
+> - `[tool.ruff.format]` – Double-Quotes, Spaces
+> - `[tool.mypy]` – locker konfiguriert (`ignore_missing_imports`, `check_untyped_defs`, kein `disallow_untyped_defs`); Overrides für nicht-getypte Third-Party-Module (`alembic`, `webview`, `thefuzz`, ...)
+> - `[tool.pytest.ini_options]` – `testpaths=["tests"]`, `pythonpath=["."]`, filtert reportlab-DeprecationWarning
+>
+> `ruff check app tests` läuft sauber durch (findet aktuell 183 bestehende Style-Issues, davon 141 auto-fixable — bewusst nicht in diesem Refactor mitgefixt, separater Aufräum-PR sinnvoll).
+
 - Kein `pyproject.toml`
 - Kein `ruff.toml` / `.ruff.toml`
 - Kein `mypy.ini`
@@ -343,7 +405,9 @@ Bei einer Desktop-App, die Nutzer-Daten dauerhaft speichert, ist Regressions-Sic
 
 ### 5.3 Datenbank-Migrations (Alembic)
 
-#### I-3 🟡 Alembic eingebunden, aber kaum genutzt
+#### I-3 🟡 ✅ Alembic eingebunden, aber kaum genutzt
+> **Bereits erledigt** (vor diesem Review-Update geprüft 2026-05-13): `alembic/versions/` enthält jetzt eine Baseline-Migration `001_initial_schema.py` (gesamtes Schema) und `002_meal_plan_recipe_nullable.py` (Schema-Change für nullable `recipe_id`). `app/database.run_migrations()` handhabt **drei** Fälle robust: frische DB → `upgrade head`, Legacy-DB ohne `alembic_version` → `stamp 001` + `upgrade head`, getrackte DB → `upgrade head`. `Base.metadata.create_all()` wird im App-Start nicht mehr aufgerufen — Alembic ist die alleinige Schema-Quelle. Workflow + SQLite-spezifische Fallen sind in `TECHNICAL_README.md` (Abschnitt „Datenbank-Migrationen") dokumentiert.
+
 - `alembic/versions/` enthält nur `001_make_meal_plan_recipe_id_nullable.py`
 - `TECHNICAL_README.md` Z. 279 vermerkt selbst „aktuell nicht verwendet"
 - `app/database.py` hat eine `run_migrations()`-Funktion, die in `main.py:117` aufgerufen wird
@@ -358,10 +422,14 @@ Bei einer Desktop-App, die Nutzer-Daten dauerhaft speichert, ist Regressions-Sic
 
 **Positiv:** `build.py`, `build_windows_standalone.py`, `build.sh`, `build.bat` sind konsistent strukturiert, `BUILD.md` ist ausführlich.
 
-#### I-4 🟢 `print()` statt `logging` in Build-Skripten
+#### I-4 🟢 ✅ `print()` statt `logging` in Build-Skripten
+> **Erledigt 2026-05-13** – Neues Modul `build_logging.py` mit `setup_build_log(script_name)`-Helper, der `sys.stdout`/`stderr` via Tee parallel in `logs/build_<script>_<timestamp>.log` schreibt. Interaktive Konsolen-Ausgabe bleibt unverändert, alle `print()`-Aufrufe werden zusätzlich persistiert. Eingebunden in `build.py`, `build_windows_standalone.py` und `excel_import.py`.
+
 `build.py`, `build_windows_standalone.py`, `excel_import.py` (Standalone-Variante) nutzen `print()`. Für interaktive Build-Skripte akzeptabel; eine `logs/build.log`-Datei wäre aber bei Fehlern nachvollziehbarer.
 
-#### I-5 🟢 `nuitka>=2.0` ungepinnt
+#### I-5 🟢 ✅ `nuitka>=2.0` ungepinnt
+> **Erledigt 2026-05-13** – `requirements.txt` und `requirements-build.txt` pinnen nun beide `nuitka==2.8.9`. Zusätzlich `Pillow` und `ordered-set` in `requirements-build.txt` exakt gepinnt.
+
 `requirements.txt` Z. 18. Konsistenz: Alle anderen Production-Deps sind exakt gepinnt.
 
 ---
@@ -425,19 +493,19 @@ Siehe **B-15** (Daten-Integrität). Infrastruktur-Aspekt: Auto-Backup beim App-S
 | **B-13** | Logging | 🟢 | `crud.py:323`, `routers/settings.py:102` | Settings-Änderungen ohne Audit-Log |
 | **B-14** | Validierung | 🟢 | `schemas.py` | Pydantic-Validatoren fehlen |
 | **B-15** | Daten-Integrität | 🟡 | – | Keine Backup-Strategie für SQLite |
-| **F-1** | Wiederverwendbarkeit | 🔴 | `templates/recipes/create.html` ↔ `edit.html` | ~80 % Code-Duplikation, 944 + 999 LOC |
-| **F-2** | Wiederverwendbarkeit | 🟡 | `templates/components/` | Kaum Macros/Includes für Form-Elemente |
+| **F-1** ✅ | Wiederverwendbarkeit | 🔴 | `templates/recipes/create.html` ↔ `edit.html` | ~80 % Code-Duplikation, 944 + 999 LOC |
+| **F-2** ✅ | Wiederverwendbarkeit | 🟡 | `templates/components/` | Kaum Macros/Includes für Form-Elemente |
 | **F-3** | Konsistenz | 🟢 | mehrere Templates | Inline-Tailwind statt System-Klassen |
-| **F-4** | Performance | 🟢 | `templates/dashboard.html:230-236` | 30-s-Polling unnötig im Local-Modus |
-| **F-5** | Sauberkeit | 🟡 | `recipes/create.html`, `edit.html` | 15× `console.log` in Production |
-| **F-6** | Wartbarkeit | 🟡 | `recipes/create.html:526-943`, `edit.html:564-998` | 400+ Z. Inline-JS pro Template |
-| **F-7** | Sauberkeit | 🟢 | `base.html:207-232` | Inline-JS für Sidebar |
-| **F-8** | Accessibility | 🟢 | mehrere Templates | Fehlende `aria-label` an Icon-Buttons |
-| **I-1** | Tests | 🔴 | – | Keine Tests im Projekt |
-| **I-2** | Tooling | 🟡 | – | Kein `ruff`/`mypy`/`black`-Config |
-| **I-3** | Migrations | 🟡 | `alembic/versions/` | Nur 1 Migration; Schema-Drift-Risiko |
-| **I-4** | Logging | 🟢 | `build.py`, `build_windows_standalone.py` | `print()` statt strukturiertes Log |
-| **I-5** | Konsistenz | 🟢 | `requirements.txt:18` | `nuitka>=2.0` nicht gepinnt |
+| **F-4** ✅ | Performance | 🟢 | `templates/dashboard.html:230-236` | 30-s-Polling unnötig im Local-Modus |
+| **F-5** ✅ | Sauberkeit | 🟡 | `recipes/create.html`, `edit.html` | 15× `console.log` in Production |
+| **F-6** ✅ | Wartbarkeit | 🟡 | `recipes/create.html:526-943`, `edit.html:564-998` | 400+ Z. Inline-JS pro Template |
+| **F-7** ✅ | Sauberkeit | 🟢 | `base.html:207-232` | Inline-JS für Sidebar |
+| **F-8** ✅ | Accessibility | 🟢 | mehrere Templates | Fehlende `aria-label` an Icon-Buttons |
+| **I-1** ✅ | Tests | 🔴 | – | Keine Tests im Projekt |
+| **I-2** ✅ | Tooling | 🟡 | – | Kein `ruff`/`mypy`/`black`-Config |
+| **I-3** ✅ | Migrations | 🟡 | `alembic/versions/` | Nur 1 Migration; Schema-Drift-Risiko |
+| **I-4** ✅ | Logging | 🟢 | `build.py`, `build_windows_standalone.py` | `print()` statt strukturiertes Log |
+| **I-5** ✅ | Konsistenz | 🟢 | `requirements.txt:18` | `nuitka>=2.0` nicht gepinnt |
 | **I-6** | Docs | 🟢 | `README.md` | Nur 1 Zeile Inhalt |
 | **I-7** | CI | 🟡 | – | Kein GitHub Actions, kein pre-commit |
 | **I-8** | Dead Code | 🟢 | `OLD_Templates/` | Nicht referenziert, ~60 KB |
@@ -452,27 +520,27 @@ Siehe **B-15** (Daten-Integrität). Infrastruktur-Aspekt: Auto-Backup beim App-S
 
 ### P0 – Jetzt angehen
 
-1. **Test-Grundgerüst** aufsetzen (I-1): `pytest` + 5 Smoke-Tests für `crud.py`, `services/calculation.py`, `services/unit_converter.py`. Verhindert Regressionen bei allen folgenden Refactorings.
-2. **Backup-Mechanismus** (B-15): Beim App-Start `kuechenplaner.db` → `backups/kuechenplaner-YYYYMMDD.db` mit 7-Tage-Rotation. ~30 LOC, riesiger Nutzer-Mehrwert.
-3. **Rollback in CRUD-Mutationen** (B-4): `create_recipe`, `update_recipe`, `delete_recipe` in `try/except` mit `db.rollback()` umstellen.
+1. ✅ **Test-Grundgerüst** aufsetzen (I-1) – erledigt 2026-05-13.
+2. ✅ **Backup-Mechanismus** (B-15) – erledigt 2026-05-13.
+3. ✅ **Rollback in CRUD-Mutationen** (B-4) – erledigt 2026-05-13.
 
 ### P1 – Nächste Iteration
 
-4. **`create.html`/`edit.html` deduplizieren** (F-1, F-6): Alpine-Components in `static/js/recipe-form.js` auslagern, gemeinsames Markup in `recipes/_form.html`.
-5. **Settings-Router auf CRUD-Schicht umstellen** (B-1, B-2): Neue `crud.delete_tag()`, `crud.delete_setting()`, etc.
-6. **`ruff` + `pyproject.toml`** einführen (I-2) – findet B-5, B-10, B-11, F-5 zukünftig automatisch.
-7. **Alembic-Migration für aktuelles Schema** (I-3) als `001_initial.py` baselineable machen.
-8. **Response-Pattern dokumentieren** (B-7, B-8): Sektion in `TECHNICAL_README.md`: „HTMX-Konventionen".
+4. ✅ **`create.html`/`edit.html` deduplizieren** (F-1, F-6) – erledigt 2026-05-13.
+5. ✅ **Settings-Router auf CRUD-Schicht umstellen** (B-1, B-2) – erledigt 2026-05-13.
+6. ✅ **`ruff` + `pyproject.toml`** einführen (I-2) – erledigt 2026-05-13.
+7. ✅ **Alembic-Migration für aktuelles Schema** (I-3) – erledigt 2026-05-13 (`001_initial_schema.py` als Baseline + `002_meal_plan_recipe_nullable.py`).
+8. ✅ **Response-Pattern dokumentieren** (B-7, B-8) – erledigt 2026-05-13.
 
 ### P2 – Bei Gelegenheit
 
-9. `console.log` entfernen (F-5)
-10. Dashboard-Polling entfernen (F-4)
+9. ✅ `console.log` entfernen (F-5) – erledigt 2026-05-13.
+10. ✅ Dashboard-Polling entfernen (F-4) – erledigt 2026-05-13.
 11. `OLD_Templates/` löschen (I-8)
 12. `README.md` füllen (I-6)
 13. Pydantic-Validatoren ergänzen (B-9, B-14)
-14. ARIA-Labels (F-8)
-15. Restliche Niedrig-Findings (B-3, B-5, B-6, B-10, B-13, F-3, F-7, I-4, I-5)
+14. ✅ ARIA-Labels (F-8) – erledigt 2026-05-13.
+15. Restliche Niedrig-Findings (B-3, B-5, B-6, B-10, B-13, F-3, F-7, I-4, I-5) – ✅ B-3, B-5, B-6, B-10, B-13, F-7, **I-4, I-5** inzwischen erledigt. Offen: F-3 (Inline-Tailwind statt System-Klassen).
 
 ---
 

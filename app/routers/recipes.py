@@ -7,6 +7,7 @@ import json
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
+from app.constants import RECIPE_LIST_LIMIT
 from app.logging_config import get_logger
 
 logger = get_logger("recipes")
@@ -40,7 +41,7 @@ async def list_recipes(
     db: Session = Depends(get_db)
 ):
     """List all recipes with optional filtering"""
-    recipes = crud.get_recipes(db, skip=0, limit=100)
+    recipes = crud.get_recipes(db, skip=0, limit=RECIPE_LIST_LIMIT)
     all_tags = crud.get_tags(db)
     all_allergens = crud.get_allergens(db)
 
@@ -276,9 +277,7 @@ async def quick_create_ingredient(
     db: Session = Depends(get_db)
 ):
     """Quick create a new ingredient during recipe creation"""
-    existing = db.query(models.Ingredient).filter(
-        models.Ingredient.name == name
-    ).first()
+    existing = crud.get_ingredient_by_name(db, name)
 
     if existing:
         return JSONResponse(

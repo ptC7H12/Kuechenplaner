@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+app/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -55,6 +56,9 @@ Thumbs.db
 .env
 .env.local
 
+# Local-only tooling
+.claude/settings.local.json
+
 # Nuitka Build Cache
 .nuitka_cache/
 *.build/
@@ -67,3 +71,5 @@ releases/
 
 # Inno Setup Output
 installer/*.exe
+nuitka-crash-report.xml
+TODOs

@@ -65,9 +65,10 @@ def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None
     query = db.query(models.Recipe)
 
     if search:
+        pattern = f"%{search}%"
         query = query.filter(or_(
-            models.Recipe.name.contains(search),
-            models.Recipe.description.contains(search)
+            models.Recipe.name.ilike(pattern),
+            models.Recipe.description.ilike(pattern)
         ))
 
     if tag_ids:
@@ -76,98 +77,98 @@ def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None
     return query.order_by(models.Recipe.updated_at.desc()).offset(skip).limit(limit).all()
 
 def create_recipe(db: Session, recipe: schemas.RecipeCreate):
-    # Create recipe
-    recipe_data = recipe.model_dump(exclude={'ingredients', 'tag_ids', 'allergen_ids'})
-    db_recipe = models.Recipe(**recipe_data)
-    db.add(db_recipe)
-    db.flush()  # Get the ID without committing
+    try:
+        recipe_data = recipe.model_dump(exclude={'ingredients', 'tag_ids', 'allergen_ids'})
+        db_recipe = models.Recipe(**recipe_data)
+        db.add(db_recipe)
+        db.flush()  # Get the ID without committing
 
-    # Add ingredients
-    for ingredient_data in recipe.ingredients:
-        db_recipe_ingredient = models.RecipeIngredient(
-            recipe_id=db_recipe.id,
-            **ingredient_data.model_dump()
-        )
-        db.add(db_recipe_ingredient)
-
-    # Add tags
-    if recipe.tag_ids:
-        tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe.tag_ids)).all()
-        db_recipe.tags = tags
-
-    # Add allergens
-    if recipe.allergen_ids:
-        allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe.allergen_ids)).all()
-        db_recipe.allergens = allergens
-
-    db.commit()
-    db.refresh(db_recipe)
-
-    # Create initial version
-    _create_recipe_version(db, db_recipe)
-
-    return db_recipe
-
-def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpdate):
-    db_recipe = get_recipe(db, recipe_id)
-    if not db_recipe:
-        return None
-
-    # Update basic fields
-    update_data = recipe_update.model_dump(exclude_unset=True, exclude={'ingredients', 'tag_ids', 'allergen_ids'})
-    for field, value in update_data.items():
-        setattr(db_recipe, field, value)
-
-    # Update ingredients if provided
-    if recipe_update.ingredients is not None:
-        # Delete existing ingredients
-        db.query(models.RecipeIngredient).filter(models.RecipeIngredient.recipe_id == recipe_id).delete()
-
-        # Add new ingredients
-        for ingredient_data in recipe_update.ingredients:
+        for ingredient_data in recipe.ingredients:
             db_recipe_ingredient = models.RecipeIngredient(
-                recipe_id=recipe_id,
+                recipe_id=db_recipe.id,
                 **ingredient_data.model_dump()
             )
             db.add(db_recipe_ingredient)
 
-    # Update tags if provided
-    if recipe_update.tag_ids is not None:
-        tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe_update.tag_ids)).all()
-        db_recipe.tags = tags
+        if recipe.tag_ids:
+            tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe.tag_ids)).all()
+            db_recipe.tags = tags
 
-    # Update allergens if provided
-    if recipe_update.allergen_ids is not None:
-        allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe_update.allergen_ids)).all()
-        db_recipe.allergens = allergens
+        if recipe.allergen_ids:
+            allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe.allergen_ids)).all()
+            db_recipe.allergens = allergens
 
-    # Increment version number
-    db_recipe.version_number += 1
-    db_recipe.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(db_recipe)
+        _create_recipe_version(db, db_recipe)
+        return db_recipe
+    except Exception as e:
+        logger.error(f"Error creating recipe: {e}", exc_info=True)
+        db.rollback()
+        raise
 
-    db.commit()
-    db.refresh(db_recipe)
+def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpdate):
+    try:
+        db_recipe = get_recipe(db, recipe_id)
+        if not db_recipe:
+            return None
 
-    # Create new version snapshot
-    _create_recipe_version(db, db_recipe)
+        update_data = recipe_update.model_dump(exclude_unset=True, exclude={'ingredients', 'tag_ids', 'allergen_ids'})
+        for field, value in update_data.items():
+            setattr(db_recipe, field, value)
 
-    return db_recipe
+        if recipe_update.ingredients is not None:
+            db.query(models.RecipeIngredient).filter(models.RecipeIngredient.recipe_id == recipe_id).delete()
+            for ingredient_data in recipe_update.ingredients:
+                db_recipe_ingredient = models.RecipeIngredient(
+                    recipe_id=recipe_id,
+                    **ingredient_data.model_dump()
+                )
+                db.add(db_recipe_ingredient)
+
+        if recipe_update.tag_ids is not None:
+            tags = db.query(models.Tag).filter(models.Tag.id.in_(recipe_update.tag_ids)).all()
+            db_recipe.tags = tags
+
+        if recipe_update.allergen_ids is not None:
+            allergens = db.query(models.Allergen).filter(models.Allergen.id.in_(recipe_update.allergen_ids)).all()
+            db_recipe.allergens = allergens
+
+        db_recipe.version_number += 1
+        db_recipe.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(db_recipe)
+        _create_recipe_version(db, db_recipe)
+        return db_recipe
+    except Exception as e:
+        logger.error(f"Error updating recipe {recipe_id}: {e}", exc_info=True)
+        db.rollback()
+        raise
 
 def delete_recipe(db: Session, recipe_id: int):
-    db_recipe = get_recipe(db, recipe_id)
-    if db_recipe:
-        db.delete(db_recipe)
-        db.commit()
-    return db_recipe
+    try:
+        db_recipe = get_recipe(db, recipe_id)
+        if db_recipe:
+            db.delete(db_recipe)
+            db.commit()
+        return db_recipe
+    except Exception as e:
+        logger.error(f"Error deleting recipe {recipe_id}: {e}", exc_info=True)
+        db.rollback()
+        raise
 
 # Ingredient CRUD operations
 def get_ingredient(db: Session, ingredient_id: int):
     return db.query(models.Ingredient).filter(models.Ingredient.id == ingredient_id).first()
 
+def get_ingredient_by_name(db: Session, name: str):
+    return db.query(models.Ingredient).filter(models.Ingredient.name == name).first()
+
 def get_ingredients(db: Session, skip: int = 0, limit: int = 100, search: str = None):
     query = db.query(models.Ingredient)
     if search:
-        query = query.filter(models.Ingredient.name.contains(search))
+        query = query.filter(models.Ingredient.name.ilike(f"%{search}%"))
     return query.order_by(models.Ingredient.name).offset(skip).limit(limit).all()
 
 def create_ingredient(db: Session, ingredient: schemas.IngredientCreate):
@@ -177,12 +178,18 @@ def create_ingredient(db: Session, ingredient: schemas.IngredientCreate):
     db.refresh(db_ingredient)
     return db_ingredient
 
-def get_or_create_ingredient(db: Session, name: str, unit: str, category: str):
+def get_or_create_ingredient(db: Session, name: str, unit: str, category: str, commit: bool = True):
     """Get existing ingredient or create new one"""
-    db_ingredient = db.query(models.Ingredient).filter(models.Ingredient.name == name).first()
+    db_ingredient = get_ingredient_by_name(db, name)
     if not db_ingredient:
         ingredient_data = schemas.IngredientCreate(name=name, unit=unit, category=category)
-        db_ingredient = create_ingredient(db, ingredient_data)
+        db_ingredient = models.Ingredient(**ingredient_data.model_dump())
+        db.add(db_ingredient)
+        if commit:
+            db.commit()
+            db.refresh(db_ingredient)
+        else:
+            db.flush()
     return db_ingredient
 
 def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> List[Tuple[models.Ingredient, int]]:
@@ -245,6 +252,9 @@ def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> List[T
 def get_tag(db: Session, tag_id: int):
     return db.query(models.Tag).filter(models.Tag.id == tag_id).first()
 
+def get_tag_by_name(db: Session, name: str):
+    return db.query(models.Tag).filter(models.Tag.name == name).first()
+
 def get_tags(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tag).order_by(models.Tag.name).offset(skip).limit(limit).all()
 
@@ -255,12 +265,26 @@ def create_tag(db: Session, tag: schemas.TagCreate):
     db.refresh(db_tag)
     return db_tag
 
-def get_or_create_tag(db: Session, name: str, color: str = "#3B82F6", icon: str = None):
+def delete_tag(db: Session, tag_id: int):
+    tag = get_tag(db, tag_id)
+    if tag:
+        logger.info(f"Tag deleted: {tag.name} (ID: {tag_id})")
+        db.delete(tag)
+        db.commit()
+    return tag
+
+def get_or_create_tag(db: Session, name: str, color: str = "#3B82F6", icon: str = None, commit: bool = True):
     """Get existing tag or create new one"""
-    db_tag = db.query(models.Tag).filter(models.Tag.name == name).first()
+    db_tag = get_tag_by_name(db, name)
     if not db_tag:
         tag_data = schemas.TagCreate(name=name, color=color, icon=icon)
-        db_tag = create_tag(db, tag_data)
+        db_tag = models.Tag(**tag_data.model_dump())
+        db.add(db_tag)
+        if commit:
+            db.commit()
+            db.refresh(db_tag)
+        else:
+            db.flush()
     return db_tag
 
 # Meal Plan CRUD operations
@@ -320,11 +344,24 @@ def delete_meal_plan(db: Session, meal_plan_id: int):
 def get_setting(db: Session, key: str):
     return db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
 
+def get_all_settings(db: Session):
+    return db.query(models.AppSettings).all()
+
+def delete_setting(db: Session, key: str):
+    setting = get_setting(db, key)
+    if setting:
+        logger.info(f"Setting deleted: {key}")
+        db.delete(setting)
+        db.commit()
+    return setting
+
 def set_setting(db: Session, key: str, value: str):
     db_setting = get_setting(db, key)
     if db_setting:
+        logger.debug(f"Setting updated: {key}")
         db_setting.value = value
     else:
+        logger.debug(f"Setting created: {key}")
         db_setting = models.AppSettings(key=key, value=value)
         db.add(db_setting)
     db.commit()
@@ -363,12 +400,18 @@ def create_allergen(db: Session, allergen: schemas.AllergenCreate):
     db.refresh(db_allergen)
     return db_allergen
 
-def get_or_create_allergen(db: Session, name: str, icon: str = None):
+def get_or_create_allergen(db: Session, name: str, icon: str = None, commit: bool = True):
     """Get existing allergen or create new one"""
     db_allergen = db.query(models.Allergen).filter(models.Allergen.name == name).first()
     if not db_allergen:
         allergen_data = schemas.AllergenCreate(name=name, icon=icon)
-        db_allergen = create_allergen(db, allergen_data)
+        db_allergen = models.Allergen(**allergen_data.model_dump())
+        db.add(db_allergen)
+        if commit:
+            db.commit()
+            db.refresh(db_allergen)
+        else:
+            db.flush()
     return db_allergen
 
 # Recipe Version CRUD operations

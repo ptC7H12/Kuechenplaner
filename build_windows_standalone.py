@@ -18,11 +18,16 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
+from build_logging import setup_build_log
+
 # Projektverzeichnis
 PROJECT_ROOT = Path(__file__).parent
 BUILD_DIR = PROJECT_ROOT / "build"
 RELEASE_DIR = PROJECT_ROOT / "releases"
 DOWNLOAD_CACHE = PROJECT_ROOT / ".download_cache"
+
+# Build-Log aktivieren (spiegelt print()-Output nach logs/)
+BUILD_LOG_PATH = setup_build_log("standalone", PROJECT_ROOT / "logs")
 
 # Version aus version.txt lesen
 VERSION_FILE = PROJECT_ROOT / "version.txt"
@@ -379,6 +384,7 @@ def create_package():
     print("\n" + "="*60)
     print("🚀 Kuechenplaner - Windows Standalone Build")
     print(f"📌 Version: {VERSION}")
+    print(f"📝 Log:     {BUILD_LOG_PATH}")
     print("="*60 + "\n")
 
     # Vorbereitung - Lösche nur eigene Dateien

@@ -1,14 +1,14 @@
 # Build-Abhängigkeiten für Nuitka
 # Diese Pakete werden nur für den Build-Prozess benötigt
 
-# Nuitka Compiler
-nuitka>=1.8.0
+# Nuitka Compiler (gepinnt — siehe requirements.txt)
+nuitka==2.8.9
 
 # Pillow für Icon-Generierung
-Pillow>=10.0.0
+Pillow==10.4.0
 
-# Optional: Ordered Sets für bessere Performance
-ordered-set>=4.1.0
+# Ordered Sets für bessere Performance
+ordered-set==4.1.0
 
 # Optional: C Compiler wird benötigt
 # Windows: Visual Studio Build Tools oder MinGW64

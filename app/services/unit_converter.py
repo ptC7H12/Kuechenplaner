@@ -1,8 +1,12 @@
 from typing import Dict, Any
 import json
+import logging
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import crud
+
+logger = logging.getLogger("kuechenplaner.unit_converter")
 
 # Default conversion rules
 DEFAULT_CONVERSIONS = {
@@ -62,7 +66,11 @@ def load_custom_conversions(db: Session) -> Dict:
     """Load custom conversion rules from database settings"""
     try:
         return crud.get_setting_value(db, 'unit_conversions', {})
-    except Exception:
+    except SQLAlchemyError as e:
+        logger.warning("Failed to load custom unit conversions from DB: %s", e)
+        return {}
+    except json.JSONDecodeError as e:
+        logger.warning("Invalid JSON in unit_conversions setting: %s", e)
         return {}
 
 def save_custom_conversions(db: Session, conversions: Dict):

@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pathlib import Path
+import sqlite3
 import sys
 import logging
 
@@ -63,33 +64,100 @@ def get_db():
         db.close()
 
 
-# Create all tables
-def create_tables():
-    import app.models  # noqa: F401 - ensure models are registered with Base.metadata
-    Base.metadata.create_all(bind=engine)
+# Baseline revision: the revision ID that represents the schema state
+# after Alembic migration 001_initial_schema. Pre-Alembic databases
+# (created via Base.metadata.create_all in older app versions) match this
+# state and should be stamped to it instead of running the initial migration.
+INITIAL_SCHEMA_REVISION = "001"
 
 
-# Run database migrations
+def _build_alembic_config():
+    """Build an Alembic Config pointing at the bundled migrations directory."""
+    from alembic.config import Config
+
+    alembic_ini_path = Path(__file__).parent.parent / "alembic.ini"
+    if not alembic_ini_path.exists():
+        return None
+
+    alembic_cfg = Config(str(alembic_ini_path))
+    # Absolute path so it works regardless of CWD (e.g., Nuitka builds)
+    alembic_cfg.set_main_option(
+        "script_location",
+        str(alembic_ini_path.parent / "alembic"),
+    )
+    alembic_cfg.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
+    return alembic_cfg
+
+
 def run_migrations():
-    """Run pending Alembic migrations"""
+    """Bring the database schema up to the latest Alembic revision.
+
+    Three cases are handled:
+    1. Fresh DB (no tables): `upgrade head` creates the full schema from migrations.
+    2. Legacy DB (has tables, no `alembic_version`): the DB was originally
+       created by `Base.metadata.create_all` and matches the initial schema
+       snapshot. Stamp it to `INITIAL_SCHEMA_REVISION`, then upgrade forward.
+    3. Tracked DB (has `alembic_version`): normal `upgrade head`.
+    """
+    import app.models  # noqa: F401 - ensure models are registered with Base.metadata
     try:
-        from alembic.config import Config
         from alembic import command
+    except ImportError:
+        logger.warning("Alembic not installed, skipping migrations")
+        return
 
-        # Get the alembic.ini path
-        alembic_ini_path = Path(__file__).parent.parent / "alembic.ini"
+    alembic_cfg = _build_alembic_config()
+    if alembic_cfg is None:
+        logger.warning("alembic.ini not found, skipping migrations")
+        return
 
-        if not alembic_ini_path.exists():
-            logger.warning("alembic.ini not found, skipping migrations")
-            return
+    try:
+        inspector = inspect(engine)
+        tables = set(inspector.get_table_names())
 
-        # Create Alembic config
-        alembic_cfg = Config(str(alembic_ini_path))
-        # Override script_location with absolute path so it works regardless of CWD
-        alembic_cfg.set_main_option("script_location", str(alembic_ini_path.parent / "alembic_migration"))
+        if tables and "alembic_version" not in tables:
+            logger.info(
+                "Legacy database detected (no alembic_version table); "
+                "stamping to revision %s",
+                INITIAL_SCHEMA_REVISION,
+            )
+            command.stamp(alembic_cfg, INITIAL_SCHEMA_REVISION)
 
-        # Run migrations to the latest version
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations completed successfully")
     except Exception as e:
         logger.error(f"Error running migrations: {e}", exc_info=True)
+        raise
+
+
+def backup_database() -> None:
+    """Create a rotating daily backup of the SQLite DB (keeps last 7 copies)."""
+    from datetime import date
+
+    db_path = DATA_DIR / "app.db"
+    if not db_path.exists():
+        return
+
+    backup_dir = DATA_DIR / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    backup_path = backup_dir / f"app_{date.today().isoformat()}.db"
+    if not backup_path.exists():
+        try:
+            src = sqlite3.connect(str(db_path))
+            dst = sqlite3.connect(str(backup_path))
+            src.backup(dst)
+            src.close()
+            dst.close()
+            logger.info(f"Database backed up to {backup_path}")
+        except Exception as e:
+            logger.error(f"Database backup failed: {e}", exc_info=True)
+
+    # Keep only the last 7 daily backups
+    backups = sorted(backup_dir.glob("app_*.db"))
+    for old in backups[:-7]:
+        try:
+            old.unlink()
+            logger.info(f"Removed old backup: {old.name}")
+        except OSError as e:
+            logger.warning(f"Could not remove old backup {old.name}: {e}")

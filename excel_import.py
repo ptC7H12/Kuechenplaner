@@ -12,8 +12,13 @@ from openpyxl import load_workbook
 # Add app directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from build_logging import setup_build_log
 from app.database import SessionLocal, create_tables, SQLALCHEMY_DATABASE_URL
 from app import crud, schemas, models
+
+# Spiegele print()-Output nach logs/build_excel_import_*.log
+EXCEL_IMPORT_LOG_PATH = setup_build_log("excel_import", Path(__file__).parent / "logs")
+print(f"Log: {EXCEL_IMPORT_LOG_PATH}")
 
 
 def import_recipe_from_sheet(db, sheet):
