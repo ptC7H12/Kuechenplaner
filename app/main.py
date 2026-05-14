@@ -28,73 +28,10 @@ from sqlalchemy.exc import SQLAlchemyError
 import locale
 from pathlib import Path
 
-from app.database import create_tables, run_migrations, get_db, SessionLocal
+from app.database import run_migrations, backup_database, get_db, SessionLocal
 from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud
-
-
-def _init_default_data():
-    """Initialize default tags, allergens and ingredients"""
-    db = SessionLocal()
-    try:
-        default_tags = [
-            {"name": "Frühstück", "color": "#FCD34D", "icon": "🌅"},
-            {"name": "Mittagessen", "color": "#F87171", "icon": "🍽️"},
-            {"name": "Abendessen", "color": "#A78BFA", "icon": "🌙"},
-            {"name": "Vegetarisch", "color": "#34D399", "icon": "🥬"},
-            {"name": "Vegan", "color": "#10B981", "icon": "🌱"},
-            {"name": "Glutenfrei", "color": "#F59E0B", "icon": "🌾"},
-        ]
-
-        for tag_data in default_tags:
-            crud.get_or_create_tag(db, **tag_data)
-
-        default_allergens = [
-            {"name": "Gluten", "icon": "🌾"},
-            {"name": "Milch", "icon": "🥛"},
-            {"name": "Eier", "icon": "🥚"},
-            {"name": "Nüsse", "icon": "🥜"},
-            {"name": "Erdnüsse", "icon": "🥜"},
-            {"name": "Soja", "icon": "🫘"},
-            {"name": "Fisch", "icon": "🐟"},
-            {"name": "Schalentiere", "icon": "🦐"},
-            {"name": "Sellerie", "icon": "🥬"},
-            {"name": "Senf", "icon": "🌭"},
-            {"name": "Sesam", "icon": "🌰"},
-            {"name": "Lupinen", "icon": "🌱"},
-            {"name": "Schwefeldioxid", "icon": "⚠️"},
-            {"name": "Weichtiere", "icon": "🦑"},
-        ]
-
-        for allergen_data in default_allergens:
-            crud.get_or_create_allergen(db, **allergen_data)
-
-        default_ingredients = [
-            {"name": "Mehl", "unit": "g", "category": "Backwaren"},
-            {"name": "Zucker", "unit": "g", "category": "Backwaren"},
-            {"name": "Milch", "unit": "ml", "category": "Milchprodukte"},
-            {"name": "Eier", "unit": "Stück", "category": "Milchprodukte"},
-            {"name": "Kartoffeln", "unit": "kg", "category": "Gemüse"},
-            {"name": "Zwiebeln", "unit": "kg", "category": "Gemüse"},
-            {"name": "Tomaten", "unit": "kg", "category": "Gemüse"},
-            {"name": "Äpfel", "unit": "kg", "category": "Obst"},
-            {"name": "Bananen", "unit": "kg", "category": "Obst"},
-            {"name": "Hackfleisch", "unit": "kg", "category": "Fleisch"},
-            {"name": "Hähnchenbrust", "unit": "kg", "category": "Fleisch"},
-            {"name": "Reis", "unit": "kg", "category": "Getreide"},
-            {"name": "Nudeln", "unit": "kg", "category": "Getreide"},
-            {"name": "Olivenöl", "unit": "ml", "category": "Öle & Fette"},
-            {"name": "Salz", "unit": "g", "category": "Gewürze"},
-            {"name": "Pfeffer", "unit": "g", "category": "Gewürze"},
-        ]
-
-        for ingredient_data in default_ingredients:
-            crud.get_or_create_ingredient(db, **ingredient_data)
-
-        db.commit()
-        logger.info("Default data initialized successfully")
-    finally:
-        db.close()
+from app.seeders import init_default_data
 
 
 @asynccontextmanager
@@ -113,9 +50,9 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Failed to set German locale, using default")
 
-    create_tables()
+    backup_database()
     run_migrations()
-    _init_default_data()
+    init_default_data()
 
     logger.info("Application startup complete")
     yield
@@ -218,12 +155,15 @@ app.include_router(export.router, prefix="/export", tags=["export"])
 def start_server():
     """Start the FastAPI server"""
     logger.info("Starting FastAPI server on port 12000...")
-    uvicorn.run(
-        app,
-        host="127.0.0.1",
-        port=12000,
-        log_level="info"
-    )
+    try:
+        uvicorn.run(
+            app,
+            host="127.0.0.1",
+            port=12000,
+            log_level="info"
+        )
+    except Exception:
+        logger.exception("uvicorn crashed during startup")
 
 def main():
     """Main entry point for the application"""
@@ -237,12 +177,34 @@ def main():
         # Wait for server to be ready via health check
         import urllib.request
         import time
-        for _ in range(30):
+        import platform
+        server_ready = False
+        for _ in range(60):  # up to ~72 s (covers slow first-run migrations)
             try:
                 urllib.request.urlopen("http://127.0.0.1:12000/health", timeout=1)
+                server_ready = True
                 break
             except Exception:
                 time.sleep(0.2)
+
+        if not server_ready:
+            if platform.system() == "Windows":
+                log_path = Path(os.environ.get("APPDATA", "")) / "KuechenApp" / "logs" / "kuechenplaner.log"
+            else:
+                log_path = Path.home() / ".local" / "share" / "KuechenApp" / "logs" / "kuechenplaner.log"
+            webview.create_window(
+                "Startfehler – Freizeit Rezepturverwaltung",
+                html=(
+                    "<body style='font-family:sans-serif;padding:40px'>"
+                    "<h2>Server konnte nicht gestartet werden</h2>"
+                    f"<p>Log-Datei: <code>{log_path}</code></p>"
+                    "</body>"
+                ),
+                width=700,
+                height=250,
+            )
+            webview.start()
+            return
 
         webview.create_window(
             "Freizeit Rezepturverwaltung",

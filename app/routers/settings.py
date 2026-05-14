@@ -9,6 +9,7 @@ import os
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
+from app.constants import EXCEL_INGREDIENT_ROW_START, EXCEL_INGREDIENT_ROW_END, EXCEL_INSTRUCTION_ROW_START
 from app.logging_config import get_logger
 
 logger = get_logger("settings")
@@ -31,7 +32,7 @@ async def settings_page(
     db: Session = Depends(get_db)
 ):
     """Settings page"""
-    all_settings = db.query(models.AppSettings).all()
+    all_settings = crud.get_all_settings(db)
     settings_dict = {setting.key: safe_json_load(setting.value) for setting in all_settings}
 
     tags = crud.get_tags(db)
@@ -51,7 +52,7 @@ async def settings_page(
 @router.get("/api/settings")
 async def get_all_settings(db: Session = Depends(get_db)):
     """Get all settings (API endpoint)"""
-    settings = db.query(models.AppSettings).all()
+    settings = crud.get_all_settings(db)
     return {
         setting.key: crud.get_setting_value(db, setting.key)
         for setting in settings
@@ -95,12 +96,9 @@ async def delete_setting(
     db: Session = Depends(get_db)
 ):
     """Delete a setting (API endpoint)"""
-    setting = crud.get_setting(db, key)
+    setting = crud.delete_setting(db, key)
     if not setting:
         raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
-
-    db.delete(setting)
-    db.commit()
 
     return {"success": True, "message": f"Setting '{key}' deleted"}
 
@@ -134,14 +132,12 @@ async def create_tag(
     if not name:
         raise HTTPException(status_code=400, detail="Tag name is required")
 
-    existing_tag = db.query(models.Tag).filter(models.Tag.name == name).first()
+    existing_tag = crud.get_tag_by_name(db, name)
     if existing_tag:
         raise HTTPException(status_code=400, detail="Tag already exists")
 
-    tag = models.Tag(name=name, icon=icon, color=color)
-    db.add(tag)
-    db.commit()
-    db.refresh(tag)
+    tag_data = schemas.TagCreate(name=name, icon=icon, color=color)
+    tag = crud.create_tag(db, tag_data)
 
     html = f"""
     <div class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl bg-white hover:shadow-lg transition-all" id="tag-{tag.id}">
@@ -170,13 +166,9 @@ async def delete_tag(
     db: Session = Depends(get_db)
 ):
     """Delete a tag"""
-    tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+    tag = crud.delete_tag(db, tag_id)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
-
-    logger.info(f"Tag deleted: {tag.name} (ID: {tag_id})")
-    db.delete(tag)
-    db.commit()
 
     return HTMLResponse(content="", status_code=200)
 
@@ -237,7 +229,7 @@ def _import_recipe_from_sheet(db: Session, sheet):
         base_servings = int(base_servings)
 
     ingredients = []
-    for row in range(5, 31):
+    for row in range(EXCEL_INGREDIENT_ROW_START, EXCEL_INGREDIENT_ROW_END):
         quantity_cell = sheet[f'A{row}'].value
         unit_cell = sheet[f'C{row}'].value
         ingredient_cell = sheet[f'D{row}'].value
@@ -266,7 +258,7 @@ def _import_recipe_from_sheet(db: Session, sheet):
         })
 
     instructions_lines = []
-    for row in range(31, sheet.max_row + 1):
+    for row in range(EXCEL_INSTRUCTION_ROW_START, sheet.max_row + 1):
         cell_value = sheet[f'A{row}'].value
         if cell_value:
             instructions_lines.append(str(cell_value).strip())
@@ -325,6 +317,7 @@ async def import_recipes_from_excel(
                 elif error:
                     skipped.append(error)
             except Exception as e:
+                logger.exception("Sheet import failed: %s", sheet_name)
                 skipped.append(f"'{sheet_name}': {str(e)}")
 
         logger.info(f"Excel import: {len(imported)} imported, {len(skipped)} skipped")

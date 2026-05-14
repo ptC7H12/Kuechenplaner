@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+app/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -67,3 +68,5 @@ releases/
 
 # Inno Setup Output
 installer/*.exe
+nuitka-crash-report.xml
+TODOs

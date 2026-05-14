@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
@@ -31,8 +31,11 @@ async def create_camp(
     db: Session = Depends(get_db)
 ):
     """Create a new camp"""
-    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    try:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat. Erwartet: JJJJ-MM-TT")
 
     camp_data = schemas.CampCreate(
         name=name,
@@ -132,9 +135,15 @@ async def update_camp(
     if participant_count is not None:
         update_data["participant_count"] = participant_count
     if start_date is not None:
-        update_data["start_date"] = datetime.strptime(start_date, "%Y-%m-%d")
+        try:
+            update_data["start_date"] = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ungültiges Startdatum. Erwartet: JJJJ-MM-TT")
     if end_date is not None:
-        update_data["end_date"] = datetime.strptime(end_date, "%Y-%m-%d")
+        try:
+            update_data["end_date"] = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Ungültiges Enddatum. Erwartet: JJJJ-MM-TT")
 
     camp_update = schemas.CampUpdate(**update_data)
     camp = crud.update_camp(db, camp_id, camp_update)
@@ -144,4 +153,4 @@ async def update_camp(
 
     logger.info(f"Camp updated: {camp.name} (ID: {camp_id})")
 
-    return '<script>window.location.reload();</script>'
+    return Response(headers={"HX-Refresh": "true"})

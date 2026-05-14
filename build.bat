@@ -7,6 +7,11 @@ set BUILD_MODE=%1
 if "%BUILD_MODE%"=="" set BUILD_MODE=standalone
 set CLEAN_BUILD=%2
 set PROJ_DIR=%~dp0
+set "NUITKA_VOPT="
+if /i "%NUITKA_VERBOSE%"=="1" set "NUITKA_VOPT=--verbose"
+if /i "%NUITKA_VERBOSE%"=="true" set "NUITKA_VOPT=--verbose"
+if /i "%NUITKA_VERBOSE%"=="yes" set "NUITKA_VOPT=--verbose"
+if /i "%NUITKA_VERBOSE%"=="on" set "NUITKA_VOPT=--verbose"
 
 echo ========================================
 echo Freizeit Rezepturverwaltung Build
@@ -21,14 +26,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Always clean dist (output), only clean build cache if "clean" is passed
-if exist dist rmdir /s /q dist
+REM Nuitka legt unter --output-dir=dist u.a. main.build (C-Compile-Cache) und main.dist ab.
+REM dist komplett zu loeschen verwirft den inkrementellen Build jedes Mal.
 if /i "%CLEAN_BUILD%"=="clean" (
-    echo Cleaning build cache...
+    echo Vollstaendiger Clean: dist, Nuitka-Cache, embed-Python build-Ordner...
+    if exist dist rmdir /s /q dist
     if exist build rmdir /s /q build
+    if exist "%PROJ_DIR%.nuitka_cache" rmdir /s /q "%PROJ_DIR%.nuitka_cache"
 ) else (
-    echo Keeping build cache for incremental compilation.
-    echo Use '.\build.bat %BUILD_MODE% clean' to force a full rebuild.
+    echo Inkrementell: behalte dist\main.build und .nuitka_cache ^(Nuitka-Hilfs-Caches^).
+    echo Nur alte Ausgabeordner werden entfernt; main.build bleibt fuer schnellere Rebuilds.
+    echo Vollstaendiger Rebuild: .\build.bat %BUILD_MODE% clean
+    if exist dist\_internal rmdir /s /q dist\_internal
+    if exist dist\main.dist rmdir /s /q dist\main.dist
 )
 
 echo Build mode: %BUILD_MODE%
@@ -80,6 +90,7 @@ if "%BUILD_MODE%"=="standalone" (
         --nofollow-import-to=pytest ^
         --lto=no ^
         --jobs=1 ^
+        --verbose ^
         app/main.py
     if errorlevel 1 exit /b 1
     REM Modules in _internal verstecken, Launcher in dist\ ablegen
@@ -114,6 +125,7 @@ if "%BUILD_MODE%"=="standalone" (
         --include-package=app ^
         --follow-imports ^
         --windows-console-mode=disable ^
+        %NUITKA_VOPT% ^
         app/main.py
     if errorlevel 1 exit /b 1
     REM Modules in _internal verstecken, Launcher in dist\ ablegen

@@ -23,7 +23,7 @@ def _get_log_dir() -> Path:
     return base
 
 
-def setup_logging(log_level: str = "INFO"):
+def setup_logging(log_level: str = "DEBUG"):
     """
     Configure application-wide logging with single log file
 

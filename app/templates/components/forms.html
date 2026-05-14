@@ -1,0 +1,88 @@
+{#
+    Jinja-Macros fuer wiederkehrende Formular-Strukturen.
+
+    Verwendung:
+        {% from "components/forms.html" import text_input, textarea, number_input, select_field %}
+        {{ text_input(name="title", label="Titel", required=true) }}
+
+    Hinweise:
+      * Alle Macros nutzen die Design-System-Klassen (.form-label, .form-input, .form-textarea, .form-select).
+      * `required` setzt das HTML-Attribut UND fuegt einen sichtbaren *-Marker (aria-hidden) ein.
+      * `help_text` rendert eine .form-help-Zeile direkt unter dem Label.
+      * `attrs` ist ein Dict zusaetzlicher HTML-Attribute (z.B. {"x-model": "form.name"} fuer Alpine).
+#}
+
+{% macro _required_marker() %}<span class="text-red-500" aria-hidden="true">*</span>{% endmacro %}
+
+{% macro _render_attrs(attrs) %}{% for key, value in (attrs or {}).items() %} {{ key }}="{{ value }}"{% endfor %}{% endmacro %}
+
+{% macro text_input(name, label, value='', placeholder='', help_text='', required=false, attrs=None) %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}{% if required %} {{ _required_marker() }}{% endif %}
+    </label>
+    {% if help_text %}<p class="form-help mb-2">{{ help_text }}</p>{% endif %}
+    <input type="text" id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           class="form-input" placeholder="{{ placeholder }}"
+           {% if required %}required{% endif %}{{ _render_attrs(attrs) }}>
+</div>
+{% endmacro %}
+
+{% macro number_input(name, label, value='', placeholder='', help_text='', required=false, min=None, max=None, step=None, attrs=None) %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}{% if required %} {{ _required_marker() }}{% endif %}
+    </label>
+    {% if help_text %}<p class="form-help mb-2">{{ help_text }}</p>{% endif %}
+    <input type="number" id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           class="form-input" placeholder="{{ placeholder }}"
+           {% if min is not none %}min="{{ min }}"{% endif %}
+           {% if max is not none %}max="{{ max }}"{% endif %}
+           {% if step is not none %}step="{{ step }}"{% endif %}
+           {% if required %}required{% endif %}{{ _render_attrs(attrs) }}>
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label, value='', placeholder='', help_text='', rows=3, required=false, attrs=None) %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}{% if required %} {{ _required_marker() }}{% endif %}
+    </label>
+    {% if help_text %}<p class="form-help mb-2">{{ help_text }}</p>{% endif %}
+    <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}"
+              class="form-textarea" placeholder="{{ placeholder }}"
+              {% if required %}required{% endif %}{{ _render_attrs(attrs) }}>{{ value }}</textarea>
+</div>
+{% endmacro %}
+
+{% macro select_field(name, label, options, value='', help_text='', required=false, attrs=None) %}
+{#  options ist eine Liste von (value, label)-Tupeln oder Dicts mit 'value'/'label'  #}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}{% if required %} {{ _required_marker() }}{% endif %}
+    </label>
+    {% if help_text %}<p class="form-help mb-2">{{ help_text }}</p>{% endif %}
+    <select id="{{ name }}" name="{{ name }}" class="form-select"
+            {% if required %}required{% endif %}{{ _render_attrs(attrs) }}>
+        {% for option in options %}
+            {% if option is mapping %}
+                <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>{{ option.label }}</option>
+            {% else %}
+                <option value="{{ option[0] }}" {% if option[0] == value %}selected{% endif %}>{{ option[1] }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{% macro date_input(name, label, value='', help_text='', required=false, attrs=None) %}
+<div class="form-group">
+    <label for="{{ name }}" class="form-label">
+        {{ label }}{% if required %} {{ _required_marker() }}{% endif %}
+    </label>
+    {% if help_text %}<p class="form-help mb-2">{{ help_text }}</p>{% endif %}
+    <input type="date" id="{{ name }}" name="{{ name }}" value="{{ value }}"
+           class="form-input"
+           {% if required %}required{% endif %}{{ _render_attrs(attrs) }}>
+</div>
+{% endmacro %}

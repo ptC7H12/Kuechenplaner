@@ -225,14 +225,4 @@
         </div>
     </div>
 </div>
-
-<script>
-    // Auto-refresh statistics every 30 seconds
-    setInterval(function() {
-        htmx.ajax('GET', '/api/camps/{{ current_camp.id }}/stats', {
-            target: 'body',
-            swap: 'none'
-        });
-    }, 30000);
-</script>
 {% endblock %}
