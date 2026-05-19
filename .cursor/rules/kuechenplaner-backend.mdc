@@ -1,0 +1,48 @@
+---
+description: FastAPI backend — routers, CRUD, schemas, services
+alwaysApply: true
+---
+
+# Backend conventions
+
+## Layer responsibilities
+
+| Layer | Location | Responsibility |
+|-------|----------|----------------|
+| HTTP | `app/routers/*.py` | Routes, request/response, HTMX headers, template rendering |
+| Validation | `app/schemas.py` | Pydantic models, validators (e.g. `sub_category`, leftover `percentage_left`) |
+| Persistence | `app/crud.py` | All DB reads/writes; fuzzy ingredient search (`thefuzz`) |
+| Business logic | `app/services/` | Scaling, shopping list aggregation, leftover statistics, units |
+| Models | `app/models.py` | SQLAlchemy only — no HTTP or template logic |
+
+**Anti-patterns:** business math in routers; raw SQL in routers; new DB access outside `crud.py`.
+
+## FastAPI patterns
+
+- Register new routers in `app/main.py` via `app.include_router`.
+- Reuse `templates` and `get_template_context` from `app/dependencies.py` — do not create second `Jinja2Templates` instances.
+- `Depends(get_db)` for sessions; `require_current_camp` when camp is mandatory.
+- Idiomatic FastAPI defaults (`Depends()`, `Field()`) are allowed (Ruff `B008` ignored project-wide).
+
+## Key services (extend, don’t fork)
+
+- `services/calculation.py` — `scale_recipe`, `calculate_shopping_list` (per-meal `custom_servings`, notes enrichment), `get_camp_statistics`.
+- `services/leftover_statistics.py` — cross-camp leftover aggregates and `suggested_servings`.
+- `services/unit_converter.py` — g↔kg, ml↔L, TL↔EL; best-unit at ≥1000.
+
+## HTMX response patterns (from TECHNICAL_README)
+
+| Situation | Response |
+|-----------|----------|
+| HTMX DELETE, no body | `HTMLResponse(content="", status_code=200)` |
+| Full page reload | `Response(headers={"HX-Refresh": "true"})` |
+| Redirect after HTMX action | `Response(headers={"HX-Redirect": "/path"})` |
+| Normal form redirect | `RedirectResponse(url="...", status_code=303)` |
+| Partial update | `HTMLResponse(content=fragment)` |
+
+## New feature checklist
+
+1. Model change → Alembic migration (see database rule).
+2. `schemas.py` + `crud.py` + `services/` as needed.
+3. Router endpoint in the appropriate `app/routers/` module.
+4. Focused pytest in `tests/` (in-memory DB — see quality rule).

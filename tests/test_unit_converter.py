@@ -6,6 +6,7 @@ These never touch the DB — they exercise the conversion rules directly.
 from app.services.unit_converter import (
     convert_unit,
     format_quantity_unit,
+    normalize_to_base,
     normalize_unit_name,
 )
 
@@ -65,3 +66,22 @@ def test_normalize_unit_name_maps_known_synonyms():
 
 def test_normalize_unit_name_keeps_unknown_units():
     assert normalize_unit_name("Bund") == "Bund"
+
+
+def test_normalize_to_base_mass_units():
+    assert normalize_to_base(2.0, "kg") == (2000.0, "g")
+    assert normalize_to_base(500, "g") == (500, "g")
+    assert normalize_to_base(750, "mg") == (0.75, "g")
+
+
+def test_normalize_to_base_volume_units():
+    assert normalize_to_base(1.5, "L") == (1500.0, "ml")
+    assert normalize_to_base(250, "ml") == (250, "ml")
+    # Lower-case "l" is accepted as litre as well — recipe data is inconsistent.
+    assert normalize_to_base(2, "l") == (2000.0, "ml")
+
+
+def test_normalize_to_base_passes_through_unknown_units():
+    assert normalize_to_base(5, "Stück") == (5, "Stück")
+    assert normalize_to_base(3, "EL") == (3, "EL")
+    assert normalize_to_base(1, "Packung") == (1, "Packung")

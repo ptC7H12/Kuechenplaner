@@ -1,0 +1,77 @@
+<div class="p-6" x-data="servingsModal()">
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">Personenanzahl</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                {% if meal_plan.recipe %}{{ meal_plan.recipe.name }} &middot; {% endif %}
+                {{ meal_plan.meal_date.strftime('%d.%m.%Y') }} &middot; {{ meal_plan.meal_type.value }}
+            </p>
+        </div>
+        <button type="button" @click="$dispatch('close-modal')" class="text-gray-400 hover:text-gray-600" aria-label="Schließen">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <form @submit.prevent="save">
+        <div class="mb-4">
+            <label class="form-label">Personenanzahl für dieses Rezept</label>
+            <input type="number" min="1" x-model.number="servings" class="form-input" autofocus>
+            <p class="text-xs text-gray-500 mt-2">
+                Leer lassen, um auf den Camp-Standard (<strong>{{ camp.participant_count }} Personen</strong>) zurückzufallen.
+            </p>
+        </div>
+
+        <div class="flex justify-end gap-3 border-t pt-4">
+            <button type="button" @click="useDefault" class="btn btn-secondary">Standard verwenden</button>
+            <button type="button" @click="$dispatch('close-modal')" class="btn btn-secondary">Abbrechen</button>
+            <button type="submit" class="btn btn-primary" :disabled="submitting">
+                <span x-show="!submitting">Speichern</span>
+                <span x-show="submitting">Speichere...</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function servingsModal() {
+    return {
+        servings: {{ meal_plan.custom_servings or 'null' }},
+        submitting: false,
+        async _send(payload) {
+            this.submitting = true;
+            try {
+                const response = await fetch(`/meal-planning/api/meal-plans/{{ meal_plan.id }}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                if (!response.ok) throw new Error('Speichern fehlgeschlagen');
+                window.FreizeitApp.showToast('Personenanzahl gespeichert', 'success');
+                window.dispatchEvent(new CustomEvent('close-modal'));
+                window.location.reload();
+            } catch (err) {
+                window.FreizeitApp.showToast('Fehler beim Speichern', 'error');
+            } finally {
+                this.submitting = false;
+            }
+        },
+        save() {
+            if (this.servings === null || this.servings === '' || this.servings === undefined) {
+                this._send({ custom_servings: null });
+                return;
+            }
+            const value = parseInt(this.servings, 10);
+            if (!Number.isFinite(value) || value <= 0) {
+                window.FreizeitApp.showToast('Bitte eine positive Zahl eingeben.', 'error');
+                return;
+            }
+            this._send({ custom_servings: value });
+        },
+        useDefault() {
+            this._send({ custom_servings: null });
+        },
+    };
+}
+</script>

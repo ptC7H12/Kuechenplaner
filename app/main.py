@@ -67,6 +67,7 @@ from app.routers import meal_planning
 from app.routers import shopping_list
 from app.routers import settings
 from app.routers import export
+from app.routers import leftovers
 
 app = FastAPI(title="Freizeit Rezepturverwaltung", version="1.0.0", lifespan=lifespan)
 
@@ -151,6 +152,7 @@ app.include_router(meal_planning.router, prefix="/meal-planning", tags=["meal-pl
 app.include_router(shopping_list.router, prefix="/shopping-list", tags=["shopping-list"])
 app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(export.router, prefix="/export", tags=["export"])
+app.include_router(leftovers.router, prefix="/leftovers", tags=["leftovers"])
 
 def start_server():
     """Start the FastAPI server"""

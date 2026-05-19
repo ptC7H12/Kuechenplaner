@@ -1,0 +1,43 @@
+---
+description: Jinja2, HTMX, Alpine.js, Tailwind UI conventions
+alwaysApply: true
+---
+
+# Frontend (server-rendered)
+
+## Stack
+
+- **Templates:** Jinja2 under `app/templates/`; extend `base.html` for full pages.
+- **Interactivity:** HTMX first (partials, `hx-*`); Alpine for local state; **no SPA frameworks**.
+- **Styling:** Tailwind utility classes + design tokens in `app/static/css/custom.css`. See `docs/DESIGN_SYSTEM.md` for Material 3 classes (`.btn-primary`, `.form-input`, `.card`, FABs).
+
+## Global UI infrastructure (`base.html`)
+
+- Single `#global-modal` — open via `FreizeitApp.openModal(url)`; endpoint returns **HTML fragment only** (no `{% extends %}`).
+- Helpers: `showToast`, `closeModal`, `saveShoppingListNote` (PUT JSON `{note}`).
+- `layout.js` on every page; recipe create/edit uses shared `recipe-form.js` + `window.RECIPE_FORM_CONFIG`.
+
+## Patterns to follow
+
+**Modal fragments:** `GET /recipes/{id}/preview`, `GET /leftovers/new?meal_plan_id=` — return partial templates only.
+
+**Recipe form:** change `_form.html` + `recipe-form.js` + `RECIPE_FORM_CONFIG` in create/edit wrappers — not duplicate forms.
+
+**Forms:** reuse macros from `components/forms.html` (`text_input`, `number_input`, etc.) for static fields.
+
+**HTMX:** debounced search (`keyup changed delay:300ms`), explicit `hx-target` / `hx-swap`.
+
+**Meal planning:** preserve SortableJS drag-and-drop; suppress click-to-preview during drag on planned cards.
+
+**Accessibility:** icon-only buttons need `aria-label`; decorative SVGs `aria-hidden="true"`.
+
+## Alpine placement
+
+- Page-specific small components may live inline (e.g. `recipeList()` on list page).
+- Reusable or large components → `app/static/js/*.js` (like `recipe-form.js`), loaded from template.
+
+## Anti-patterns
+
+- Full HTML documents for modal endpoints.
+- Inline `<script>` blocks growing beyond config objects.
+- Duplicating scaling math in templates — compute in services, pass values in context.

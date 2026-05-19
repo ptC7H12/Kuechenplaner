@@ -61,7 +61,14 @@ def get_recipe(db: Session, recipe_id: int):
         .filter(models.Recipe.id == recipe_id)\
         .first()
 
-def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None, tag_ids: List[int] = None):
+def get_recipes(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
+    tag_ids: List[int] = None,
+    order_by: str = "updated_at",
+):
     query = db.query(models.Recipe)
 
     if search:
@@ -74,7 +81,12 @@ def get_recipes(db: Session, skip: int = 0, limit: int = 100, search: str = None
     if tag_ids:
         query = query.join(models.Recipe.tags).filter(models.Tag.id.in_(tag_ids))
 
-    return query.order_by(models.Recipe.updated_at.desc()).offset(skip).limit(limit).all()
+    if order_by == "name":
+        query = query.order_by(models.Recipe.name.collate("NOCASE").asc())
+    else:
+        query = query.order_by(models.Recipe.updated_at.desc())
+
+    return query.offset(skip).limit(limit).all()
 
 def create_recipe(db: Session, recipe: schemas.RecipeCreate):
     try:
@@ -386,6 +398,66 @@ def set_setting_value(db: Session, key: str, value):
         value_str = str(value)
     return set_setting(db, key, value_str)
 
+# Shopping list note CRUD operations
+def get_shopping_list_note(db: Session, camp_id: int, ingredient_id: int):
+    return db.query(models.ShoppingListNote).filter(
+        and_(
+            models.ShoppingListNote.camp_id == camp_id,
+            models.ShoppingListNote.ingredient_id == ingredient_id,
+        )
+    ).first()
+
+
+def get_shopping_list_notes_for_camp(db: Session, camp_id: int) -> dict:
+    """Return camp-specific notes keyed by ingredient_id."""
+    notes = db.query(models.ShoppingListNote).filter(
+        models.ShoppingListNote.camp_id == camp_id
+    ).all()
+    return {n.ingredient_id: n.note for n in notes}
+
+
+def upsert_shopping_list_note(db: Session, camp_id: int, ingredient_id: int, note: str):
+    """Create or update a camp-specific note. Empty/whitespace note deletes the entry."""
+    existing = get_shopping_list_note(db, camp_id, ingredient_id)
+    cleaned = (note or "").strip()
+
+    if not cleaned:
+        if existing:
+            db.delete(existing)
+            db.commit()
+        return None
+
+    if existing:
+        existing.note = cleaned
+        existing.updated_at = datetime.now(timezone.utc)
+    else:
+        existing = models.ShoppingListNote(
+            camp_id=camp_id,
+            ingredient_id=ingredient_id,
+            note=cleaned,
+        )
+        db.add(existing)
+
+    db.commit()
+    db.refresh(existing)
+    return existing
+
+
+def update_ingredient_note(db: Session, ingredient_id: int, note: Optional[str]):
+    """Update the global note on an ingredient. Empty/None clears it."""
+    ingredient = db.query(models.Ingredient).filter(
+        models.Ingredient.id == ingredient_id
+    ).first()
+    if not ingredient:
+        return None
+    cleaned = (note or "").strip() or None
+    ingredient.note = cleaned
+    ingredient.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(ingredient)
+    return ingredient
+
+
 # Allergen CRUD operations
 def get_allergen(db: Session, allergen_id: int):
     return db.query(models.Allergen).filter(models.Allergen.id == allergen_id).first()
@@ -413,6 +485,119 @@ def get_or_create_allergen(db: Session, name: str, icon: str = None, commit: boo
         else:
             db.flush()
     return db_allergen
+
+# Leftover CRUD operations
+def create_leftover(db: Session, leftover: schemas.LeftoverCreate):
+    db_leftover = models.Leftover(**leftover.model_dump())
+    db.add(db_leftover)
+    db.commit()
+    db.refresh(db_leftover)
+    return db_leftover
+
+
+def get_leftover(db: Session, leftover_id: int):
+    return db.query(models.Leftover).filter(models.Leftover.id == leftover_id).first()
+
+
+def get_leftovers_for_camp(db: Session, camp_id: int):
+    return db.query(models.Leftover).filter(
+        models.Leftover.camp_id == camp_id
+    ).order_by(models.Leftover.created_at.desc()).all()
+
+
+def get_leftovers_for_recipe(db: Session, recipe_id: int):
+    return db.query(models.Leftover).filter(
+        models.Leftover.recipe_id == recipe_id
+    ).all()
+
+
+def get_leftover_for_meal_plan(db: Session, meal_plan_id: int):
+    """Return the latest leftover entry for a given meal plan (if any).
+
+    Legacy single-entry getter kept for backward compatibility. Prefer
+    `get_leftovers_for_meal_plan` for the multi-entry world (Story 7).
+    """
+    return db.query(models.Leftover).filter(
+        models.Leftover.meal_plan_id == meal_plan_id
+    ).order_by(models.Leftover.created_at.desc()).first()
+
+
+def get_leftovers_for_meal_plan(db: Session, meal_plan_id: int):
+    """Return all leftover entries for a meal plan, oldest first.
+
+    A meal plan can have one per_recipe row + N per_ingredient rows (Story 7).
+    """
+    return db.query(models.Leftover).filter(
+        models.Leftover.meal_plan_id == meal_plan_id
+    ).order_by(models.Leftover.id.asc()).all()
+
+
+def sync_leftovers_for_meal_plan(
+    db: Session,
+    camp_id: int,
+    meal_plan_id: int,
+    recipe_id: int | None,
+    entries: list[dict],
+):
+    """Replace all leftover rows for a meal plan with the given entries.
+
+    Deletes existing rows for `meal_plan_id`, then inserts one Leftover per
+    entry. `entries` is a list of dicts with keys: tracking_type,
+    ingredient_id (optional), percentage_left (optional), description (optional).
+    """
+    db.query(models.Leftover).filter(
+        models.Leftover.meal_plan_id == meal_plan_id
+    ).delete(synchronize_session=False)
+
+    created = []
+    for entry in entries:
+        row = models.Leftover(
+            camp_id=camp_id,
+            meal_plan_id=meal_plan_id,
+            recipe_id=recipe_id,
+            tracking_type=entry["tracking_type"],
+            ingredient_id=entry.get("ingredient_id"),
+            percentage_left=entry.get("percentage_left"),
+            description=entry.get("description"),
+        )
+        db.add(row)
+        created.append(row)
+
+    db.commit()
+    for row in created:
+        db.refresh(row)
+    return created
+
+
+def get_meal_plan_ids_with_leftovers(db: Session, camp_id: int) -> set:
+    """IDs of MealPlans that already have at least one Leftover entry in this camp."""
+    rows = db.query(models.Leftover.meal_plan_id).filter(
+        models.Leftover.camp_id == camp_id,
+        models.Leftover.meal_plan_id.isnot(None),
+    ).distinct().all()
+    return {r[0] for r in rows}
+
+
+def update_leftover(db: Session, leftover_id: int, data: dict):
+    leftover = get_leftover(db, leftover_id)
+    if not leftover:
+        return None
+    for field in ("tracking_type", "ingredient_id", "percentage_left", "description"):
+        if field in data:
+            setattr(leftover, field, data[field])
+    leftover.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(leftover)
+    return leftover
+
+
+def delete_leftover(db: Session, leftover_id: int):
+    leftover = get_leftover(db, leftover_id)
+    if leftover:
+        db.delete(leftover)
+        db.commit()
+    return leftover
+
 
 # Recipe Version CRUD operations
 def get_recipe_version(db: Session, version_id: int):

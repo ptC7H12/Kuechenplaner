@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Reste - {{ camp.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Statistics Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-2xl font-bold text-orange-900 mb-1">{{ total_entries }}</div>
+            <div class="text-sm font-medium text-orange-700 mb-2">Einträge gesamt</div>
+            <div class="text-xs text-orange-600">erfasste Reste</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-2xl font-bold text-amber-900 mb-1">
+                {% if avg_pct is not none %}{{ "%.0f"|format(avg_pct) }} %{% else %}-{% endif %}
+            </div>
+            <div class="text-sm font-medium text-amber-700 mb-2">&Oslash; Restmenge</div>
+            <div class="text-xs text-amber-600">Durchschnitt aller Einträge</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 hover:shadow-lg transition-all">
+            <div class="flex items-start justify-end mb-3">
+                <div class="p-2 bg-white rounded-lg shadow-sm">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="text-2xl font-bold text-purple-900 mb-1">{{ recipes_with_leftovers }}</div>
+            <div class="text-sm font-medium text-purple-700 mb-2">Rezepte mit Resten</div>
+            <div class="text-xs text-purple-600">eindeutige Rezepte</div>
+        </div>
+    </div>
+
+    {% if leftovers %}
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr class="text-left">
+                        <th class="px-4 py-3 font-bold text-gray-900">Datum</th>
+                        <th class="px-4 py-3 font-bold text-gray-900">Rezept</th>
+                        <th class="px-4 py-3 font-bold text-gray-900">Typ</th>
+                        <th class="px-4 py-3 font-bold text-gray-900">% übrig</th>
+                        <th class="px-4 py-3 font-bold text-gray-900">Beschreibung</th>
+                        <th class="px-4 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for l in leftovers %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{ l.created_at.strftime('%d.%m.%Y') }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900">
+                            {% if l.recipe %}{{ l.recipe.name }}{% else %}<span class="text-gray-400 italic">(gelöscht)</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-700">
+                            {% if l.tracking_type == 'per_recipe' %}Rezept{% else %}Zutat{% if l.ingredient %}: {{ l.ingredient.name }}{% endif %}{% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-bold {% if l.percentage_left and l.percentage_left > 20 %}text-orange-600{% else %}text-gray-700{% endif %}">
+                            {% if l.percentage_left is not none %}{{ "%.0f"|format(l.percentage_left) }} %{% else %}-{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-700">{{ l.description or '-' }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="deleteLeftover({{ l.id }})"
+                                    class="btn btn-icon text-red-600 hover:bg-red-50"
+                                    aria-label="Eintrag löschen"
+                                    title="Löschen">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+            </svg>
+            <p class="text-gray-600">Noch keine Reste erfasst für dieses Camp.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function deleteLeftover(id) {
+    if (!confirm('Eintrag wirklich löschen?')) return;
+    try {
+        const response = await fetch(`/leftovers/api/leftovers/${id}`, { method: 'DELETE' });
+        if (response.ok) {
+            window.FreizeitApp.showToast('Eintrag gelöscht', 'success');
+            window.location.reload();
+        } else {
+            window.FreizeitApp.showToast('Fehler beim Löschen', 'error');
+        }
+    } catch (e) {
+        window.FreizeitApp.showToast('Verbindungsfehler beim Löschen', 'error');
+    }
+}
+</script>
+{% endblock %}
+
+{% block fab %}
+<div class="fab-container">
+    <a href="/leftovers/statistics"
+       class="fab-extended fab-extended-primary"
+       title="Statistik anzeigen">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <span>Statistik anzeigen</span>
+    </a>
+</div>
+{% endblock %}

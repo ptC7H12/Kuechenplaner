@@ -1,5 +1,5 @@
 # TECHNICAL README - Kuechenplaner
-> **Quick Reference für AI-Assistenten** | Zuletzt aktualisiert: 2026-05-13
+> **Quick Reference für AI-Assistenten** | Zuletzt aktualisiert: 2026-05-15
 
 ## 🎯 Projekt-Übersicht
 **Typ:** Desktop-App für Freizeit-/Camp-Rezeptverwaltung
@@ -27,9 +27,11 @@ Kuechenplaner/
 │   │   ├── meal_planning.py # /meal-planning/*
 │   │   ├── shopping_list.py # /shopping-list/*
 │   │   ├── export.py        # /export/* (PDF, Excel)
+│   │   ├── leftovers.py     # /leftovers/* (Reste-Tracker, Statistik)
 │   │   └── settings.py      # /settings/*
 │   ├── services/
 │   │   ├── calculation.py   # Skalierung, Einkaufslisten-Berechnung
+│   │   ├── leftover_statistics.py # Aggregat-Statistik für Reste pro Rezept
 │   │   └── unit_converter.py # g↔kg, ml↔L Konvertierung
 │   ├── templates/           # Jinja2-Templates (HTMX)
 │   └── static/
@@ -42,13 +44,22 @@ Kuechenplaner/
 │   ├── env.py
 │   └── versions/
 │       ├── 001_initial_schema.py
-│       └── 002_meal_plan_recipe_nullable.py
+│       ├── 002_meal_plan_recipe_nullable.py
+│       ├── 003_shopping_notes.py            # Ingredient.note + shopping_list_notes
+│       ├── 004_meal_plan_custom_servings.py # MealPlan.custom_servings
+│       ├── 005_meal_plan_sub_category.py    # MealPlan.sub_category
+│       └── 006_leftovers.py                 # leftovers Tabelle
 ├── tests/                   # pytest-Suite (siehe „Tests & Tooling")
 │   ├── conftest.py          # In-Memory-SQLite-Fixture, TestClient
 │   ├── test_health.py
 │   ├── test_crud_camp.py
 │   ├── test_schemas.py
-│   └── test_unit_converter.py
+│   ├── test_unit_converter.py
+│   ├── test_shopping_notes.py           # Story 2
+│   ├── test_recipe_preview.py           # Story 4
+│   ├── test_meal_plan_custom_servings.py # Story 1
+│   ├── test_export_daily_lists.py       # Story 3
+│   └── test_leftovers.py                # Story 5
 ├── pyproject.toml           # ruff, mypy, pytest config
 ├── requirements.txt         # Runtime-Dependencies (gepinnt)
 ├── requirements-build.txt   # Build-Dependencies (Nuitka, Pillow — gepinnt)
@@ -65,12 +76,14 @@ Kuechenplaner/
 |---------|-------------|-----------------|
 | **Camp** | Freizeit/Veranstaltung | `name`, `start_date`, `end_date`, `participant_count` |
 | **Recipe** | Global wiederverwendbare Rezepte | `name`, `base_servings`, `version_number` |
-| **Ingredient** | Zutat-Stammdaten | `name`, `unit`, `category` (z.B. "Gemüse") |
+| **Ingredient** | Zutat-Stammdaten | `name`, `unit`, `category` (z.B. "Gemüse"), `note` (global, optional) |
 | **RecipeIngredient** | Zutat in Rezept (M:N) | `recipe_id`, `ingredient_id`, `quantity`, `unit` |
-| **MealPlan** | Rezept zu Mahlzeit zugeordnet | `camp_id`, `recipe_id`, `meal_date`, `meal_type`, `position` |
+| **MealPlan** | Rezept zu Mahlzeit zugeordnet | `camp_id`, `recipe_id`, `meal_date`, `meal_type`, `position`, `custom_servings` (optional), `sub_category` (optional, nur bei DINNER üblich) |
 | **Tag** | Kategorien (M:N zu Recipe) | `name`, `color`, `icon` (z.B. "Frühstück" 🌅) |
 | **Allergen** | Allergene (M:N zu Recipe) | `name`, `icon` (z.B. "Gluten" 🌾) |
 | **RecipeVersion** | Rezept-Snapshots | `recipe_id`, `version_number`, `ingredients_snapshot` (JSON) |
+| **ShoppingListNote** | Camp-spezifische Notiz pro Zutat | `camp_id`, `ingredient_id`, `note` (UNIQUE pro Paar) |
+| **Leftover** | Erfasste Reste nach einer Mahlzeit | `camp_id`, `meal_plan_id`, `recipe_id`, `ingredient_id`, `tracking_type` (`per_recipe`/`per_ingredient`), `percentage_left` (0-100), `description` |
 | **AppSettings** | Key-Value-Store | `key`, `value` (JSON) |
 
 ### MealType Enum
@@ -81,18 +94,31 @@ class MealType(enum.Enum):
     DINNER = "DINNER"
 ```
 
+### Sub-Kategorien (Mahlzeiten-Gänge)
+Frei wählbar pro `MealPlan` (typischerweise nur bei DINNER gesetzt) — Validierung in `schemas.py` gegen `constants.MEAL_SUB_CATEGORIES`:
+```python
+MEAL_SUB_CATEGORIES = ["Vorspeise", "Hauptgang", "Beilage", "Salat", "Nachtisch"]
+```
+
 ### Wichtige Constraints
 - **Camp:** `start_date <= end_date`, `participant_count > 0`
-- **MealPlan:** UNIQUE(`camp_id`, `meal_date`, `meal_type`, `position`)
+- **MealPlan:** UNIQUE(`camp_id`, `meal_date`, `meal_type`, `position`), `custom_servings > 0` (Pydantic)
 - **RecipeVersion:** UNIQUE(`recipe_id`, `version_number`)
+- **ShoppingListNote:** UNIQUE(`camp_id`, `ingredient_id`), beide FKs `ON DELETE CASCADE`
+- **Leftover:** `percentage_left` ∈ [0, 100] (Pydantic); `tracking_type` muss `per_recipe` oder `per_ingredient` sein; `ingredient_id` Pflicht bei `per_ingredient`
 
 ### Beziehungen
 ```
 Camp 1───N MealPlan N───1 Recipe
-                          ├─N RecipeIngredient N─1 Ingredient
-                          ├─N Tag (M:N)
-                          ├─N Allergen (M:N)
-                          └─N RecipeVersion
+  │                       ├─N RecipeIngredient N─1 Ingredient
+  │                       ├─N Tag (M:N)
+  │                       ├─N Allergen (M:N)
+  │                       └─N RecipeVersion
+  ├───N ShoppingListNote N───1 Ingredient
+  └───N Leftover (cascade delete-orphan)
+              ├─0..1 MealPlan
+              ├─0..1 Recipe
+              └─0..1 Ingredient
 ```
 
 ## 🔌 API-Endpunkte (Auswahl)
@@ -108,40 +134,66 @@ Camp 1───N MealPlan N───1 Recipe
 - `GET /recipes/` - Rezept-Liste (HTML, mit Statistiken, Sortierung, Filter)
 - `GET /recipes/create` - Rezept-Formular (Material Design, Autocomplete)
 - `POST /recipes/` - Neues Rezept erstellen (JSON: ingredients, tag_ids)
+- `GET /recipes/{id}` - Rezept-Detail (HTML)
+- `GET /recipes/{id}/preview?servings=N` - **Story 4:** HTML-Fragment für Vorschau-Modal aus der Wochenübersicht (optional skaliert)
 - `GET /recipes/{id}/edit` - Rezept bearbeiten (vorausgefüllt)
 - `POST /recipes/{id}` - Rezept aktualisieren (**erstellt neue Version**)
 - `DELETE /recipes/{id}` - Rezept löschen
 - `GET /recipes/api/search` - Suche & Filter (`?search=...&tag_ids=...`)
-- `GET /recipes/api/ingredients/search?q=` - **NEU:** Fuzzy-Search für Autocomplete
-- `POST /recipes/api/ingredients/quick-create` - **NEU:** Zutat während Rezept-Erstellung
+- `GET /recipes/api/ingredients/search?q=` - Fuzzy-Search für Autocomplete
+- `POST /recipes/api/ingredients/quick-create` - Zutat während Rezept-Erstellung
 
 ### Meal Planning (`/meal-planning/`)
-- `GET /meal-planning/` - Kalender-Ansicht
-- `POST /meal-planning/add` - Rezept zu Mahlzeit hinzufügen
-- `DELETE /meal-planning/{id}` - Mahlzeit entfernen
-- `PUT /meal-planning/{id}/move` - Mahlzeit verschieben
+- `GET /meal-planning/` - Kalender-Ansicht (mit `meal_sub_categories` im Context)
+- `POST /meal-planning/api/meal-plans` - Mahlzeit anlegen (JSON; akzeptiert `custom_servings`, `sub_category`)
+- `PUT /meal-planning/api/meal-plans/{id}` - Mahlzeit aktualisieren (Position, Notes, `custom_servings`, `sub_category`)
+- `DELETE /meal-planning/api/meal-plans/{id}` - Mahlzeit entfernen
+- `POST /meal-planning/api/meal-plans/bulk` - Mehrere Mahlzeiten in einem Request
+- `POST /meal-planning/api/meal-plans/{id}/copy` - Mahlzeit kopieren
 
 ### Shopping List (`/shopping-list/`)
 - `GET /shopping-list/` - Einkaufsliste (HTML)
-- `GET /shopping-list/api/generate` - Berechnete Liste (JSON)
-- `POST /shopping-list/api/check/{ingredient_id}` - Zutat abhaken
+- `GET /shopping-list/api/shopping-list?camp_id=` - Berechnete Liste (JSON)
+- `GET /shopping-list/api/shopping-list/summary?camp_id=` - Summary mit Statistiken
+- `PUT /shopping-list/api/shopping-list/notes/{ingredient_id}` - **Story 2:** Camp-spezifische Bemerkung setzen/aktualisieren (leerer String = löschen). Body: `{note: str}`. Nutzt aktuelles Camp aus Cookie.
+- `PUT /shopping-list/api/ingredients/{ingredient_id}/note` - **Story 2:** Globale Notiz auf einer Zutat (gilt camp-übergreifend)
 
 ### Export (`/export/`)
-- `GET /export/shopping-list/pdf` - Einkaufsliste als PDF
-- `GET /export/shopping-list/excel` - Einkaufsliste als Excel
-- `GET /export/meal-plan/pdf` - Mahlzeitenplan als PDF
+- `GET /export/shopping-list/pdf/{camp_id}` - Einkaufsliste als PDF (kompaktes Layout mit Bemerkungs-Spalte ab Story 2)
+- `GET /export/shopping-list/excel/{camp_id}` - Einkaufsliste als Excel
+- `GET /export/meal-plan/pdf/{camp_id}` - Speiseplan-Übersichts-PDF (Landscape-Tabelle, 10 Tage/Seite)
+- `GET /export/recipe-book/pdf/{camp_id}` - Rezeptbuch-PDF (skaliert mit `max(custom_servings, camp.participant_count)` pro Rezept)
+- `GET /export/daily-lists/pdf/{camp_id}` - **Story 3:** Tageslisten-PDF: ein Tag pro Seite, gruppiert nach `meal_type` + `sub_category`, 3-Spalten-Layout (Menge | Zutat | Zubereitung)
+- `GET /export/recipes/pdf` - Komplette Rezeptsammlung als PDF mit Inhaltsverzeichnis
+
+### Leftovers (`/leftovers/`) — Story 5
+- `GET /leftovers/` - Übersicht aller Reste fürs aktuelle Camp (HTML)
+- `GET /leftovers/new?meal_plan_id=` - Modal-Fragment zur Erfassung (über `FreizeitApp.openModal()`)
+- `GET /leftovers/statistics` - Aggregat-Statistik pro Rezept + Skalierungsvorschlag fürs aktuelle Camp
+- `POST /leftovers/api/leftovers` - Eintrag anlegen (JSON: `LeftoverCreate`)
+- `GET /leftovers/api/leftovers/camp/{camp_id}` - JSON-Liste fürs Camp
+- `GET /leftovers/api/leftovers/statistics/{recipe_id}` - Aggregat für ein einzelnes Rezept
+- `DELETE /leftovers/api/leftovers/{id}` - Eintrag löschen
 
 ## ⚙️ Wichtige Services
 
 ### `services/calculation.py`
 **Funktionen:**
+- `scale_recipe(recipe, target_servings)` → skaliert die Zutaten eines Rezepts auf eine Zielportionszahl
 - `calculate_shopping_list(db, camp_id)` → Aggregierte Einkaufsliste
   - Lädt alle MealPlans für Camp
-  - Skaliert Rezepte auf `camp.participant_count`
-  - Aggregiert Zutaten nach `ingredient_id`
+  - **Skaliert pro Eintrag mit `meal_plan.custom_servings or camp.participant_count`** (Story 1)
+  - Aggregiert Zutaten nach `(ingredient_id, unit)`
   - Konvertiert Einheiten (g→kg, ml→L)
   - Gruppiert nach `category`
+  - Reichert jedes Item mit `note` (camp-spezifisch) und `global_note` (Ingredient.note) an (Story 2)
 - `get_camp_statistics(db, camp_id)` → Dashboard-Statistiken
+
+### `services/leftover_statistics.py` — Story 5
+- `get_recipe_statistics(db, recipe_id, current_camp_id=None)` → Aggregat über alle Camps:
+  - `avg_percentage_left` (Mittelwert über alle Einträge mit `percentage_left`)
+  - `camps_with_leftovers` (Anzahl unterschiedlicher Camps mit >0% Rest)
+  - **Skalierungsvorschlag:** wenn `avg_percentage_left > 10 %` und `current_camp_id` gesetzt, wird `suggested_servings = round(participant_count * (1 - avg/100))` zurückgegeben.
 
 ### `services/unit_converter.py`
 **Konvertierungen:**
@@ -151,11 +203,15 @@ Camp 1───N MealPlan N───1 Recipe
   - TL ↔ EL (3:1)
 - **Best-Unit-Auswahl:** `>= 1000g` → `kg`, `>= 1000ml` → `L`
 
-### `crud.py` - Neue Funktionen
-- `search_ingredients_fuzzy(db, query, limit=10)` - **NEU:** Fuzzy-Matching für Zutaten
+### `crud.py` - Wichtige Funktionen
+- `search_ingredients_fuzzy(db, query, limit=10)` - Fuzzy-Matching für Zutaten
   - Verwendet `thefuzz.fuzz.partial_ratio()`
   - Scores: Exact=100, Starts-with=95, Contains=85, Fuzzy=0-100
   - Sortiert nach Score + Usage-Count
+- `upsert_shopping_list_note(db, camp_id, ingredient_id, note)` — Story 2: leerer/whitespace-only Wert löscht die Camp-Notiz
+- `update_ingredient_note(db, ingredient_id, note)` — Story 2: globale Notiz pro Zutat
+- `get_shopping_list_notes_for_camp(db, camp_id) -> dict[int, str]` — Bulk-Lookup für die Einkaufslisten-Berechnung
+- `create_leftover` / `get_leftovers_for_camp` / `get_leftovers_for_recipe` / `delete_leftover` — Story 5
 
 ## 🎨 Frontend-Architektur
 
@@ -168,18 +224,25 @@ Camp 1───N MealPlan N───1 Recipe
 ### Template-Struktur
 ```
 templates/
-├── base.html                # Layout, Navigation, lädt static/js/layout.js
+├── base.html                # Layout, Navigation, lädt static/js/layout.js, globales Modal (#global-modal)
 ├── dashboard.html           # Startseite mit Statistiken
 ├── camp_select.html         # Freizeit-Auswahl
+├── shopping_list.html       # Einkaufsliste (Note-Inputs pro Item, Story 2)
 ├── recipes/
 │   ├── list.html           # Rezept-Liste (Statistiken, Sortierung, Livesearch)
 │   ├── _form.html          # Gemeinsames Form-Markup (Create + Edit)
 │   ├── create.html         # Wrapper: setzt RECIPE_FORM_CONFIG, includes _form.html
 │   ├── edit.html           # Wrapper: setzt RECIPE_FORM_CONFIG mit initialData
 │   ├── detail.html         # Rezept-Detailansicht
+│   ├── preview_modal.html  # Story 4: HTML-Fragment, geladen ins #modal-content
 │   └── partials/           # HTMX-Fragmente
 ├── meal_planning/
-│   └── index.html          # Kalender-Grid (SortableJS Drag & Drop)
+│   └── index.html          # Kalender-Grid (SortableJS Drag & Drop, custom_servings-Badge,
+│                           #   sub_category-Button, „Reste erfassen"-Button)
+├── leftovers/              # Story 5
+│   ├── index.html          # Camp-Übersicht aller erfassten Reste
+│   ├── new_modal.html      # Erfassungs-Modal (Alpine.js: tracking_type/Prozent/Beschreibung)
+│   └── statistics.html     # Aggregat pro Rezept + Skalierungsvorschlag
 └── components/
     ├── camp_stats.html, edit_camp_modal.html, ...
     └── forms.html          # Macros: text_input, number_input, textarea, select_field, date_input
@@ -190,6 +253,19 @@ templates/
 - `ingredientAutocomplete()` - Fuzzy-Search für Zutaten (300ms Debounce)
 - `newIngredientForm()` - Quick-Create-Modal für neue Zutaten
 - `recipeList()` - Filter, Sortierung, Livesearch (in `recipes/list.html` inline, da seiten-spezifisch)
+
+### Globale Helfer (`window.FreizeitApp`, definiert in `base.html`)
+- `showToast(message, type)` — Toast-Notification (`success`/`error`/`warning`/`info`)
+- `openModal(url)` — lädt eine URL per HTMX in `#modal-content` und dispatcht `open-modal`
+- `closeModal()` — dispatcht `close-modal`
+- `saveShoppingListNote(inputEl)` — Story 2: liest `data-ingredient-id` & `value`, PUTs `{note}` als JSON
+
+### Globales Modal-Pattern
+`base.html` enthält ein einziges `#global-modal` (Alpine `x-data`, reagiert auf `open-modal`/`close-modal`). Jede Seite, die ein Modal öffnen will, ruft `FreizeitApp.openModal('/fragment-url')` auf — der Endpoint muss ein HTML-Fragment liefern (kein vollständiges Template-Extends). Schließen via `$dispatch('close-modal')` innerhalb des Fragments.
+
+Aktuelle Modal-Endpoints:
+- `GET /recipes/{id}/preview?servings=N` → `recipes/preview_modal.html` (Story 4)
+- `GET /leftovers/new?meal_plan_id=N` → `leftovers/new_modal.html` (Story 5)
 
 ### Recipe-Form: Create vs. Edit
 Beide Templates teilen `recipes/_form.html` und `app/static/js/recipe-form.js`. Den Unterschied steuert ein Config-Block im jeweiligen Template:
@@ -249,10 +325,14 @@ Macros nutzen die Design-System-Klassen (`.form-label`, `.form-input` etc.) und 
 
 ### 2. Rezept-Skalierung
 ```python
-# Rezept mit base_servings=30 für Camp mit 45 Teilnehmern
-scaling_factor = camp.participant_count / recipe.base_servings  # 1.5
+# Standard: Camp-Teilnehmerzahl
+effective_servings = meal_plan.custom_servings or camp.participant_count
+scaling_factor = effective_servings / recipe.base_servings
 scaled_quantity = ingredient.quantity * scaling_factor
 ```
+- `MealPlan.custom_servings` (Story 1) überschreibt `camp.participant_count` pro Eintrag — wichtig für Frühstück mit weniger Personen.
+- Greift überall: Einkaufsliste, Tageslisten-PDF, Rezept-Preview-Modal.
+- Rezeptbuch-PDF wählt pro Rezept das **Maximum** aller `effective_servings`-Werte, damit eine gedruckte Variante alle Mahlzeiten abdeckt.
 
 ### 3. Rezept-Versionierung
 - **Bei jedem Update:** Neues `RecipeVersion`-Objekt wird erstellt
@@ -287,7 +367,7 @@ python build_windows_standalone.py
 
 ### Tests & Lint
 ```bash
-python -m pytest tests/ -q       # ~19 Tests, läuft in <1 s
+python -m pytest tests/ -q       # 51 Tests, läuft in <5 s
 python -m ruff check app tests   # Lint
 python -m ruff format app tests  # Auto-Format
 python -m mypy app               # Type-Check (lockerer Modus)
@@ -355,6 +435,10 @@ alembic upgrade head    # Wieder hoch
 |---|---|
 | `001` | Initial-Schema (alle Tabellen, recipe_id NOT NULL) |
 | `002` | meal_plans.recipe_id nullable + ON DELETE SET NULL |
+| `003` | Story 2: `ingredients.note` (global) + neue Tabelle `shopping_list_notes` (camp-spezifisch) |
+| `004` | Story 1: `meal_plans.custom_servings` (Integer, nullable) |
+| `005` | Story 3: `meal_plans.sub_category` (String, nullable) |
+| `006` | Story 5: neue Tabelle `leftovers` (camp_id CASCADE, recipe_id/meal_plan_id/ingredient_id SET NULL) |
 
 ## 🧪 Tests & Tooling
 
@@ -370,7 +454,13 @@ python -m pytest tests/ -q              # alle Tests
 python -m pytest tests/test_crud_camp.py -v  # einzelne Datei
 ```
 
-**Aktueller Stand:** 19 Tests in 4 Dateien — `test_health.py`, `test_unit_converter.py`, `test_crud_camp.py`, `test_schemas.py`.
+**Aktueller Stand:** 51 Tests in 9 Dateien:
+- Basics: `test_health.py`, `test_unit_converter.py`, `test_crud_camp.py`, `test_schemas.py`
+- Story 2: `test_shopping_notes.py`
+- Story 4: `test_recipe_preview.py`
+- Story 1: `test_meal_plan_custom_servings.py`
+- Story 3: `test_export_daily_lists.py`
+- Story 5: `test_leftovers.py`
 
 ### Lint & Format (Ruff)
 - **Konfiguration:** `[tool.ruff]` in `pyproject.toml`
@@ -455,5 +545,17 @@ python -m mypy app
 | HTMX-Aktion mit gezielter Weiterleitung | `Response(headers={"HX-Redirect": "/ziel"})` |
 | Form-POST mit Seitenwechsel | `RedirectResponse(url="/ziel", status_code=303)` |
 | Partielle HTML-Rückgabe | `HTMLResponse(content=html_snippet)` |
+
+## 📋 Story-Referenzen (v1.4.0)
+
+Die fünf User Stories aus [USER_STORIES.md](USER_STORIES.md) sind in dieser Version umgesetzt:
+
+| Story | Backend | Migration | UI-Touchpoints | Tests |
+|---|---|---|---|---|
+| **1: custom_servings** | `models.py`, `schemas.py`, `services/calculation.py`, `routers/export.py` (Recipe-Book) | `004` | `meal_planning/index.html` (Badge, Edit-Button via Prompt) | `test_meal_plan_custom_servings.py` |
+| **2: Shopping-Notes + kompakte PDF** | `models.py` (`Ingredient.note`, `ShoppingListNote`), `crud.py`, `services/calculation.py`, `routers/shopping_list.py`, `routers/export.py` | `003` | `shopping_list.html` (Input pro Item, Badge für globale Note), `FreizeitApp.saveShoppingListNote` | `test_shopping_notes.py` |
+| **3: Tageslisten-PDF + sub_category** | `constants.MEAL_SUB_CATEGORIES`, `models.py`, `schemas.py` (Validator), `routers/export.py` | `005` | `meal_planning/index.html` (Sub-Cat-Badge für DINNER, neuer FAB "Tageslisten") | `test_export_daily_lists.py` |
+| **4: Rezept-Vorschau-Modal** | `routers/recipes.py` (`GET /recipes/{id}/preview`) | – | `templates/recipes/preview_modal.html`, Click-Handler auf `recipe-card-planned` mit Drag-Suppression | `test_recipe_preview.py` |
+| **5: Reste-Tracker** | `models.Leftover`, `crud.py`, `services/leftover_statistics.py`, `routers/leftovers.py`, `main.py` (Router-Registrierung) | `006` | `base.html` (Sidebar-Link), `meal_planning/index.html` ("Reste erfassen"-Button), `templates/leftovers/*` | `test_leftovers.py` |
 
 **🤖 AI-Hinweis:** Dieses Dokument priorisiert **Geschwindigkeit** und **Token-Effizienz**. Für tiefe Analysen siehe `ANALYSE.md`. Bei Unklarheiten: Code in `app/` ist gut dokumentiert!

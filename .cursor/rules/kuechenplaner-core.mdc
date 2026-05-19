@@ -1,0 +1,33 @@
+---
+description: Küchenplaner — project identity, domain rules, and guardrails
+alwaysApply: true
+---
+
+# Küchenplaner (Core)
+
+Desktop camp/recipe planner: **FastAPI + Jinja2 + HTMX + Alpine.js + Tailwind**, **SQLite + SQLAlchemy**, optional **pywebview** shell. Dev server: port **12000** (`DEVELOPMENT=1 python -m app.main`). Entry: `app/main.py`.
+
+## Domain essentials
+
+- **Camp** is the tenancy boundary. Active camp via cookie `current_camp_id` + `get_current_camp` / `require_current_camp` in `app/dependencies.py`. Camp-scoped pages must use these dependencies, not ad-hoc cookie reads.
+- **Recipe scaling** (never reimplement elsewhere):
+  - `effective_servings = meal_plan.custom_servings or camp.participant_count`
+  - `scaling_factor = effective_servings / recipe.base_servings`
+  - Use `app/services/calculation.py` and `app/services/unit_converter.py` for lists, exports, and PDFs.
+- **Recipe versioning:** every recipe update creates a new `RecipeVersion` snapshot; `MealPlan` references live `Recipe` rows (no meal-plan snapshot).
+- **Sub-categories:** validate against `constants.MEAL_SUB_CATEGORIES` in Pydantic (`schemas.py`).
+
+## Language & UX
+
+- **User-facing copy** (templates, toasts, PDF labels): **German**.
+- **Code** (identifiers, logs, commit messages): **English**, matching existing style.
+
+## Do not touch (unless explicitly asked)
+
+- Generated/build artifacts: `build/`, `dist/`, `releases/`, `.download_cache/`, `installer/` (release skill handles uploads).
+- `alembic/versions/*.py` except when adding a **new** migration alongside `models.py` changes.
+- Version bumps / release merges: use skills `new-version` and `create-release` — do not invent alternate versioning.
+
+## When unsure
+
+Read `TECHNICAL_README.md` before large changes (new entities, export formats, migration strategy).

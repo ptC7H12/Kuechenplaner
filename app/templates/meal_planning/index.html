@@ -170,32 +170,74 @@
                                     >
                                         {% if meals %}
                                             {% for meal_plan in meals %}
-                                            <div class="recipe-card-planned {% if not meal_plan.recipe_id %}bg-red-200{% endif %}"
+                                            {% set has_leftover = meal_plan.id in meal_plan_ids_with_leftovers %}
+                                            <div class="recipe-card-planned group relative {% if not meal_plan.recipe_id %}bg-red-200{% else %}cursor-pointer hover:ring-2 hover:ring-indigo-300{% endif %}"
                                                  data-meal-plan-id="{{ meal_plan.id }}"
-                                                 data-recipe-id="{{ meal_plan.recipe_id or 0 }}">
-                                                <div class="flex items-center">
-                                                    <button @click="deleteMealPlan({{ meal_plan.id }})"
-                                                            class="mr-2 btn btn-icon text-red-600 hover:bg-red-50 flex-shrink-0"
-                                                            aria-label="Mahlzeit aus Plan entfernen">
+                                                 data-recipe-id="{{ meal_plan.recipe_id or 0 }}"
+                                                 {% if meal_plan.recipe_id %}@click="openPreview({{ meal_plan.recipe_id }}, {{ meal_plan.custom_servings or 'null' }})"{% endif %}>
+                                                <div>
+                                                    {% if meal_plan.recipe_id %}
+                                                        <h4 class="font-bold text-sm text-gray-900 break-words pr-1">{{ meal_plan.recipe.name }}</h4>
+                                                        {% if meal_plan.notes %}
+                                                        <p class="text-xs text-gray-500 mt-1 italic truncate font-medium">{{ meal_plan.notes }}</p>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <div class="flex items-center">
+                                                            <svg class="w-4 h-4 text-red-900 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                            <h4 class="font-bold text-sm text-red-900 truncate">Kein Essen</h4>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="absolute top-1 right-1 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-md shadow-sm px-0.5 py-0.5">
+                                                    <button @click.stop="deleteMealPlan({{ meal_plan.id }})"
+                                                            class="btn btn-icon text-red-600 hover:bg-red-50 flex-shrink-0"
+                                                            aria-label="Mahlzeit aus Plan entfernen"
+                                                            title="Entfernen">
                                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                                         </svg>
                                                     </button>
-                                                    <div class="flex-1 min-w-0">
-                                                        {% if meal_plan.recipe_id %}
-                                                            <h4 class="font-bold text-sm text-gray-900 truncate">{{ meal_plan.recipe.name }}</h4>
-                                                            {% if meal_plan.notes %}
-                                                            <p class="text-xs text-gray-500 mt-1 italic truncate font-medium">{{ meal_plan.notes }}</p>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            <div class="flex items-center">
-                                                                <svg class="w-4 h-4 text-red-900 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                </svg>
-                                                                <h4 class="font-bold text-sm text-red-900 truncate">Kein Essen</h4>
-                                                            </div>
-                                                        {% endif %}
-                                                    </div>
+                                                    {% if meal_plan.recipe_id %}
+                                                    <button @click.stop="editServings({{ meal_plan.id }})"
+                                                            class="ml-0.5 btn btn-icon text-indigo-600 hover:bg-indigo-50 flex-shrink-0"
+                                                            aria-label="Personenanzahl anpassen"
+                                                            title="Personenanzahl">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                                                        </svg>
+                                                    </button>
+                                                    <button @click.stop="openLeftoverModal({{ meal_plan.id }})"
+                                                            class="ml-0.5 btn btn-icon flex-shrink-0 {% if has_leftover %}text-orange-700 bg-orange-100 hover:bg-orange-200{% else %}text-orange-600 hover:bg-orange-50{% endif %}"
+                                                            aria-label="{% if has_leftover %}Reste bearbeiten{% else %}Reste erfassen{% endif %}"
+                                                            title="{% if has_leftover %}Reste erfasst &mdash; klicken zum Bearbeiten{% else %}Reste erfassen{% endif %}">
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                            <path fill-rule="evenodd" d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mt-1 flex flex-wrap gap-1">
+                                                    {% if meal_plan.custom_servings %}
+                                                    <span class="text-[10px] font-bold text-indigo-700 bg-indigo-100 inline-flex items-center px-1.5 py-0.5 rounded"
+                                                          title="Personenanzahl-Override">
+                                                        👥 {{ meal_plan.custom_servings }}
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if has_leftover %}
+                                                    <span class="text-[10px] font-bold text-orange-700 bg-orange-100 inline-flex items-center px-1.5 py-0.5 rounded"
+                                                          title="Reste für diese Mahlzeit erfasst">
+                                                        🍽 Rest
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if meal_plan.recipe_id %}
+                                                    <button @click.stop="editSubCategory({{ meal_plan.id }})"
+                                                            class="text-[10px] font-bold inline-flex items-center px-1.5 py-0.5 rounded {% if meal_plan.sub_category %}bg-purple-100 text-purple-700{% else %}bg-gray-100 text-gray-500 hover:bg-purple-50 hover:text-purple-700{% endif %}"
+                                                            title="Gang/Sub-Kategorie">
+                                                        {{ meal_plan.sub_category or '+ Gang' }}
+                                                    </button>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                             {% endfor %}
@@ -223,9 +265,30 @@ function mealPlanning() {
     return {
         searchQuery: '',
         filteredRecipes: {{ recipes | map(attribute='id') | list | tojson }},
+        // Suppress preview-open click that immediately follows a drag end
+        _dragInProgress: false,
 
         init() {
             this.initializeDragAndDrop();
+        },
+
+        openPreview(recipeId, customServings) {
+            if (this._dragInProgress) return;
+            if (!recipeId) return;
+            const servings = customServings || {{ current_camp.participant_count }};
+            window.FreizeitApp.openModal(`/recipes/${recipeId}/preview?servings=${servings}`);
+        },
+
+        openLeftoverModal(mealPlanId) {
+            window.FreizeitApp.openModal(`/leftovers/new?meal_plan_id=${mealPlanId}`);
+        },
+
+        editSubCategory(mealPlanId) {
+            window.FreizeitApp.openModal(`/meal-planning/sub-category-modal/${mealPlanId}`);
+        },
+
+        editServings(mealPlanId) {
+            window.FreizeitApp.openModal(`/meal-planning/servings-modal/${mealPlanId}`);
         },
 
         filterRecipes() {
@@ -244,6 +307,14 @@ function mealPlanning() {
         },
 
         initializeDragAndDrop() {
+            const self = this;
+            const markDragStart = () => { self._dragInProgress = true; };
+            const markDragEnd = () => {
+                // Defer the unset so the click that immediately follows the
+                // drag end (mouseup → click) does not open the preview modal.
+                setTimeout(() => { self._dragInProgress = false; }, 50);
+            };
+
             // Make recipe sidebar sortable (clone only)
             const sidebar = document.getElementById('recipe-sidebar');
             if (sidebar && typeof Sortable !== 'undefined') {
@@ -256,7 +327,9 @@ function mealPlanning() {
                     sort: false,
                     animation: 150,
                     ghostClass: 'sortable-ghost',
-                    chosenClass: 'sortable-chosen'
+                    chosenClass: 'sortable-chosen',
+                    onStart: markDragStart,
+                    onEnd: markDragEnd
                 });
             }
 
@@ -271,6 +344,8 @@ function mealPlanning() {
                         },
                         animation: 150,
                         ghostClass: 'sortable-ghost',
+                        onStart: markDragStart,
+                        onEnd: markDragEnd,
 
                         onAdd: async (evt) => {
                             const recipeId = evt.item.dataset.recipeId;
@@ -404,6 +479,16 @@ function mealPlanning() {
             <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
         </svg>
         <span>Rezeptbuch</span>
+    </a>
+
+    <!-- Tageslisten (PDF) - Tertiary FAB -->
+    <a href="/export/daily-lists/pdf/{{ current_camp.id }}"
+       class="fab-extended fab-extended-accent"
+       title="Tageslisten (PDF)">
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z" clip-rule="evenodd"></path>
+        </svg>
+        <span>Tageslisten</span>
     </a>
 </div>
 {% endblock %}
