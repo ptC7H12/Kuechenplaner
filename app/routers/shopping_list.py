@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
-from app import crud, models
+from app import crud, models, schemas
 from app.services.calculation import calculate_shopping_list
 
 router = APIRouter()
@@ -64,3 +64,38 @@ async def get_shopping_list_summary(
         "total_recipes": shopping_data["total_recipes"],
         "categories": list(shopping_data["categories"].keys())
     }
+
+
+@router.put("/api/shopping-list/notes/{ingredient_id}")
+async def upsert_shopping_list_note(
+    ingredient_id: int,
+    payload: schemas.ShoppingListNoteUpdate,
+    current_camp: models.Camp = Depends(get_current_camp),
+    db: Session = Depends(get_db),
+):
+    """Create, update or delete (empty note) a camp-specific note for a shopping list item."""
+    if not current_camp:
+        raise HTTPException(status_code=400, detail="Kein Camp ausgewaehlt")
+
+    ingredient = crud.get_ingredient(db, ingredient_id)
+    if not ingredient:
+        raise HTTPException(status_code=404, detail="Zutat nicht gefunden")
+
+    saved = crud.upsert_shopping_list_note(db, current_camp.id, ingredient_id, payload.note)
+    return {
+        "ingredient_id": ingredient_id,
+        "note": saved.note if saved else None,
+    }
+
+
+@router.put("/api/ingredients/{ingredient_id}/note")
+async def update_ingredient_global_note(
+    ingredient_id: int,
+    payload: schemas.ShoppingListNoteUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update the global note on an ingredient (applies to all camps)."""
+    updated = crud.update_ingredient_note(db, ingredient_id, payload.note)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Zutat nicht gefunden")
+    return {"ingredient_id": ingredient_id, "note": updated.note}

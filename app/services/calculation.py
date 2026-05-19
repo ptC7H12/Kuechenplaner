@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import logging
 
 from app import models, crud
-from app.services.unit_converter import convert_unit
+from app.services.unit_converter import convert_unit, normalize_to_base
 
 logger = logging.getLogger("kuechenplaner.calculation")
 
@@ -34,6 +34,18 @@ def scale_recipe(recipe: models.Recipe, target_servings: int) -> Dict[str, Any]:
         'base_servings': recipe.base_servings
     }
 
+def _merge_notes(notes) -> str | None:
+    """Join distinct non-empty notes with '; ', preserving first-seen order."""
+    seen = []
+    for note in notes:
+        if not note:
+            continue
+        cleaned = note.strip()
+        if cleaned and cleaned not in seen:
+            seen.append(cleaned)
+    return "; ".join(seen) if seen else None
+
+
 def calculate_shopping_list(db: Session, camp_id: int) -> Dict[str, Any]:
     """Calculate aggregated shopping list for a camp"""
     
@@ -44,42 +56,72 @@ def calculate_shopping_list(db: Session, camp_id: int) -> Dict[str, Any]:
     
     meal_plans = crud.get_meal_plans_for_camp(db, camp_id)
     
-    # Aggregate ingredients
-    aggregated = defaultdict(lambda: {'quantity': 0, 'ingredient': None, 'unit': None})
-    
+    # Aggregate ingredients. Key normalises name + base-unit so that
+    #   (a) DB duplicates differing only in case/whitespace ("Hackfleisch" vs.
+    #       "hackfleisch ") collapse into one row, and
+    #   (b) mixed mass/volume units (g + kg, ml + L) for the same ingredient
+    #       collapse into one row in the base unit (g / ml). The display
+    #       conversion via convert_unit() then re-promotes large g/ml values
+    #       to kg / L.
+    aggregated = defaultdict(lambda: {
+        'quantity': 0,
+        'ingredient': None,
+        'unit': None,
+        'ingredient_ids': [],
+        'global_notes': [],
+    })
+
     for meal_plan in meal_plans:
         # Skip "no meal" entries (recipe_id is NULL)
         if not meal_plan.recipe_id or not meal_plan.recipe:
             continue
 
-        scaled = scale_recipe(meal_plan.recipe, camp.participant_count)
+        effective_servings = meal_plan.custom_servings or camp.participant_count
+        scaled = scale_recipe(meal_plan.recipe, effective_servings)
 
         for ingredient_data in scaled['ingredients']:
             ingredient = ingredient_data['ingredient']
-            quantity = ingredient_data['quantity']
-            unit = ingredient_data['unit']
+            quantity, unit = normalize_to_base(
+                ingredient_data['quantity'], ingredient_data['unit']
+            )
 
-            # Use ingredient ID and unit as key for aggregation
-            key = (ingredient.id, unit)
+            key = ((ingredient.name or '').strip().casefold(),
+                   (unit or '').strip().casefold())
 
-            if aggregated[key]['ingredient'] is None:
-                aggregated[key]['ingredient'] = ingredient
-                aggregated[key]['unit'] = unit
+            bucket = aggregated[key]
+            if bucket['ingredient'] is None:
+                bucket['ingredient'] = ingredient
+                bucket['unit'] = unit
 
-            aggregated[key]['quantity'] += quantity
-    
+            if ingredient.id not in bucket['ingredient_ids']:
+                bucket['ingredient_ids'].append(ingredient.id)
+                if ingredient.note:
+                    bucket['global_notes'].append(ingredient.note)
+
+            bucket['quantity'] += quantity
+
+    # Load camp-specific shopping list notes in bulk (one query)
+    camp_notes = crud.get_shopping_list_notes_for_camp(db, camp_id)
+
     # Convert to list and apply unit conversions
     shopping_items = []
-    for (ingredient_id, unit), data in aggregated.items():
+    for data in aggregated.values():
         converted = convert_unit(data['quantity'], data['unit'])
-        
+
+        camp_note = _merge_notes(
+            camp_notes.get(iid) for iid in data['ingredient_ids']
+        )
+        global_note = _merge_notes(data['global_notes'])
+
         shopping_items.append({
             'ingredient': data['ingredient'],
             'quantity': converted['quantity'],
             'unit': converted['unit'],
             'original_quantity': data['quantity'],
             'original_unit': data['unit'],
-            'category': data['ingredient'].category
+            'category': data['ingredient'].category,
+            'note': camp_note,
+            'global_note': global_note,
         })
     
     # Group by category

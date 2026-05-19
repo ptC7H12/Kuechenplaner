@@ -1,0 +1,208 @@
+<div class="p-6" x-data="leftoverForm()">
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">
+                <span x-show="!hasExisting">Reste erfassen</span>
+                <span x-show="hasExisting">Reste bearbeiten</span>
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                {% if recipe %}{{ recipe.name }} &middot; {% endif %}
+                {{ meal_plan.meal_date.strftime('%d.%m.%Y') }} &middot; {{ meal_plan.meal_type.value }}
+            </p>
+        </div>
+        <button type="button" @click="$dispatch('close-modal')" class="text-gray-400 hover:text-gray-600" aria-label="Schließen">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <form @submit.prevent="submit" class="space-y-4">
+        <!-- Pro Rezept -->
+        <div class="border-l-4 border-orange-400 bg-orange-50 rounded-md p-4">
+            <label class="flex items-center mb-2 cursor-pointer">
+                <input type="checkbox" x-model="perRecipe.enabled" class="form-checkbox mr-2">
+                <span class="font-bold text-gray-900">Pro Rezept (gesamte Mahlzeit)</span>
+            </label>
+            <div x-show="perRecipe.enabled" class="space-y-3 pl-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">
+                        Restmenge: <span class="text-orange-700" x-text="perRecipe.percentage + ' %'"></span>
+                    </label>
+                    <input type="range" min="0" max="100" step="5" x-model.number="perRecipe.percentage" class="w-full">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Beschreibung (optional)</label>
+                    <textarea x-model="perRecipe.description"
+                              placeholder="z.B. ein halber Topf übrig"
+                              class="form-input"
+                              rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pro Zutat -->
+        {% if ingredients %}
+        <div class="border-l-4 border-amber-400 bg-amber-50 rounded-md p-4">
+            <div class="font-bold text-gray-900 mb-2">Pro Zutat (mehrere möglich)</div>
+            <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <template x-for="row in perIngredient" :key="row.ingredient_id">
+                    <div class="bg-white rounded-md p-2 shadow-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" x-model="row.enabled" class="form-checkbox flex-shrink-0">
+                            <span class="flex-1 text-sm font-medium text-gray-900 truncate" x-text="row.name"></span>
+                            <span class="text-sm font-bold flex-shrink-0 w-12 text-right"
+                                  :class="row.enabled ? 'text-orange-700' : 'text-gray-400'"
+                                  x-text="row.percentage + ' %'"></span>
+                        </label>
+                        <input type="range" min="0" max="100" step="5"
+                               x-model.number="row.percentage"
+                               @input="row.enabled = true"
+                               class="w-full mt-1"
+                               :disabled="!row.enabled">
+                    </div>
+                </template>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-between gap-3 border-t pt-4">
+            <button type="button" @click="resetAll" class="btn btn-icon text-red-600 hover:bg-red-50"
+                    x-show="hasExisting" :disabled="submitting" title="Alle Einträge löschen">
+                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm font-bold">Alle entfernen</span>
+            </button>
+            <div class="flex gap-3 ml-auto">
+                <button type="button" @click="$dispatch('close-modal')" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary" :disabled="submitting">
+                    <span x-show="!submitting">Speichern</span>
+                    <span x-show="submitting">Speichere...</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+const __leftoverModalState = {
+    mealPlanId: {{ meal_plan.id | tojson }},
+    ingredients: [
+        {% for ri in ingredients %}
+        { ingredient_id: {{ ri.ingredient.id | tojson }}, name: {{ ri.ingredient.name | tojson }} }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ],
+    existingEntries: [
+        {% for e in existing_entries %}
+        {
+            tracking_type: {{ e.tracking_type | tojson }},
+            ingredient_id: {{ e.ingredient_id | tojson }},
+            percentage_left: {{ (e.percentage_left if e.percentage_left is not none else 0) | tojson }},
+            description: {{ (e.description or '') | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+};
+
+function leftoverForm() {
+    return {
+        perRecipe: { enabled: false, percentage: 0, description: '' },
+        perIngredient: [],
+        submitting: false,
+        hasExisting: __leftoverModalState.existingEntries.length > 0,
+
+        init() {
+            // Build per-ingredient rows from recipe ingredients
+            this.perIngredient = __leftoverModalState.ingredients.map(ing => ({
+                ingredient_id: ing.ingredient_id,
+                name: ing.name,
+                enabled: false,
+                percentage: 0,
+            }));
+
+            // Pre-fill from existing entries
+            for (const entry of __leftoverModalState.existingEntries) {
+                if (entry.tracking_type === 'per_recipe') {
+                    this.perRecipe.enabled = true;
+                    this.perRecipe.percentage = entry.percentage_left || 0;
+                    this.perRecipe.description = entry.description || '';
+                } else if (entry.tracking_type === 'per_ingredient' && entry.ingredient_id != null) {
+                    const row = this.perIngredient.find(r => r.ingredient_id === entry.ingredient_id);
+                    if (row) {
+                        row.enabled = true;
+                        row.percentage = entry.percentage_left || 0;
+                    } else {
+                        // Ingredient not in current recipe (e.g. removed) — append at end
+                        this.perIngredient.push({
+                            ingredient_id: entry.ingredient_id,
+                            name: '#' + entry.ingredient_id + ' (nicht mehr im Rezept)',
+                            enabled: true,
+                            percentage: entry.percentage_left || 0,
+                        });
+                    }
+                }
+            }
+        },
+
+        buildPayload() {
+            const entries = [];
+            if (this.perRecipe.enabled) {
+                entries.push({
+                    tracking_type: 'per_recipe',
+                    ingredient_id: null,
+                    percentage_left: this.perRecipe.percentage,
+                    description: this.perRecipe.description || null,
+                });
+            }
+            for (const row of this.perIngredient) {
+                if (row.enabled) {
+                    entries.push({
+                        tracking_type: 'per_ingredient',
+                        ingredient_id: row.ingredient_id,
+                        percentage_left: row.percentage,
+                        description: null,
+                    });
+                }
+            }
+            return entries;
+        },
+
+        async _send(entries) {
+            this.submitting = true;
+            try {
+                const response = await fetch(`/leftovers/api/meal-plan/${__leftoverModalState.mealPlanId}/sync`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entries }),
+                });
+                if (!response.ok) throw new Error('Speichern fehlgeschlagen');
+                window.FreizeitApp.showToast(
+                    entries.length === 0 ? 'Reste-Einträge entfernt' : 'Reste gespeichert',
+                    'success'
+                );
+                window.dispatchEvent(new CustomEvent('close-modal'));
+                window.location.reload();
+            } catch (err) {
+                window.FreizeitApp.showToast('Fehler beim Speichern', 'error');
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        submit() {
+            const entries = this.buildPayload();
+            if (entries.length === 0) {
+                window.FreizeitApp.showToast('Bitte mindestens einen Eintrag aktivieren (oder "Alle entfernen").', 'warning');
+                return;
+            }
+            this._send(entries);
+        },
+
+        resetAll() {
+            if (!confirm('Wirklich alle Reste-Einträge für diese Mahlzeit entfernen?')) return;
+            this._send([]);
+        },
+    };
+}
+</script>

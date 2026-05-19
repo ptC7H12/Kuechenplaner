@@ -15,6 +15,25 @@ DEFAULT_CONVERSIONS = {
     'mg': {'threshold': 1000, 'target': 'g', 'factor': 0.001},
 }
 
+# Base-unit normalisation for mass / volume. Used by the shopping list to
+# collapse the same ingredient across recipes that mix compatible units
+# (e.g. 500 g + 2 kg → 2500 g → 2.5 kg after display conversion).
+MASS_TO_BASE = {"kg": 1000.0, "g": 1.0, "mg": 0.001}
+VOLUME_TO_BASE = {"L": 1000.0, "l": 1000.0, "ml": 1.0}
+
+
+def normalize_to_base(quantity: float, unit: str) -> tuple[float, str]:
+    """Convert mass/volume quantities to their base unit (g / ml).
+
+    Returns (quantity, unit) unchanged for unknown / non-metric units
+    (Stück, EL, TL, Packung, …) so they keep their own aggregation bucket.
+    """
+    if unit in MASS_TO_BASE:
+        return quantity * MASS_TO_BASE[unit], "g"
+    if unit in VOLUME_TO_BASE:
+        return quantity * VOLUME_TO_BASE[unit], "ml"
+    return quantity, unit
+
 def convert_unit(quantity: float, unit: str, custom_conversions: Dict = None) -> Dict[str, Any]:
     """
     Convert units automatically based on quantity thresholds
@@ -107,6 +126,27 @@ def format_quantity_unit(quantity: float, unit: str) -> str:
         return f"{int(quantity)} {unit}"
     else:
         return f"{quantity:.2f} {unit}".rstrip('0').rstrip('.')
+
+
+def _format_german_number(value: float) -> str:
+    """Format a number with comma as decimal separator (German convention).
+
+    One decimal place; integers render without trailing ',0'.
+    """
+    if value == int(value):
+        return str(int(value))
+    return f"{value:.1f}".replace(".", ",")
+
+
+def format_quantity_with_conversion(quantity: float, unit: str) -> str:
+    """Convert (if applicable) and format a quantity for German-locale display.
+
+    Used by PDF exports (recipe book, daily lists) so that 1500 g renders as
+    "1,5 kg" rather than "1500.0 g". Falls back to the input unit when no
+    conversion rule applies.
+    """
+    converted = convert_unit(quantity, unit)
+    return f"{_format_german_number(converted['quantity'])} {converted['unit']}"
 
 def normalize_unit_name(unit: str) -> str:
     """Normalize unit names for consistency"""

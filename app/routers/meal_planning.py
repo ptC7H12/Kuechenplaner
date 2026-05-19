@@ -7,7 +7,15 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
+from app.constants import MEAL_SUB_CATEGORIES
 from app.logging_config import get_logger
+
+
+def _get_meal_plan_for_modal(meal_plan_id: int, db: Session) -> models.MealPlan:
+    meal_plan = crud.get_meal_plan(db, meal_plan_id)
+    if not meal_plan:
+        raise HTTPException(status_code=404, detail="Mahlzeit nicht gefunden")
+    return meal_plan
 
 logger = get_logger("meal_planning")
 
@@ -25,7 +33,8 @@ async def meal_planning_page(
         return templates.TemplateResponse("meal_planning/no_camp.html", context)
 
     meal_plans = crud.get_meal_plans_for_camp(db, current_camp.id)
-    recipes = crud.get_recipes(db, skip=0, limit=1000)
+    recipes = crud.get_recipes(db, skip=0, limit=1000, order_by="name")
+    meal_plan_ids_with_leftovers = crud.get_meal_plan_ids_with_leftovers(db, current_camp.id)
 
     # Generate date range for the camp
     days = []
@@ -53,7 +62,9 @@ async def meal_planning_page(
         "days": days,
         "meal_grid": meal_grid,
         "recipes": recipes,
-        "meal_types": [models.MealType.BREAKFAST, models.MealType.LUNCH, models.MealType.DINNER]
+        "meal_types": [models.MealType.BREAKFAST, models.MealType.LUNCH, models.MealType.DINNER],
+        "meal_sub_categories": MEAL_SUB_CATEGORIES,
+        "meal_plan_ids_with_leftovers": meal_plan_ids_with_leftovers,
     })
 
     return templates.TemplateResponse("meal_planning/index.html", context)
@@ -128,6 +139,42 @@ async def create_bulk_meal_plans(
         "count": len(created_plans),
         "meal_plans": created_plans
     }
+
+@router.get("/servings-modal/{meal_plan_id}", response_class=HTMLResponse)
+async def servings_modal(
+    meal_plan_id: int,
+    request: Request,
+    context: dict = Depends(get_template_context),
+    current_camp: models.Camp = Depends(get_current_camp),
+    db: Session = Depends(get_db),
+):
+    """Modal fragment for editing custom_servings on a meal plan."""
+    if not current_camp:
+        raise HTTPException(status_code=400, detail="Kein Camp ausgewaehlt")
+    meal_plan = _get_meal_plan_for_modal(meal_plan_id, db)
+    context.update({"meal_plan": meal_plan, "camp": current_camp})
+    return templates.TemplateResponse("meal_planning/servings_modal.html", context)
+
+
+@router.get("/sub-category-modal/{meal_plan_id}", response_class=HTMLResponse)
+async def sub_category_modal(
+    meal_plan_id: int,
+    request: Request,
+    context: dict = Depends(get_template_context),
+    current_camp: models.Camp = Depends(get_current_camp),
+    db: Session = Depends(get_db),
+):
+    """Modal fragment for picking a sub_category (Gang) on a meal plan."""
+    if not current_camp:
+        raise HTTPException(status_code=400, detail="Kein Camp ausgewaehlt")
+    meal_plan = _get_meal_plan_for_modal(meal_plan_id, db)
+    context.update({
+        "meal_plan": meal_plan,
+        "camp": current_camp,
+        "sub_categories": MEAL_SUB_CATEGORIES,
+    })
+    return templates.TemplateResponse("meal_planning/sub_category_modal.html", context)
+
 
 @router.post("/api/meal-plans/{meal_plan_id}/copy")
 async def copy_meal_plan(

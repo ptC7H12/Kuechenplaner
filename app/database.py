@@ -1,9 +1,11 @@
-from sqlalchemy import create_engine, event, inspect
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from pathlib import Path
+import logging
+import os
 import sqlite3
 import sys
-import logging
+from pathlib import Path
+
+from sqlalchemy import create_engine, event, inspect
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 logger = logging.getLogger("kuechenplaner.database")
 
@@ -12,7 +14,6 @@ def _get_data_dir() -> Path:
     # "__compiled__" is injected into every module's globals by Nuitka.
     # In regular Python (development), it is absent.
     if "__compiled__" in globals():
-        import os
         if sys.platform == "win32":
             base = Path(os.environ["APPDATA"]) / "KuechenApp"
         else:
@@ -34,7 +35,7 @@ SQLALCHEMY_DATABASE_URL = f"sqlite:///{DATA_DIR}/app.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    echo=False  # Set to True for SQL debugging
+    echo=False,  # Set to True for SQL debugging
 )
 
 
@@ -100,6 +101,7 @@ def run_migrations():
     3. Tracked DB (has `alembic_version`): normal `upgrade head`.
     """
     import app.models  # noqa: F401 - ensure models are registered with Base.metadata
+
     try:
         from alembic import command
     except ImportError:
@@ -117,8 +119,7 @@ def run_migrations():
 
         if tables and "alembic_version" not in tables:
             logger.info(
-                "Legacy database detected (no alembic_version table); "
-                "stamping to revision %s",
+                "Legacy database detected (no alembic_version table); stamping to revision %s",
                 INITIAL_SCHEMA_REVISION,
             )
             command.stamp(alembic_cfg, INITIAL_SCHEMA_REVISION)
@@ -130,19 +131,52 @@ def run_migrations():
         raise
 
 
-def backup_database() -> None:
-    """Create a rotating daily backup of the SQLite DB (keeps last 7 copies)."""
-    from datetime import date
+BACKUP_DIR = DATA_DIR / "backups"
+
+# Triggers whose backups are protected from auto-cleanup. Auto-backups outside
+# this set are pruned to keep at most 7 entries.
+_PROTECTED_TRIGGERS = ("manual", "pre-restore", "pre-reset")
+
+
+def _is_protected_backup(path: Path) -> bool:
+    return any(path.stem.endswith(f"_{t}") for t in _PROTECTED_TRIGGERS)
+
+
+def backup_database(trigger: str = "auto") -> Path | None:
+    """Create a backup of the SQLite DB and return the resulting path.
+
+    - ``trigger="auto"`` only creates a new file if no auto-backup exists for
+      today (`app_YYYY-MM-DD_*_auto.db`); cleanup keeps the last 7 auto-backups.
+    - ``trigger="manual"`` always creates a new file (timestamp gives uniqueness)
+      and is never cleaned up.
+    - ``trigger="pre-restore"`` / ``"pre-reset"`` are safety snapshots taken
+      immediately before destructive operations; never cleaned up.
+
+    Returns the path of the created (or existing reused) backup file, or
+    ``None`` if the source DB is missing.
+    """
+    from datetime import date, datetime
+
+    if trigger not in ("auto", "manual", "pre-restore", "pre-reset"):
+        raise ValueError(f"Unknown backup trigger: {trigger!r}")
 
     db_path = DATA_DIR / "app.db"
     if not db_path.exists():
-        return
+        return None
 
-    backup_dir = DATA_DIR / "backups"
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
-    backup_path = backup_dir / f"app_{date.today().isoformat()}.db"
-    if not backup_path.exists():
+    backup_path: Path | None = None
+
+    if trigger == "auto":
+        today_iso = date.today().isoformat()
+        existing_today = sorted(BACKUP_DIR.glob(f"app_{today_iso}_*_auto.db"))
+        if existing_today:
+            backup_path = existing_today[-1]
+
+    if backup_path is None:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        backup_path = BACKUP_DIR / f"app_{timestamp}_{trigger}.db"
         try:
             src = sqlite3.connect(str(db_path))
             dst = sqlite3.connect(str(backup_path))
@@ -152,12 +186,122 @@ def backup_database() -> None:
             logger.info(f"Database backed up to {backup_path}")
         except Exception as e:
             logger.error(f"Database backup failed: {e}", exc_info=True)
+            return None
 
-    # Keep only the last 7 daily backups
-    backups = sorted(backup_dir.glob("app_*.db"))
-    for old in backups[:-7]:
+    # Cleanup applies only to auto-backups. Legacy files without a trigger
+    # suffix (`app_YYYY-MM-DD.db`) are treated as auto for cleanup purposes.
+    auto_backups = sorted(p for p in BACKUP_DIR.glob("app_*.db") if not _is_protected_backup(p))
+    for old in auto_backups[:-7]:
         try:
             old.unlink()
             logger.info(f"Removed old backup: {old.name}")
         except OSError as e:
             logger.warning(f"Could not remove old backup {old.name}: {e}")
+
+    return backup_path
+
+
+def _validate_backup_file(path: Path) -> None:
+    """Validate that ``path`` is a SQLite DB with a known Alembic revision.
+
+    Raises ``ValueError`` if any check fails. On success, returns ``None``.
+    """
+    if not path.exists() or path.stat().st_size < 100:
+        raise ValueError("Datei ist leer oder unvollständig.")
+
+    with path.open("rb") as fh:
+        header = fh.read(16)
+    if not header.startswith(b"SQLite format 3\x00"):
+        raise ValueError("Datei ist keine gültige SQLite-Datenbank.")
+
+    try:
+        conn = sqlite3.connect(str(path))
+        try:
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='alembic_version'")
+            if cursor.fetchone() is None:
+                raise ValueError("Backup enthält keine Alembic-Versionstabelle und stammt nicht aus dieser App.")
+            cursor = conn.execute("SELECT version_num FROM alembic_version")
+            row = cursor.fetchone()
+            if row is None or not row[0]:
+                raise ValueError("Backup enthält keine Alembic-Revision.")
+            backup_revision = row[0]
+        finally:
+            conn.close()
+    except sqlite3.DatabaseError as e:
+        raise ValueError(f"Backup-Datei nicht lesbar: {e}") from e
+
+    known_revisions = _alembic_known_revisions()
+    if known_revisions and backup_revision not in known_revisions:
+        raise ValueError(
+            f"Backup-Revision '{backup_revision}' ist neuer als die "
+            "App-Version. Bitte App aktualisieren, dann erneut versuchen."
+        )
+
+
+def _alembic_known_revisions() -> set[str]:
+    """Return the set of revisions known to the bundled Alembic scripts.
+
+    Used to reject backups created with a newer schema than the running app.
+    Returns an empty set if Alembic is unavailable (in which case the caller
+    skips this check).
+    """
+    try:
+        from alembic.script import ScriptDirectory
+    except ImportError:
+        return set()
+
+    alembic_cfg = _build_alembic_config()
+    if alembic_cfg is None:
+        return set()
+
+    try:
+        script_dir = ScriptDirectory.from_config(alembic_cfg)
+        return {rev.revision for rev in script_dir.walk_revisions()}
+    except Exception:
+        logger.warning("Failed to enumerate Alembic revisions", exc_info=True)
+        return set()
+
+
+def restore_database(uploaded_db: Path) -> None:
+    """Replace the live database with ``uploaded_db`` and migrate to ``head``.
+
+    Caller is responsible for having validated ``uploaded_db`` first via
+    :func:`_validate_backup_file`. A ``pre-restore`` safety backup of the
+    current DB is created before the swap.
+    """
+    backup_database(trigger="pre-restore")
+
+    target = DATA_DIR / "app.db"
+    engine.dispose()
+
+    for wal_suffix in ("-wal", "-shm"):
+        side_file = target.with_name(target.name + wal_suffix)
+        try:
+            side_file.unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning(f"Could not remove {side_file.name}: {e}")
+
+    os.replace(uploaded_db, target)
+    run_migrations()
+    logger.info("Database restored from uploaded backup")
+
+
+def reset_database() -> None:
+    """Delete the live database and re-run migrations to recreate the schema.
+
+    A ``pre-reset`` safety backup of the current DB is created beforehand.
+    """
+    backup_database(trigger="pre-reset")
+
+    target = DATA_DIR / "app.db"
+    engine.dispose()
+
+    for suffix in ("", "-wal", "-shm"):
+        side_file = target.with_name(target.name + suffix)
+        try:
+            side_file.unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning(f"Could not remove {side_file.name}: {e}")
+
+    run_migrations()
+    logger.info("Database reset complete")

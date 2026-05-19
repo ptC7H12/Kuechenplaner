@@ -45,6 +45,7 @@ class Camp(Base):
 
     # Relationships
     meal_plans = relationship("MealPlan", back_populates="camp", cascade="all, delete-orphan")
+    leftovers = relationship("Leftover", back_populates="camp", cascade="all, delete-orphan")
 
     # Constraints
     __table_args__ = (
@@ -82,11 +83,27 @@ class Ingredient(Base):
     name = Column(String(255), nullable=False, unique=True, index=True)
     unit = Column(String(50), nullable=False)  # g, kg, L, ml, Stück, custom
     category = Column(String(100), nullable=False, index=True)  # Obst, Gemüse, Milchprodukte, etc.
+    note = Column(Text)  # Global note, applies across all camps (e.g. "beim Großhändler bestellen")
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
     recipe_ingredients = relationship("RecipeIngredient", back_populates="ingredient")
+
+
+class ShoppingListNote(Base):
+    __tablename__ = 'shopping_list_notes'
+
+    id = Column(Integer, primary_key=True, index=True)
+    camp_id = Column(Integer, ForeignKey('camps.id', ondelete="CASCADE"), nullable=False, index=True)
+    ingredient_id = Column(Integer, ForeignKey('ingredients.id', ondelete="CASCADE"), nullable=False, index=True)
+    note = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('camp_id', 'ingredient_id', name='uix_shopping_note_camp_ingredient'),
+    )
 
 class RecipeIngredient(Base):
     __tablename__ = 'recipe_ingredients'
@@ -126,6 +143,8 @@ class MealPlan(Base):
     meal_type = Column(Enum(MealType), nullable=False, index=True)
     position = Column(Integer, default=0)  # for multiple recipes per slot
     notes = Column(Text)
+    custom_servings = Column(Integer)  # Optional override for camp.participant_count
+    sub_category = Column(String(50))  # e.g. Vorspeise/Hauptgang for multi-course dinners
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
@@ -177,6 +196,26 @@ class RecipeVersion(Base):
         UniqueConstraint('recipe_id', 'version_number',
                          name='uix_recipe_version'),
     )
+
+class Leftover(Base):
+    __tablename__ = 'leftovers'
+
+    id = Column(Integer, primary_key=True, index=True)
+    camp_id = Column(Integer, ForeignKey('camps.id', ondelete="CASCADE"), nullable=False, index=True)
+    meal_plan_id = Column(Integer, ForeignKey('meal_plans.id', ondelete="SET NULL"), nullable=True, index=True)
+    recipe_id = Column(Integer, ForeignKey('recipes.id', ondelete="SET NULL"), nullable=True, index=True)
+    ingredient_id = Column(Integer, ForeignKey('ingredients.id', ondelete="SET NULL"), nullable=True)
+    tracking_type = Column(String(20), nullable=False)  # "per_recipe" or "per_ingredient"
+    percentage_left = Column(Float)  # 0..100
+    description = Column(Text)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    camp = relationship("Camp", back_populates="leftovers")
+    meal_plan = relationship("MealPlan")
+    recipe = relationship("Recipe")
+    ingredient = relationship("Ingredient")
+
 
 class AppSettings(Base):
     __tablename__ = 'app_settings'

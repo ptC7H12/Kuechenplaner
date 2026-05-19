@@ -1,0 +1,94 @@
+<div class="recipe-preview p-6">
+    <div class="flex items-start justify-between mb-4">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold text-gray-900 truncate">{{ recipe.name }}</h2>
+            <div class="text-sm text-gray-600 mt-1 space-x-3">
+                <span><strong>{{ target_servings }}</strong> Portionen
+                    {% if scaling_factor != 1.0 %}
+                    <span class="text-xs text-gray-500">(Original: {{ recipe.base_servings }})</span>
+                    {% endif %}
+                </span>
+                {% if recipe.preparation_time %}<span>· Vorbereitung: {{ recipe.preparation_time }} min</span>{% endif %}
+                {% if recipe.cooking_time %}<span>· Kochzeit: {{ recipe.cooking_time }} min</span>{% endif %}
+            </div>
+        </div>
+        <button type="button"
+                @click="$dispatch('close-modal')"
+                class="ml-4 text-gray-400 hover:text-gray-600"
+                aria-label="Schließen">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    {% if recipe.description %}
+    <p class="text-sm text-gray-700 mb-4">{{ recipe.description }}</p>
+    {% endif %}
+
+    {% if recipe.tags or recipe.allergens %}
+    <div class="mb-4 flex flex-wrap gap-2">
+        {% for tag in recipe.tags %}
+        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium"
+              style="background-color: {{ tag.color }}22; color: {{ tag.color }};">
+            {% if tag.icon %}{{ tag.icon }} {% endif %}{{ tag.name }}
+        </span>
+        {% endfor %}
+        {% for allergen in recipe.allergens %}
+        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+            {% if allergen.icon %}{{ allergen.icon }} {% endif %}{{ allergen.name }}
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <h3 class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Zutaten</h3>
+            {% if scaled_ingredients %}
+            <table class="w-full text-sm">
+                <tbody class="divide-y divide-gray-100">
+                    {% for ing in scaled_ingredients %}
+                    <tr>
+                        <td class="py-1.5 pr-3 text-right font-semibold text-gray-700 whitespace-nowrap">
+                            {{ "%.1f"|format(ing.quantity) }} {{ ing.unit }}
+                        </td>
+                        <td class="py-1.5 text-gray-900">{{ ing.name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-sm text-gray-500 italic">Keine Zutaten hinterlegt.</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">Zubereitung</h3>
+            {% if recipe.instructions %}
+            <div class="text-sm text-gray-800 whitespace-pre-line leading-relaxed">{{ recipe.instructions }}</div>
+            {% else %}
+            <p class="text-sm text-gray-500 italic">Keine Zubereitung hinterlegt.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if recipe.allergen_notes %}
+    <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded">
+        <h4 class="text-xs font-bold uppercase text-amber-800 mb-1">Allergie-Hinweise</h4>
+        <p class="text-sm text-amber-900">{{ recipe.allergen_notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="mt-6 flex items-center justify-between border-t pt-4">
+        <a href="/recipes/{{ recipe.id }}"
+           class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+            Zur vollständigen Rezeptseite &rarr;
+        </a>
+        <button type="button"
+                @click="$dispatch('close-modal')"
+                class="btn btn-secondary text-sm">
+            Schließen
+        </button>
+    </div>
+</div>

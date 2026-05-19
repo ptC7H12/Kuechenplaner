@@ -8,6 +8,11 @@ from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas, models
 from app.constants import RECIPE_LIST_LIMIT
+from app.services.leftover_statistics import (
+    count_recipe_leftover_entries,
+    get_ingredient_breakdown,
+    get_recipe_statistics,
+)
 from app.logging_config import get_logger
 
 logger = get_logger("recipes")
@@ -111,15 +116,64 @@ async def get_recipe(
     recipe_id: int,
     request: Request,
     context: dict = Depends(get_template_context),
+    current_camp: Optional[models.Camp] = Depends(get_current_camp),
     db: Session = Depends(get_db)
 ):
-    """Get recipe details"""
+    """Get recipe details with optional leftover history (Story 8)."""
     recipe = crud.get_recipe(db, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
-    context.update({"recipe": recipe})
+    camp_id = current_camp.id if current_camp else None
+    leftover_stats = get_recipe_statistics(db, recipe_id, current_camp_id=camp_id)
+    ingredient_breakdown = get_ingredient_breakdown(db, recipe_id)
+    leftover_total_entries = count_recipe_leftover_entries(db, recipe_id)
+
+    context.update({
+        "recipe": recipe,
+        "leftover_stats": leftover_stats,
+        "leftover_ingredient_breakdown": ingredient_breakdown,
+        "leftover_total_entries": leftover_total_entries,
+    })
     return templates.TemplateResponse("recipes/detail.html", context)
+
+
+@router.get("/{recipe_id}/preview", response_class=HTMLResponse)
+async def recipe_preview_fragment(
+    recipe_id: int,
+    request: Request,
+    servings: Optional[int] = None,
+    context: dict = Depends(get_template_context),
+    db: Session = Depends(get_db),
+):
+    """HTML fragment for the recipe-preview modal in meal planning.
+
+    Loaded via FreizeitApp.openModal() into #modal-content. Optionally scales
+    ingredient quantities to the given servings (e.g. camp.participant_count
+    or a MealPlan.custom_servings override).
+    """
+    recipe = crud.get_recipe(db, recipe_id)
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    target_servings = servings if servings and servings > 0 else recipe.base_servings
+    factor = target_servings / recipe.base_servings if recipe.base_servings > 0 else 1.0
+    scaled_ingredients = [
+        {
+            "name": ri.ingredient.name,
+            "quantity": ri.quantity * factor,
+            "unit": ri.unit,
+        }
+        for ri in recipe.ingredients
+    ]
+
+    context.update({
+        "recipe": recipe,
+        "scaled_ingredients": scaled_ingredients,
+        "target_servings": target_servings,
+        "scaling_factor": factor,
+    })
+    return templates.TemplateResponse("recipes/preview_modal.html", context)
 
 @router.get("/{recipe_id}/edit", response_class=HTMLResponse)
 async def edit_recipe_form(

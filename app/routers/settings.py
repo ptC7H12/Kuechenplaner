@@ -1,20 +1,48 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
-from typing import Dict, Any
 import json
-import tempfile
 import os
+import shutil
+import tempfile
+import urllib.parse
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
-from app.database import get_db
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, Response
+from sqlalchemy.orm import Session
+
+from app import crud, models, schemas
+from app.constants import (
+    EXCEL_INGREDIENT_ROW_END,
+    EXCEL_INGREDIENT_ROW_START,
+    EXCEL_INSTRUCTION_ROW_START,
+    REPO_URL,
+)
+from app.database import (
+    BACKUP_DIR,
+    DATA_DIR,
+    _validate_backup_file,
+    backup_database,
+    get_db,
+    reset_database,
+    restore_database,
+)
 from app.dependencies import get_current_camp, get_template_context, templates
-from app import crud, schemas, models
-from app.constants import EXCEL_INGREDIENT_ROW_START, EXCEL_INGREDIENT_ROW_END, EXCEL_INSTRUCTION_ROW_START
 from app.logging_config import get_logger
 
 logger = get_logger("settings")
 
 router = APIRouter()
+
+
+def _read_version() -> str:
+    try:
+        return (Path(__file__).resolve().parents[2] / "version.txt").read_text(encoding="utf-8").strip()
+    except OSError:
+        return "unknown"
+
+
+APP_VERSION = _read_version()
 
 
 def safe_json_load(value: str) -> Any:
@@ -24,12 +52,13 @@ def safe_json_load(value: str) -> Any:
     except (json.JSONDecodeError, TypeError, ValueError):
         return value
 
+
 @router.get("/", response_class=HTMLResponse)
 async def settings_page(
     request: Request,
     context: dict = Depends(get_template_context),
     current_camp: models.Camp = Depends(get_current_camp),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Settings page"""
     all_settings = crud.get_all_settings(db)
@@ -39,30 +68,127 @@ async def settings_page(
     allergens = crud.get_allergens(db)
     camps = crud.get_camps(db)
 
-    context.update({
-        "settings": settings_dict,
-        "tags": tags,
-        "allergens": allergens,
-        "camps": camps,
-        "current_camp": current_camp
-    })
+    context.update(
+        {
+            "settings": settings_dict,
+            "tags": tags,
+            "allergens": allergens,
+            "camps": camps,
+            "current_camp": current_camp,
+            "app_version": APP_VERSION,
+            "repo_url": REPO_URL,
+            "backup_dir": str(BACKUP_DIR),
+        }
+    )
 
     return templates.TemplateResponse("settings/index.html", context)
+
+
+@router.get("/database/download")
+async def download_database():
+    """Create a manual backup of the SQLite database and stream it to the user."""
+    backup_path = backup_database(trigger="manual")
+    if backup_path is None or not backup_path.exists():
+        raise HTTPException(status_code=500, detail="Backup konnte nicht erstellt werden.")
+    return FileResponse(
+        path=str(backup_path),
+        filename=backup_path.name,
+        media_type="application/octet-stream",
+    )
+
+
+def _set_flash_toast(response: Response, message: str, toast_type: str = "info") -> None:
+    """Set a one-shot toast cookie consumed by base.html after the next page load."""
+    payload = urllib.parse.quote(json.dumps({"message": message, "type": toast_type}))
+    response.set_cookie(
+        key="flash_toast",
+        value=payload,
+        max_age=30,
+        path="/",
+        samesite="lax",
+    )
+
+
+def _toast_trigger_header(message: str, toast_type: str = "error") -> dict[str, str]:
+    """Return an HX-Trigger header dict so HTMX can show an inline toast."""
+    return {"HX-Trigger": json.dumps({"flash-toast": {"message": message, "type": toast_type}})}
+
+
+@router.post("/database/restore")
+async def restore_database_endpoint(
+    backup_file: UploadFile = File(...),
+):
+    """Replace the live database with an uploaded `.db` backup.
+
+    Workflow: save upload to a temp file in `DATA_DIR`, validate (SQLite header
+    + alembic_version with known revision), then swap and re-run migrations.
+    On success the current_camp_id cookie is cleared (it may point at an
+    obsolete camp) and the client is forced to reload.
+    """
+    if not backup_file.filename or not backup_file.filename.lower().endswith(".db"):
+        return Response(
+            status_code=400,
+            headers=_toast_trigger_header("Bitte eine .db-Backup-Datei auswählen.", "error"),
+        )
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    tmp_path = DATA_DIR / f"app_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tmp"
+    try:
+        with tmp_path.open("wb") as out:
+            shutil.copyfileobj(backup_file.file, out)
+    finally:
+        await backup_file.close()
+
+    try:
+        _validate_backup_file(tmp_path)
+    except ValueError as exc:
+        tmp_path.unlink(missing_ok=True)
+        logger.warning("Restore rejected: %s", exc)
+        return Response(status_code=400, headers=_toast_trigger_header(str(exc), "error"))
+
+    try:
+        restore_database(tmp_path)
+    except Exception as exc:
+        logger.exception("Restore failed")
+        tmp_path.unlink(missing_ok=True)
+        return Response(
+            status_code=500,
+            headers=_toast_trigger_header(f"Wiederherstellung fehlgeschlagen: {exc}", "error"),
+        )
+
+    response = Response(headers={"HX-Refresh": "true"})
+    response.delete_cookie("current_camp_id", path="/")
+    _set_flash_toast(response, "Backup wiederhergestellt.", "success")
+    return response
+
+
+@router.post("/database/reset")
+async def reset_database_endpoint():
+    """Delete the live database, re-run migrations, and force a reload."""
+    try:
+        reset_database()
+    except Exception as exc:
+        logger.exception("Reset failed")
+        return Response(
+            status_code=500,
+            headers=_toast_trigger_header(f"Zurücksetzen fehlgeschlagen: {exc}", "error"),
+        )
+
+    response = Response(headers={"HX-Refresh": "true"})
+    response.delete_cookie("current_camp_id", path="/")
+    _set_flash_toast(response, "Datenbank zurückgesetzt.", "success")
+    return response
+
 
 @router.get("/api/settings")
 async def get_all_settings(db: Session = Depends(get_db)):
     """Get all settings (API endpoint)"""
     settings = crud.get_all_settings(db)
-    return {
-        setting.key: crud.get_setting_value(db, setting.key)
-        for setting in settings
-    }
+    return {setting.key: crud.get_setting_value(db, setting.key) for setting in settings}
+
 
 @router.get("/api/settings/{key}")
-async def get_setting(
-    key: str,
-    db: Session = Depends(get_db)
-):
+async def get_setting(key: str, db: Session = Depends(get_db)):
     """Get a specific setting (API endpoint)"""
     value = crud.get_setting_value(db, key)
     if value is None:
@@ -70,31 +196,23 @@ async def get_setting(
 
     return {"key": key, "value": value}
 
+
 @router.post("/api/settings")
-async def update_setting(
-    key: str,
-    value: Any,
-    db: Session = Depends(get_db)
-):
+async def update_setting(key: str, value: Any, db: Session = Depends(get_db)):
     """Update or create a setting (API endpoint)"""
     crud.set_setting_value(db, key, value)
     return {"success": True, "key": key, "value": value}
 
+
 @router.put("/api/settings/{key}")
-async def update_specific_setting(
-    key: str,
-    value: Dict[str, Any],
-    db: Session = Depends(get_db)
-):
+async def update_specific_setting(key: str, value: dict[str, Any], db: Session = Depends(get_db)):
     """Update a specific setting (API endpoint)"""
     crud.set_setting_value(db, key, value.get("value"))
     return {"success": True, "key": key, "value": value.get("value")}
 
+
 @router.delete("/api/settings/{key}")
-async def delete_setting(
-    key: str,
-    db: Session = Depends(get_db)
-):
+async def delete_setting(key: str, db: Session = Depends(get_db)):
     """Delete a setting (API endpoint)"""
     setting = crud.delete_setting(db, key)
     if not setting:
@@ -102,27 +220,24 @@ async def delete_setting(
 
     return {"success": True, "message": f"Setting '{key}' deleted"}
 
+
 # Unit conversion settings
 @router.get("/api/settings/units/conversions")
 async def get_unit_conversions(db: Session = Depends(get_db)):
     """Get unit conversion settings"""
     return crud.get_setting_value(db, "unit_conversions", default={})
 
+
 @router.post("/api/settings/units/conversions")
-async def update_unit_conversions(
-    conversions: Dict[str, Any],
-    db: Session = Depends(get_db)
-):
+async def update_unit_conversions(conversions: dict[str, Any], db: Session = Depends(get_db)):
     """Update unit conversion settings"""
     crud.set_setting_value(db, "unit_conversions", conversions)
     return {"success": True, "conversions": conversions}
 
+
 # Tag management endpoints
 @router.post("/api/tags")
-async def create_tag(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def create_tag(request: Request, db: Session = Depends(get_db)):
     """Create a new tag"""
     form_data = await request.form()
     name = form_data.get("name")
@@ -142,7 +257,7 @@ async def create_tag(
     html = f"""
     <div class="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl bg-white hover:shadow-lg transition-all" id="tag-{tag.id}">
         <div class="flex items-center space-x-3">
-            <span class="text-2xl">{tag.icon or '🏷️'}</span>
+            <span class="text-2xl">{tag.icon or "🏷️"}</span>
             <span class="font-semibold text-gray-900">{tag.name}</span>
             <div class="w-5 h-5 rounded-full border-2 border-gray-200 shadow-sm" style="background-color: {tag.color}"></div>
         </div>
@@ -160,11 +275,9 @@ async def create_tag(
 
     return HTMLResponse(content=html, status_code=201)
 
+
 @router.delete("/api/tags/{tag_id}")
-async def delete_tag(
-    tag_id: int,
-    db: Session = Depends(get_db)
-):
+async def delete_tag(tag_id: int, db: Session = Depends(get_db)):
     """Delete a tag"""
     tag = crud.delete_tag(db, tag_id)
     if not tag:
@@ -179,31 +292,94 @@ def _guess_ingredient_category(ingredient_name: str) -> str:
     ingredient_lower = ingredient_name.lower()
 
     categories = {
-        "Gemüse": ['kartoffel', 'zwiebel', 'knoblauch', 'tomat', 'gurke', 'paprika',
-                    'möhre', 'karotte', 'sellerie', 'lauch', 'zucchini', 'aubergine',
-                    'brokkoli', 'blumenkohl', 'kohl', 'salat', 'spinat', 'erbsen'],
-        "Obst": ['apfel', 'birne', 'banane', 'orange', 'zitrone', 'beeren',
-                  'erdbeere', 'himbeere', 'kirsche', 'pflaume', 'pfirsich'],
-        "Fleisch": ['fleisch', 'hack', 'rind', 'schwein', 'hähnchen', 'huhn',
-                     'pute', 'schnitzel', 'würstchen', 'wurst', 'speck', 'schinken'],
-        "Fisch": ['fisch', 'lachs', 'thunfisch', 'forelle', 'garnele', 'krabbe'],
-        "Milchprodukte": ['milch', 'sahne', 'butter', 'käse', 'quark', 'joghurt',
-                           'schmand', 'creme', 'frischkäse'],
-        "Getreide": ['mehl', 'reis', 'nudel', 'pasta', 'brot', 'brötchen',
-                      'haferflocken', 'müsli', 'couscous', 'bulgur'],
-        "Backwaren": ['zucker', 'backpulver', 'hefe', 'vanille', 'kakao'],
-        "Öle & Fette": ['öl', 'olivenöl', 'sonnenblumenöl', 'margarine', 'fett'],
-        "Gewürze": ['salz', 'pfeffer', 'paprika', 'curry', 'zimt', 'muskat',
-                     'kräuter', 'petersilie', 'basilikum', 'oregano', 'thymian',
-                     'rosmarin', 'majoran', 'kümmel', 'koriander'],
-        "Konserven": ['dose', 'konserve', 'passiert', 'geschält', 'tomatenmark'],
+        "Gemüse": [
+            "kartoffel",
+            "zwiebel",
+            "knoblauch",
+            "tomat",
+            "gurke",
+            "paprika",
+            "möhre",
+            "karotte",
+            "sellerie",
+            "lauch",
+            "zucchini",
+            "aubergine",
+            "brokkoli",
+            "blumenkohl",
+            "kohl",
+            "salat",
+            "spinat",
+            "erbsen",
+        ],
+        "Obst": [
+            "apfel",
+            "birne",
+            "banane",
+            "orange",
+            "zitrone",
+            "beeren",
+            "erdbeere",
+            "himbeere",
+            "kirsche",
+            "pflaume",
+            "pfirsich",
+        ],
+        "Fleisch": [
+            "fleisch",
+            "hack",
+            "rind",
+            "schwein",
+            "hähnchen",
+            "huhn",
+            "pute",
+            "schnitzel",
+            "würstchen",
+            "wurst",
+            "speck",
+            "schinken",
+        ],
+        "Fisch": ["fisch", "lachs", "thunfisch", "forelle", "garnele", "krabbe"],
+        "Milchprodukte": ["milch", "sahne", "butter", "käse", "quark", "joghurt", "schmand", "creme", "frischkäse"],
+        "Getreide": [
+            "mehl",
+            "reis",
+            "nudel",
+            "pasta",
+            "brot",
+            "brötchen",
+            "haferflocken",
+            "müsli",
+            "couscous",
+            "bulgur",
+        ],
+        "Backwaren": ["zucker", "backpulver", "hefe", "vanille", "kakao"],
+        "Öle & Fette": ["öl", "olivenöl", "sonnenblumenöl", "margarine", "fett"],
+        "Gewürze": [
+            "salz",
+            "pfeffer",
+            "paprika",
+            "curry",
+            "zimt",
+            "muskat",
+            "kräuter",
+            "petersilie",
+            "basilikum",
+            "oregano",
+            "thymian",
+            "rosmarin",
+            "majoran",
+            "kümmel",
+            "koriander",
+        ],
+        "Konserven": ["dose", "konserve", "passiert", "geschält", "tomatenmark"],
     }
 
     for category, keywords in categories.items():
         if any(kw in ingredient_lower for kw in keywords):
             return category
 
-    if 'ei' in ingredient_lower or 'eier' in ingredient_lower:
+    if "ei" in ingredient_lower or "eier" in ingredient_lower:
         return "Milchprodukte"
 
     return "Sonstiges"
@@ -211,7 +387,7 @@ def _guess_ingredient_category(ingredient_name: str) -> str:
 
 def _import_recipe_from_sheet(db: Session, sheet):
     """Import a single recipe from an Excel sheet"""
-    recipe_name = sheet['A1'].value
+    recipe_name = sheet["A1"].value
     if not recipe_name:
         return None, f"Blatt '{sheet.title}': Kein Rezeptname in A1"
 
@@ -222,7 +398,7 @@ def _import_recipe_from_sheet(db: Session, sheet):
     if existing:
         return None, f"'{recipe_name}': Existiert bereits"
 
-    base_servings = sheet['A4'].value
+    base_servings = sheet["A4"].value
     if not base_servings or not isinstance(base_servings, (int, float)):
         base_servings = 30
     else:
@@ -230,9 +406,9 @@ def _import_recipe_from_sheet(db: Session, sheet):
 
     ingredients = []
     for row in range(EXCEL_INGREDIENT_ROW_START, EXCEL_INGREDIENT_ROW_END):
-        quantity_cell = sheet[f'A{row}'].value
-        unit_cell = sheet[f'C{row}'].value
-        ingredient_cell = sheet[f'D{row}'].value
+        quantity_cell = sheet[f"A{row}"].value
+        unit_cell = sheet[f"C{row}"].value
+        ingredient_cell = sheet[f"D{row}"].value
 
         if not ingredient_cell:
             break
@@ -241,7 +417,7 @@ def _import_recipe_from_sheet(db: Session, sheet):
 
         try:
             if isinstance(quantity_cell, str):
-                quantity_cell = quantity_cell.replace(',', '.')
+                quantity_cell = quantity_cell.replace(",", ".")
             quantity = float(quantity_cell)
         except (ValueError, TypeError):
             continue
@@ -251,15 +427,11 @@ def _import_recipe_from_sheet(db: Session, sheet):
         category = _guess_ingredient_category(ingredient_name)
 
         db_ingredient = crud.get_or_create_ingredient(db, name=ingredient_name, unit=unit, category=category)
-        ingredients.append({
-            'ingredient_id': db_ingredient.id,
-            'quantity': quantity,
-            'unit': unit
-        })
+        ingredients.append({"ingredient_id": db_ingredient.id, "quantity": quantity, "unit": unit})
 
     instructions_lines = []
     for row in range(EXCEL_INSTRUCTION_ROW_START, sheet.max_row + 1):
-        cell_value = sheet[f'A{row}'].value
+        cell_value = sheet[f"A{row}"].value
         if cell_value:
             instructions_lines.append(str(cell_value).strip())
 
@@ -271,7 +443,7 @@ def _import_recipe_from_sheet(db: Session, sheet):
         instructions=instructions,
         ingredients=[schemas.RecipeIngredientCreate(**ing) for ing in ingredients],
         tag_ids=[],
-        allergen_ids=[]
+        allergen_ids=[],
     )
 
     db_recipe = crud.create_recipe(db, recipe_data)
@@ -279,23 +451,18 @@ def _import_recipe_from_sheet(db: Session, sheet):
 
 
 @router.post("/api/import-recipes")
-async def import_recipes_from_excel(
-    request: Request,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
+async def import_recipes_from_excel(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Import recipes from an Excel file"""
-    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+    if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
         return HTMLResponse(
-            content='<div class="alert alert-error">Bitte eine Excel-Datei (.xlsx) hochladen.</div>',
-            status_code=400
+            content='<div class="alert alert-error">Bitte eine Excel-Datei (.xlsx) hochladen.</div>', status_code=400
         )
 
     try:
         from openpyxl import load_workbook
 
         # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
@@ -328,26 +495,23 @@ async def import_recipes_from_excel(
             recipes_list = "".join(f"<li>{name}</li>" for name in imported)
             result_parts.append(
                 f'<div class="alert alert-success mb-3">'
-                f'<strong>{len(imported)} Rezept(e) erfolgreich importiert:</strong>'
+                f"<strong>{len(imported)} Rezept(e) erfolgreich importiert:</strong>"
                 f'<ul class="list-disc ml-6 mt-2">{recipes_list}</ul></div>'
             )
         if skipped:
             skip_list = "".join(f"<li>{msg}</li>" for msg in skipped)
             result_parts.append(
                 f'<div class="alert alert-warning">'
-                f'<strong>{len(skipped)} übersprungen:</strong>'
+                f"<strong>{len(skipped)} übersprungen:</strong>"
                 f'<ul class="list-disc ml-6 mt-2">{skip_list}</ul></div>'
             )
         if not imported and not skipped:
-            result_parts.append(
-                '<div class="alert alert-warning">Keine Rezepte in der Datei gefunden.</div>'
-            )
+            result_parts.append('<div class="alert alert-warning">Keine Rezepte in der Datei gefunden.</div>')
 
         return HTMLResponse(content="".join(result_parts))
 
     except Exception as e:
         logger.error(f"Excel import error: {e}", exc_info=True)
         return HTMLResponse(
-            content=f'<div class="alert alert-error">Fehler beim Import: {str(e)}</div>',
-            status_code=500
+            content=f'<div class="alert alert-error">Fehler beim Import: {str(e)}</div>', status_code=500
         )

@@ -129,24 +129,41 @@
             <div x-show="openCategories.includes('{{ category }}')" x-collapse>
                 <div class="divide-y divide-gray-100">
                     {% for item in items %}
+                    {% set item_key = item.ingredient.id ~ '-' ~ item.unit %}
                     <div class="shopping-item px-4 py-2 hover:bg-gray-50 transition-colors"
-                         :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'bg-gray-50' : ''">
+                         :class="checkedItems.includes('{{ item_key }}') ? 'bg-gray-50' : ''">
                         <label class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center flex-1">
+                            <div class="flex items-center flex-1 min-w-0">
                                 <input type="checkbox"
                                        class="shopping-item-checkbox"
-                                       @change="toggleItem('{{ item.ingredient.name }}')"
-                                       :checked="checkedItems.includes('{{ item.ingredient.name }}')">
-                                <span class="shopping-item-name ml-3 text-sm text-gray-900 font-normal group-hover:text-blue-600 transition-colors"
-                                      :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'line-through opacity-60' : ''">
+                                       @change="toggleItem('{{ item_key }}', '{{ item.ingredient.name }}')"
+                                       :checked="checkedItems.includes('{{ item_key }}')">
+                                <span class="shopping-item-name ml-3 text-sm text-gray-900 font-normal group-hover:text-blue-600 transition-colors truncate"
+                                      :class="checkedItems.includes('{{ item_key }}') ? 'line-through opacity-60' : ''">
                                     {{ item.ingredient.name }}
                                 </span>
+                                {% if item.global_note %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 whitespace-nowrap"
+                                      title="Globale Notiz: {{ item.global_note }}">
+                                    ⓘ {{ item.global_note }}
+                                </span>
+                                {% endif %}
                             </div>
-                            <span class="shopping-item-quantity text-sm font-bold text-gray-700 ml-3"
-                                  :class="checkedItems.includes('{{ item.ingredient.name }}') ? 'opacity-60' : ''">
+                            <span class="shopping-item-quantity text-sm font-bold text-gray-700 ml-3 whitespace-nowrap"
+                                  :class="checkedItems.includes('{{ item_key }}') ? 'opacity-60' : ''">
                                 {{ "%.1f"|format(item.quantity) }} {{ item.unit }}
                             </span>
                         </label>
+                        <div class="mt-1" @click.stop x-data="autoGrowTextarea()">
+                            <textarea rows="2"
+                                      x-init="autoGrow($el)"
+                                      @input="autoGrow($event.target)"
+                                      @blur="save($event.target)"
+                                      placeholder="Bemerkung (z.B. Bio, Aktion bei Aldi …)"
+                                      class="form-textarea"
+                                      style="min-height: 2.5rem; font-size: 0.85rem; padding: 0.35rem 0.75rem; overflow: hidden;"
+                                      data-ingredient-id="{{ item.ingredient.id }}">{{ item.note or '' }}</textarea>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -197,6 +214,23 @@
 </div>
 
 <script>
+function autoGrowTextarea() {
+    return {
+        _saveTimer: null,
+        autoGrow(el) {
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        },
+        save(el) {
+            if (this._saveTimer) clearTimeout(this._saveTimer);
+            this._saveTimer = setTimeout(() => {
+                window.FreizeitApp.saveShoppingListNote(el);
+            }, 200);
+        }
+    };
+}
+
 function shoppingList() {
     return {
         openCategories: {{ categories.keys()|list|tojson }},  // All categories open by default
@@ -223,19 +257,19 @@ function shoppingList() {
             }
         },
 
-        toggleItem(itemName) {
-            const index = this.checkedItems.indexOf(itemName);
+        toggleItem(itemKey, displayName) {
+            const index = this.checkedItems.indexOf(itemKey);
             if (index > -1) {
                 this.checkedItems.splice(index, 1);
             } else {
-                this.checkedItems.push(itemName);
+                this.checkedItems.push(itemKey);
             }
             // Save to localStorage
             localStorage.setItem('shopping_{{ camp.id }}_checked', JSON.stringify(this.checkedItems));
 
             // Show toast
-            if (this.checkedItems.includes(itemName)) {
-                window.FreizeitApp.showToast(`${itemName} abgehakt`, 'success');
+            if (this.checkedItems.includes(itemKey)) {
+                window.FreizeitApp.showToast(`${displayName} abgehakt`, 'success');
             }
         },
 
