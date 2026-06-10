@@ -6,6 +6,7 @@ These never touch the DB — they exercise the conversion rules directly.
 from app.services.unit_converter import (
     convert_unit,
     format_quantity_unit,
+    format_quantity_with_conversion,
     normalize_to_base,
     normalize_unit_name,
 )
@@ -56,6 +57,17 @@ def test_format_quantity_unit_renders_integers_without_decimals():
     # blocks zero-stripping. Locking in the current behavior here — flip this
     # test if the formatter is fixed to strip zeros before the unit.
     assert format_quantity_unit(1.5, "kg") == "1.50 kg"
+
+
+def test_format_quantity_with_conversion_applies_custom_rule():
+    # PDF exports (recipe book / daily lists) must honour user-defined
+    # conversions, e.g. Becher -> ml.
+    custom = {"Becher": {"threshold": 1, "target": "ml", "factor": 250}}
+    assert format_quantity_with_conversion(4, "Becher", custom) == "1000 ml"
+
+
+def test_format_quantity_with_conversion_without_custom_keeps_unit():
+    assert format_quantity_with_conversion(4, "Becher") == "4 Becher"
 
 
 def test_normalize_unit_name_maps_known_synonyms():

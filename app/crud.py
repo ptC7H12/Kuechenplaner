@@ -1,20 +1,23 @@
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import and_, or_, func
-from typing import List, Optional, Tuple
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
+
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.logging_config import get_logger
 
 logger = get_logger("crud")
 
+
 # Camp CRUD operations
 def get_camp(db: Session, camp_id: int):
     return db.query(models.Camp).filter(models.Camp.id == camp_id).first()
 
+
 def get_camps(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Camp).order_by(models.Camp.last_accessed.desc()).offset(skip).limit(limit).all()
+
 
 def create_camp(db: Session, camp: schemas.CampCreate):
     db_camp = models.Camp(**camp.model_dump())
@@ -23,16 +26,18 @@ def create_camp(db: Session, camp: schemas.CampCreate):
     db.refresh(db_camp)
     return db_camp
 
+
 def update_camp(db: Session, camp_id: int, camp_update: schemas.CampUpdate):
     db_camp = get_camp(db, camp_id)
     if db_camp:
         update_data = camp_update.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_camp, field, value)
-        db_camp.updated_at = datetime.now(timezone.utc)
+        db_camp.updated_at = datetime.now(UTC)
         db.commit()
         db.refresh(db_camp)
     return db_camp
+
 
 def delete_camp(db: Session, camp_id: int):
     db_camp = get_camp(db, camp_id)
@@ -41,42 +46,44 @@ def delete_camp(db: Session, camp_id: int):
         db.commit()
     return db_camp
 
+
 def update_camp_last_accessed(db: Session, camp_id: int):
     db_camp = get_camp(db, camp_id)
     if db_camp:
-        db_camp.last_accessed = datetime.now(timezone.utc)
+        db_camp.last_accessed = datetime.now(UTC)
         db.commit()
         db.refresh(db_camp)
     return db_camp
 
+
 # Recipe CRUD operations
 def get_recipe(db: Session, recipe_id: int):
     """Get a recipe with all its relationships eagerly loaded"""
-    return db.query(models.Recipe)\
+    return (
+        db.query(models.Recipe)
         .options(
             selectinload(models.Recipe.ingredients).joinedload(models.RecipeIngredient.ingredient),
             selectinload(models.Recipe.tags),
-            selectinload(models.Recipe.allergens)
-        )\
-        .filter(models.Recipe.id == recipe_id)\
+            selectinload(models.Recipe.allergens),
+        )
+        .filter(models.Recipe.id == recipe_id)
         .first()
+    )
+
 
 def get_recipes(
     db: Session,
     skip: int = 0,
     limit: int = 100,
     search: str = None,
-    tag_ids: List[int] = None,
+    tag_ids: list[int] = None,
     order_by: str = "updated_at",
 ):
     query = db.query(models.Recipe)
 
     if search:
         pattern = f"%{search}%"
-        query = query.filter(or_(
-            models.Recipe.name.ilike(pattern),
-            models.Recipe.description.ilike(pattern)
-        ))
+        query = query.filter(or_(models.Recipe.name.ilike(pattern), models.Recipe.description.ilike(pattern)))
 
     if tag_ids:
         query = query.join(models.Recipe.tags).filter(models.Tag.id.in_(tag_ids))
@@ -88,18 +95,16 @@ def get_recipes(
 
     return query.offset(skip).limit(limit).all()
 
+
 def create_recipe(db: Session, recipe: schemas.RecipeCreate):
     try:
-        recipe_data = recipe.model_dump(exclude={'ingredients', 'tag_ids', 'allergen_ids'})
+        recipe_data = recipe.model_dump(exclude={"ingredients", "tag_ids", "allergen_ids"})
         db_recipe = models.Recipe(**recipe_data)
         db.add(db_recipe)
         db.flush()  # Get the ID without committing
 
         for ingredient_data in recipe.ingredients:
-            db_recipe_ingredient = models.RecipeIngredient(
-                recipe_id=db_recipe.id,
-                **ingredient_data.model_dump()
-            )
+            db_recipe_ingredient = models.RecipeIngredient(recipe_id=db_recipe.id, **ingredient_data.model_dump())
             db.add(db_recipe_ingredient)
 
         if recipe.tag_ids:
@@ -119,23 +124,21 @@ def create_recipe(db: Session, recipe: schemas.RecipeCreate):
         db.rollback()
         raise
 
+
 def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpdate):
     try:
         db_recipe = get_recipe(db, recipe_id)
         if not db_recipe:
             return None
 
-        update_data = recipe_update.model_dump(exclude_unset=True, exclude={'ingredients', 'tag_ids', 'allergen_ids'})
+        update_data = recipe_update.model_dump(exclude_unset=True, exclude={"ingredients", "tag_ids", "allergen_ids"})
         for field, value in update_data.items():
             setattr(db_recipe, field, value)
 
         if recipe_update.ingredients is not None:
             db.query(models.RecipeIngredient).filter(models.RecipeIngredient.recipe_id == recipe_id).delete()
             for ingredient_data in recipe_update.ingredients:
-                db_recipe_ingredient = models.RecipeIngredient(
-                    recipe_id=recipe_id,
-                    **ingredient_data.model_dump()
-                )
+                db_recipe_ingredient = models.RecipeIngredient(recipe_id=recipe_id, **ingredient_data.model_dump())
                 db.add(db_recipe_ingredient)
 
         if recipe_update.tag_ids is not None:
@@ -147,7 +150,7 @@ def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpda
             db_recipe.allergens = allergens
 
         db_recipe.version_number += 1
-        db_recipe.updated_at = datetime.now(timezone.utc)
+        db_recipe.updated_at = datetime.now(UTC)
 
         db.commit()
         db.refresh(db_recipe)
@@ -157,6 +160,7 @@ def update_recipe(db: Session, recipe_id: int, recipe_update: schemas.RecipeUpda
         logger.error(f"Error updating recipe {recipe_id}: {e}", exc_info=True)
         db.rollback()
         raise
+
 
 def delete_recipe(db: Session, recipe_id: int):
     try:
@@ -170,18 +174,22 @@ def delete_recipe(db: Session, recipe_id: int):
         db.rollback()
         raise
 
+
 # Ingredient CRUD operations
 def get_ingredient(db: Session, ingredient_id: int):
     return db.query(models.Ingredient).filter(models.Ingredient.id == ingredient_id).first()
 
+
 def get_ingredient_by_name(db: Session, name: str):
     return db.query(models.Ingredient).filter(models.Ingredient.name == name).first()
+
 
 def get_ingredients(db: Session, skip: int = 0, limit: int = 100, search: str = None):
     query = db.query(models.Ingredient)
     if search:
         query = query.filter(models.Ingredient.name.ilike(f"%{search}%"))
     return query.order_by(models.Ingredient.name).offset(skip).limit(limit).all()
+
 
 def create_ingredient(db: Session, ingredient: schemas.IngredientCreate):
     db_ingredient = models.Ingredient(**ingredient.model_dump())
@@ -190,12 +198,21 @@ def create_ingredient(db: Session, ingredient: schemas.IngredientCreate):
     db.refresh(db_ingredient)
     return db_ingredient
 
+
 def get_or_create_ingredient(db: Session, name: str, unit: str, category: str, commit: bool = True):
-    """Get existing ingredient or create new one"""
+    """Get existing ingredient or create new one.
+
+    ``category`` is a category *name*; it is resolved (and created on demand)
+    into a ``Category`` row so that ``Ingredient.category_id`` is set.
+    """
     db_ingredient = get_ingredient_by_name(db, name)
     if not db_ingredient:
-        ingredient_data = schemas.IngredientCreate(name=name, unit=unit, category=category)
-        db_ingredient = models.Ingredient(**ingredient_data.model_dump())
+        db_category = get_or_create_category(db, category, commit=False) if category else None
+        db_ingredient = models.Ingredient(
+            name=name,
+            unit=unit,
+            category_id=db_category.id if db_category else None,
+        )
         db.add(db_ingredient)
         if commit:
             db.commit()
@@ -204,7 +221,75 @@ def get_or_create_ingredient(db: Session, name: str, unit: str, category: str, c
             db.flush()
     return db_ingredient
 
-def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> List[Tuple[models.Ingredient, int]]:
+
+def update_ingredient(db: Session, ingredient_id: int, data: schemas.IngredientUpdate):
+    """Update an ingredient's editable fields (category_id, unit, name, note)."""
+    db_ingredient = get_ingredient(db, ingredient_id)
+    if not db_ingredient:
+        return None
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_ingredient, field, value)
+    db_ingredient.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(db_ingredient)
+    return db_ingredient
+
+
+# Category CRUD operations
+def get_category(db: Session, category_id: int):
+    return db.query(models.Category).filter(models.Category.id == category_id).first()
+
+
+def get_category_by_name(db: Session, name: str):
+    return db.query(models.Category).filter(models.Category.name == name).first()
+
+
+def get_categories(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Category).order_by(models.Category.name).offset(skip).limit(limit).all()
+
+
+def create_category(db: Session, category: schemas.CategoryCreate):
+    db_category = models.Category(**category.model_dump())
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+
+def delete_category(db: Session, category_id: int):
+    """Delete a category. Ingredients referencing it fall back to category_id=NULL.
+
+    SQLite FK enforcement (ondelete) is not enabled app-wide, so null the
+    references explicitly before deleting.
+    """
+    category = get_category(db, category_id)
+    if category:
+        db.query(models.Ingredient).filter(models.Ingredient.category_id == category_id).update(
+            {models.Ingredient.category_id: None}, synchronize_session=False
+        )
+        logger.info(f"Category deleted: {category.name} (ID: {category_id})")
+        db.delete(category)
+        db.commit()
+    return category
+
+
+def get_or_create_category(db: Session, name: str, color: str = "#6B7280", commit: bool = True):
+    """Get existing category by name or create a new one."""
+    db_category = get_category_by_name(db, name)
+    if not db_category:
+        category_data = schemas.CategoryCreate(name=name, color=color)
+        db_category = models.Category(**category_data.model_dump())
+        db.add(db_category)
+        if commit:
+            db.commit()
+            db.refresh(db_category)
+        else:
+            db.flush()
+    return db_category
+
+
+def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> list[tuple[models.Ingredient, int]]:
     """Search ingredients using fuzzy matching with usage count.
 
     Returns list of (ingredient, usage_count) tuples sorted by relevance.
@@ -217,18 +302,13 @@ def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> List[T
     # Pre-filter with SQL LIKE to avoid loading all ingredients
     like_pattern = f"%{query}%"
     prefix_pattern = f"%{query[:2]}%" if len(query) >= 2 else like_pattern
-    candidates = db.query(
-        models.Ingredient,
-        func.count(models.RecipeIngredient.id).label('usage_count')
-    ).outerjoin(
-        models.RecipeIngredient,
-        models.Ingredient.id == models.RecipeIngredient.ingredient_id
-    ).filter(
-        or_(
-            models.Ingredient.name.ilike(like_pattern),
-            models.Ingredient.name.ilike(prefix_pattern)
-        )
-    ).group_by(models.Ingredient.id).all()
+    candidates = (
+        db.query(models.Ingredient, func.count(models.RecipeIngredient.id).label("usage_count"))
+        .outerjoin(models.RecipeIngredient, models.Ingredient.id == models.RecipeIngredient.ingredient_id)
+        .filter(or_(models.Ingredient.name.ilike(like_pattern), models.Ingredient.name.ilike(prefix_pattern)))
+        .group_by(models.Ingredient.id)
+        .all()
+    )
 
     # Calculate fuzzy scores
     results = []
@@ -248,27 +328,27 @@ def search_ingredients_fuzzy(db: Session, query: str, limit: int = 10) -> List[T
 
         # Only include if score is reasonable
         if best_score >= 60:
-            results.append({
-                'ingredient': ingredient,
-                'score': best_score,
-                'usage_count': usage_count or 0
-            })
+            results.append({"ingredient": ingredient, "score": best_score, "usage_count": usage_count or 0})
 
     # Sort by score (desc), then by usage_count (desc), then by name (asc)
-    results.sort(key=lambda x: (-x['score'], -x['usage_count'], x['ingredient'].name))
+    results.sort(key=lambda x: (-x["score"], -x["usage_count"], x["ingredient"].name))
 
     # Return top N as (ingredient, usage_count) tuples
-    return [(r['ingredient'], r['usage_count']) for r in results[:limit]]
+    return [(r["ingredient"], r["usage_count"]) for r in results[:limit]]
+
 
 # Tag CRUD operations
 def get_tag(db: Session, tag_id: int):
     return db.query(models.Tag).filter(models.Tag.id == tag_id).first()
 
+
 def get_tag_by_name(db: Session, name: str):
     return db.query(models.Tag).filter(models.Tag.name == name).first()
 
+
 def get_tags(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tag).order_by(models.Tag.name).offset(skip).limit(limit).all()
+
 
 def create_tag(db: Session, tag: schemas.TagCreate):
     db_tag = models.Tag(**tag.model_dump())
@@ -277,6 +357,7 @@ def create_tag(db: Session, tag: schemas.TagCreate):
     db.refresh(db_tag)
     return db_tag
 
+
 def delete_tag(db: Session, tag_id: int):
     tag = get_tag(db, tag_id)
     if tag:
@@ -284,6 +365,7 @@ def delete_tag(db: Session, tag_id: int):
         db.delete(tag)
         db.commit()
     return tag
+
 
 def get_or_create_tag(db: Session, name: str, color: str = "#3B82F6", icon: str = None, commit: bool = True):
     """Get existing tag or create new one"""
@@ -299,28 +381,38 @@ def get_or_create_tag(db: Session, name: str, color: str = "#3B82F6", icon: str 
             db.flush()
     return db_tag
 
+
 # Meal Plan CRUD operations
 def get_meal_plan(db: Session, meal_plan_id: int):
     return db.query(models.MealPlan).filter(models.MealPlan.id == meal_plan_id).first()
 
+
 def get_meal_plans_for_camp(db: Session, camp_id: int):
-    return db.query(models.MealPlan).filter(models.MealPlan.camp_id == camp_id).order_by(
-        models.MealPlan.meal_date, models.MealPlan.meal_type, models.MealPlan.position
-    ).all()
+    return (
+        db.query(models.MealPlan)
+        .filter(models.MealPlan.camp_id == camp_id)
+        .order_by(models.MealPlan.meal_date, models.MealPlan.meal_type, models.MealPlan.position)
+        .all()
+    )
+
 
 def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
     try:
         # Get the next position for this meal slot
-        existing_count = db.query(models.MealPlan).filter(
-            and_(
-                models.MealPlan.camp_id == meal_plan.camp_id,
-                models.MealPlan.meal_date == meal_plan.meal_date,
-                models.MealPlan.meal_type == meal_plan.meal_type
+        existing_count = (
+            db.query(models.MealPlan)
+            .filter(
+                and_(
+                    models.MealPlan.camp_id == meal_plan.camp_id,
+                    models.MealPlan.meal_date == meal_plan.meal_date,
+                    models.MealPlan.meal_type == meal_plan.meal_type,
+                )
             )
-        ).count()
+            .count()
+        )
 
         # Exclude position from the dict to avoid duplicate keyword argument
-        meal_plan_data = meal_plan.model_dump(exclude={'position'})
+        meal_plan_data = meal_plan.model_dump(exclude={"position"})
         db_meal_plan = models.MealPlan(**meal_plan_data, position=existing_count)
 
         db.add(db_meal_plan)
@@ -335,6 +427,7 @@ def create_meal_plan(db: Session, meal_plan: schemas.MealPlanCreate):
         db.rollback()
         raise
 
+
 def update_meal_plan(db: Session, meal_plan_id: int, meal_plan_update: schemas.MealPlanUpdate):
     db_meal_plan = get_meal_plan(db, meal_plan_id)
     if db_meal_plan:
@@ -345,6 +438,7 @@ def update_meal_plan(db: Session, meal_plan_id: int, meal_plan_update: schemas.M
         db.refresh(db_meal_plan)
     return db_meal_plan
 
+
 def delete_meal_plan(db: Session, meal_plan_id: int):
     db_meal_plan = get_meal_plan(db, meal_plan_id)
     if db_meal_plan:
@@ -352,12 +446,15 @@ def delete_meal_plan(db: Session, meal_plan_id: int):
         db.commit()
     return db_meal_plan
 
+
 # App Settings CRUD operations
 def get_setting(db: Session, key: str):
     return db.query(models.AppSettings).filter(models.AppSettings.key == key).first()
 
+
 def get_all_settings(db: Session):
     return db.query(models.AppSettings).all()
+
 
 def delete_setting(db: Session, key: str):
     setting = get_setting(db, key)
@@ -366,6 +463,7 @@ def delete_setting(db: Session, key: str):
         db.delete(setting)
         db.commit()
     return setting
+
 
 def set_setting(db: Session, key: str, value: str):
     db_setting = get_setting(db, key)
@@ -380,6 +478,7 @@ def set_setting(db: Session, key: str, value: str):
     db.refresh(db_setting)
     return db_setting
 
+
 def get_setting_value(db: Session, key: str, default=None):
     """Get setting value, return default if not found"""
     setting = get_setting(db, key)
@@ -390,29 +489,30 @@ def get_setting_value(db: Session, key: str, default=None):
             return setting.value
     return default
 
+
 def set_setting_value(db: Session, key: str, value):
     """Set setting value, automatically JSON encode if needed"""
-    if isinstance(value, (dict, list)):
-        value_str = json.dumps(value)
-    else:
-        value_str = str(value)
+    value_str = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
     return set_setting(db, key, value_str)
+
 
 # Shopping list note CRUD operations
 def get_shopping_list_note(db: Session, camp_id: int, ingredient_id: int):
-    return db.query(models.ShoppingListNote).filter(
-        and_(
-            models.ShoppingListNote.camp_id == camp_id,
-            models.ShoppingListNote.ingredient_id == ingredient_id,
+    return (
+        db.query(models.ShoppingListNote)
+        .filter(
+            and_(
+                models.ShoppingListNote.camp_id == camp_id,
+                models.ShoppingListNote.ingredient_id == ingredient_id,
+            )
         )
-    ).first()
+        .first()
+    )
 
 
 def get_shopping_list_notes_for_camp(db: Session, camp_id: int) -> dict:
     """Return camp-specific notes keyed by ingredient_id."""
-    notes = db.query(models.ShoppingListNote).filter(
-        models.ShoppingListNote.camp_id == camp_id
-    ).all()
+    notes = db.query(models.ShoppingListNote).filter(models.ShoppingListNote.camp_id == camp_id).all()
     return {n.ingredient_id: n.note for n in notes}
 
 
@@ -429,7 +529,7 @@ def upsert_shopping_list_note(db: Session, camp_id: int, ingredient_id: int, not
 
     if existing:
         existing.note = cleaned
-        existing.updated_at = datetime.now(timezone.utc)
+        existing.updated_at = datetime.now(UTC)
     else:
         existing = models.ShoppingListNote(
             camp_id=camp_id,
@@ -443,16 +543,14 @@ def upsert_shopping_list_note(db: Session, camp_id: int, ingredient_id: int, not
     return existing
 
 
-def update_ingredient_note(db: Session, ingredient_id: int, note: Optional[str]):
+def update_ingredient_note(db: Session, ingredient_id: int, note: str | None):
     """Update the global note on an ingredient. Empty/None clears it."""
-    ingredient = db.query(models.Ingredient).filter(
-        models.Ingredient.id == ingredient_id
-    ).first()
+    ingredient = db.query(models.Ingredient).filter(models.Ingredient.id == ingredient_id).first()
     if not ingredient:
         return None
     cleaned = (note or "").strip() or None
     ingredient.note = cleaned
-    ingredient.updated_at = datetime.now(timezone.utc)
+    ingredient.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(ingredient)
     return ingredient
@@ -462,8 +560,10 @@ def update_ingredient_note(db: Session, ingredient_id: int, note: Optional[str])
 def get_allergen(db: Session, allergen_id: int):
     return db.query(models.Allergen).filter(models.Allergen.id == allergen_id).first()
 
+
 def get_allergens(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Allergen).order_by(models.Allergen.name).offset(skip).limit(limit).all()
+
 
 def create_allergen(db: Session, allergen: schemas.AllergenCreate):
     db_allergen = models.Allergen(**allergen.model_dump())
@@ -472,9 +572,14 @@ def create_allergen(db: Session, allergen: schemas.AllergenCreate):
     db.refresh(db_allergen)
     return db_allergen
 
+
+def get_allergen_by_name(db: Session, name: str):
+    return db.query(models.Allergen).filter(models.Allergen.name == name).first()
+
+
 def get_or_create_allergen(db: Session, name: str, icon: str = None, commit: bool = True):
     """Get existing allergen or create new one"""
-    db_allergen = db.query(models.Allergen).filter(models.Allergen.name == name).first()
+    db_allergen = get_allergen_by_name(db, name)
     if not db_allergen:
         allergen_data = schemas.AllergenCreate(name=name, icon=icon)
         db_allergen = models.Allergen(**allergen_data.model_dump())
@@ -485,6 +590,16 @@ def get_or_create_allergen(db: Session, name: str, icon: str = None, commit: boo
         else:
             db.flush()
     return db_allergen
+
+
+def delete_allergen(db: Session, allergen_id: int):
+    allergen = get_allergen(db, allergen_id)
+    if allergen:
+        logger.info(f"Allergen deleted: {allergen.name} (ID: {allergen_id})")
+        db.delete(allergen)
+        db.commit()
+    return allergen
+
 
 # Leftover CRUD operations
 def create_leftover(db: Session, leftover: schemas.LeftoverCreate):
@@ -500,15 +615,16 @@ def get_leftover(db: Session, leftover_id: int):
 
 
 def get_leftovers_for_camp(db: Session, camp_id: int):
-    return db.query(models.Leftover).filter(
-        models.Leftover.camp_id == camp_id
-    ).order_by(models.Leftover.created_at.desc()).all()
+    return (
+        db.query(models.Leftover)
+        .filter(models.Leftover.camp_id == camp_id)
+        .order_by(models.Leftover.created_at.desc())
+        .all()
+    )
 
 
 def get_leftovers_for_recipe(db: Session, recipe_id: int):
-    return db.query(models.Leftover).filter(
-        models.Leftover.recipe_id == recipe_id
-    ).all()
+    return db.query(models.Leftover).filter(models.Leftover.recipe_id == recipe_id).all()
 
 
 def get_leftover_for_meal_plan(db: Session, meal_plan_id: int):
@@ -517,9 +633,12 @@ def get_leftover_for_meal_plan(db: Session, meal_plan_id: int):
     Legacy single-entry getter kept for backward compatibility. Prefer
     `get_leftovers_for_meal_plan` for the multi-entry world (Story 7).
     """
-    return db.query(models.Leftover).filter(
-        models.Leftover.meal_plan_id == meal_plan_id
-    ).order_by(models.Leftover.created_at.desc()).first()
+    return (
+        db.query(models.Leftover)
+        .filter(models.Leftover.meal_plan_id == meal_plan_id)
+        .order_by(models.Leftover.created_at.desc())
+        .first()
+    )
 
 
 def get_leftovers_for_meal_plan(db: Session, meal_plan_id: int):
@@ -527,9 +646,12 @@ def get_leftovers_for_meal_plan(db: Session, meal_plan_id: int):
 
     A meal plan can have one per_recipe row + N per_ingredient rows (Story 7).
     """
-    return db.query(models.Leftover).filter(
-        models.Leftover.meal_plan_id == meal_plan_id
-    ).order_by(models.Leftover.id.asc()).all()
+    return (
+        db.query(models.Leftover)
+        .filter(models.Leftover.meal_plan_id == meal_plan_id)
+        .order_by(models.Leftover.id.asc())
+        .all()
+    )
 
 
 def sync_leftovers_for_meal_plan(
@@ -545,9 +667,7 @@ def sync_leftovers_for_meal_plan(
     entry. `entries` is a list of dicts with keys: tracking_type,
     ingredient_id (optional), percentage_left (optional), description (optional).
     """
-    db.query(models.Leftover).filter(
-        models.Leftover.meal_plan_id == meal_plan_id
-    ).delete(synchronize_session=False)
+    db.query(models.Leftover).filter(models.Leftover.meal_plan_id == meal_plan_id).delete(synchronize_session=False)
 
     created = []
     for entry in entries:
@@ -571,10 +691,15 @@ def sync_leftovers_for_meal_plan(
 
 def get_meal_plan_ids_with_leftovers(db: Session, camp_id: int) -> set:
     """IDs of MealPlans that already have at least one Leftover entry in this camp."""
-    rows = db.query(models.Leftover.meal_plan_id).filter(
-        models.Leftover.camp_id == camp_id,
-        models.Leftover.meal_plan_id.isnot(None),
-    ).distinct().all()
+    rows = (
+        db.query(models.Leftover.meal_plan_id)
+        .filter(
+            models.Leftover.camp_id == camp_id,
+            models.Leftover.meal_plan_id.isnot(None),
+        )
+        .distinct()
+        .all()
+    )
     return {r[0] for r in rows}
 
 
@@ -585,7 +710,7 @@ def update_leftover(db: Session, leftover_id: int, data: dict):
     for field in ("tracking_type", "ingredient_id", "percentage_left", "description"):
         if field in data:
             setattr(leftover, field, data[field])
-    leftover.updated_at = datetime.now(timezone.utc)
+    leftover.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(leftover)
     return leftover
@@ -603,34 +728,39 @@ def delete_leftover(db: Session, leftover_id: int):
 def get_recipe_version(db: Session, version_id: int):
     return db.query(models.RecipeVersion).filter(models.RecipeVersion.id == version_id).first()
 
+
 def get_recipe_versions(db: Session, recipe_id: int):
     """Get all versions for a recipe, ordered by version number descending"""
-    return db.query(models.RecipeVersion).filter(
-        models.RecipeVersion.recipe_id == recipe_id
-    ).order_by(models.RecipeVersion.version_number.desc()).all()
+    return (
+        db.query(models.RecipeVersion)
+        .filter(models.RecipeVersion.recipe_id == recipe_id)
+        .order_by(models.RecipeVersion.version_number.desc())
+        .all()
+    )
+
 
 def _create_recipe_version(db: Session, recipe: models.Recipe):
     """Internal function to create a version snapshot of a recipe"""
     # Create JSON snapshots
-    ingredients_snapshot = json.dumps([
-        {
-            'ingredient_id': ri.ingredient_id,
-            'ingredient_name': ri.ingredient.name,
-            'quantity': ri.quantity,
-            'unit': ri.unit
-        }
-        for ri in recipe.ingredients
-    ])
+    ingredients_snapshot = json.dumps(
+        [
+            {
+                "ingredient_id": ri.ingredient_id,
+                "ingredient_name": ri.ingredient.name,
+                "quantity": ri.quantity,
+                "unit": ri.unit,
+            }
+            for ri in recipe.ingredients
+        ]
+    )
 
-    tags_snapshot = json.dumps([
-        {'id': tag.id, 'name': tag.name, 'color': tag.color, 'icon': tag.icon}
-        for tag in recipe.tags
-    ])
+    tags_snapshot = json.dumps(
+        [{"id": tag.id, "name": tag.name, "color": tag.color, "icon": tag.icon} for tag in recipe.tags]
+    )
 
-    allergens_snapshot = json.dumps([
-        {'id': allergen.id, 'name': allergen.name, 'icon': allergen.icon}
-        for allergen in recipe.allergens
-    ])
+    allergens_snapshot = json.dumps(
+        [{"id": allergen.id, "name": allergen.name, "icon": allergen.icon} for allergen in recipe.allergens]
+    )
 
     # Create version record
     db_version = models.RecipeVersion(
@@ -645,7 +775,7 @@ def _create_recipe_version(db: Session, recipe: models.Recipe):
         allergen_notes=recipe.allergen_notes,
         ingredients_snapshot=ingredients_snapshot,
         tags_snapshot=tags_snapshot,
-        allergens_snapshot=allergens_snapshot
+        allergens_snapshot=allergens_snapshot,
     )
 
     db.add(db_version)

@@ -22,7 +22,7 @@ def _make_camp(db_session, participant_count: int = 10) -> models.Camp:
 
 
 def _make_recipe_with_ingredient(db_session) -> tuple[models.Recipe, models.Ingredient]:
-    ing = models.Ingredient(name="Reis", unit="g", category="Getreide")
+    ing = models.Ingredient(name="Reis", unit="g")
     db_session.add(ing)
     db_session.flush()
 
@@ -113,9 +113,7 @@ def test_meal_plan_update_can_clear_custom_servings(db_session):
     mp = _add_meal_plan(db_session, camp.id, recipe.id, custom_servings=42)
     assert mp.custom_servings == 42
 
-    updated = crud.update_meal_plan(
-        db_session, mp.id, schemas.MealPlanUpdate(custom_servings=None)
-    )
+    updated = crud.update_meal_plan(db_session, mp.id, schemas.MealPlanUpdate(custom_servings=None))
     assert updated.custom_servings is None
 
 

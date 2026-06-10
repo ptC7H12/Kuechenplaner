@@ -1,14 +1,15 @@
 """Leftover tracker: record what was left over after a meal, view per-camp
 overview and per-recipe statistics across all camps."""
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
+from app import crud, models, schemas
 from app.database import get_db
 from app.dependencies import get_current_camp, get_template_context, templates
-from app import crud, schemas, models
-from app.services.leftover_statistics import get_ingredient_breakdown, get_recipe_statistics
 from app.logging_config import get_logger
+from app.services.leftover_statistics import get_ingredient_breakdown, get_recipe_statistics
 
 logger = get_logger("leftovers")
 
@@ -27,17 +28,19 @@ async def leftovers_index(
 
     leftovers = crud.get_leftovers_for_camp(db, current_camp.id)
 
-    pct_values = [l.percentage_left for l in leftovers if l.percentage_left is not None]
+    pct_values = [lo.percentage_left for lo in leftovers if lo.percentage_left is not None]
     avg_pct = sum(pct_values) / len(pct_values) if pct_values else None
-    recipes_with_leftovers = len({l.recipe_id for l in leftovers if l.recipe_id is not None})
+    recipes_with_leftovers = len({lo.recipe_id for lo in leftovers if lo.recipe_id is not None})
 
-    context.update({
-        "camp": current_camp,
-        "leftovers": leftovers,
-        "total_entries": len(leftovers),
-        "avg_pct": avg_pct,
-        "recipes_with_leftovers": recipes_with_leftovers,
-    })
+    context.update(
+        {
+            "camp": current_camp,
+            "leftovers": leftovers,
+            "total_entries": len(leftovers),
+            "avg_pct": avg_pct,
+            "recipes_with_leftovers": recipes_with_leftovers,
+        }
+    )
     return templates.TemplateResponse("leftovers/index.html", context)
 
 
@@ -58,13 +61,15 @@ async def leftovers_new_modal(
 
     existing_entries = crud.get_leftovers_for_meal_plan(db, meal_plan_id)
     recipe = meal_plan.recipe
-    context.update({
-        "meal_plan": meal_plan,
-        "recipe": recipe,
-        "ingredients": recipe.ingredients if recipe else [],
-        "camp": current_camp,
-        "existing_entries": existing_entries,
-    })
+    context.update(
+        {
+            "meal_plan": meal_plan,
+            "recipe": recipe,
+            "ingredients": recipe.ingredients if recipe else [],
+            "camp": current_camp,
+            "existing_entries": existing_entries,
+        }
+    )
     return templates.TemplateResponse("leftovers/new_modal.html", context)
 
 
@@ -99,10 +104,7 @@ async def sync_meal_plan_leftovers(
         recipe_id=meal_plan.recipe_id,
         entries=entries_data,
     )
-    logger.info(
-        f"Leftovers sync: meal_plan={meal_plan_id} camp={current_camp.id} "
-        f"created={len(created)} (replaced)"
-    )
+    logger.info(f"Leftovers sync: meal_plan={meal_plan_id} camp={current_camp.id} created={len(created)} (replaced)")
     return created
 
 
@@ -165,11 +167,7 @@ async def statistics_page(
         return templates.TemplateResponse("meal_planning/no_camp.html", context)
 
     # Aggregate per recipe across all leftovers we have data for.
-    recipe_ids = {
-        l.recipe_id for l in db.query(models.Leftover).filter(
-            models.Leftover.recipe_id.isnot(None)
-        ).all()
-    }
+    recipe_ids = {lo.recipe_id for lo in db.query(models.Leftover).filter(models.Leftover.recipe_id.isnot(None)).all()}
     stats = []
     for rid in recipe_ids:
         s = get_recipe_statistics(db, rid, current_camp_id=current_camp.id)
@@ -181,7 +179,7 @@ async def statistics_page(
         s["has_per_ingredient"] = len(breakdown) > 0
         stats.append(s)
     # Sort: per-recipe avg first (descending), then per-ingredient-only recipes.
-    stats.sort(key=lambda s: (s["avg_percentage_left"] or 0), reverse=True)
+    stats.sort(key=lambda s: s["avg_percentage_left"] or 0, reverse=True)
 
     context.update({"camp": current_camp, "stats": stats})
     return templates.TemplateResponse("leftovers/statistics.html", context)

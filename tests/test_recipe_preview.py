@@ -4,7 +4,7 @@ from app import crud, models, schemas
 
 
 def _make_recipe(db_session) -> models.Recipe:
-    ing = models.Ingredient(name="Mehl", unit="g", category="Backwaren")
+    ing = models.Ingredient(name="Mehl", unit="g")
     db_session.add(ing)
     db_session.flush()
 
@@ -33,6 +33,7 @@ def _make_recipe(db_session) -> models.Recipe:
 
 def _make_camp(db_session, participant_count: int = 12) -> models.Camp:
     from datetime import datetime
+
     return crud.create_camp(
         db_session,
         schemas.CampCreate(

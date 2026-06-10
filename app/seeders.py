@@ -1,6 +1,7 @@
 import logging
-from app.database import SessionLocal
+
 from app import crud
+from app.database import SessionLocal
 
 logger = logging.getLogger("kuechenplaner.seeders")
 

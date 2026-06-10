@@ -28,9 +28,7 @@ def temp_data_dir(tmp_path, monkeypatch):
     return data_dir, backup_dir
 
 
-FILENAME_PATTERN = re.compile(
-    r"^app_(\d{4}-\d{2}-\d{2})_(\d{6})_(auto|manual)\.db$"
-)
+FILENAME_PATTERN = re.compile(r"^app_(\d{4}-\d{2}-\d{2})_(\d{6})_(auto|manual)\.db$")
 
 
 def test_manual_backup_filename_is_parseable(temp_data_dir):

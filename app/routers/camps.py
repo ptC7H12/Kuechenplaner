@@ -1,26 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
-from datetime import datetime
-from typing import Optional
 
-from app.database import get_db
-from app.dependencies import get_current_camp, get_template_context, templates
 from app import crud, schemas
-from app.services.calculation import get_camp_statistics
+from app.database import get_db
+from app.dependencies import get_template_context, templates
 from app.logging_config import get_logger
+from app.services.calculation import get_camp_statistics
 
 logger = get_logger("camps")
 
 router = APIRouter()
 
+
 @router.get("/create", response_class=HTMLResponse)
-async def create_camp_form(
-    request: Request,
-    context: dict = Depends(get_template_context)
-):
+async def create_camp_form(request: Request, context: dict = Depends(get_template_context)):
     """Show create camp form"""
     return templates.TemplateResponse("camp_create.html", context)
+
 
 @router.post("/", response_class=RedirectResponse)
 async def create_camp(
@@ -28,21 +27,16 @@ async def create_camp(
     start_date: str = Form(...),
     end_date: str = Form(...),
     participant_count: int = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new camp"""
     try:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat. Erwartet: JJJJ-MM-TT")
+        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat. Erwartet: JJJJ-MM-TT") from None
 
-    camp_data = schemas.CampCreate(
-        name=name,
-        start_date=start_dt,
-        end_date=end_dt,
-        participant_count=participant_count
-    )
+    camp_data = schemas.CampCreate(name=name, start_date=start_dt, end_date=end_dt, participant_count=participant_count)
 
     camp = crud.create_camp(db, camp_data)
     logger.info(f"Camp created: {camp.name} (ID: {camp.id})")
@@ -53,11 +47,9 @@ async def create_camp(
     response.set_cookie(key="current_camp_id", value=str(camp.id))
     return response
 
+
 @router.post("/{camp_id}/select", response_class=RedirectResponse)
-async def select_camp(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def select_camp(camp_id: int, db: Session = Depends(get_db)):
     """Select a camp as current"""
     camp = crud.get_camp(db, camp_id)
     if not camp:
@@ -70,12 +62,9 @@ async def select_camp(
     response.set_cookie(key="current_camp_id", value=str(camp_id))
     return response
 
+
 @router.delete("/{camp_id}", response_class=HTMLResponse)
-async def delete_camp(
-    camp_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def delete_camp(camp_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete a camp"""
     camp = crud.delete_camp(db, camp_id)
     if not camp:
@@ -87,45 +76,34 @@ async def delete_camp(
 
     return ""
 
+
 @router.get("/{camp_id}/stats", response_class=HTMLResponse)
-async def get_camp_stats(
-    camp_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def get_camp_stats(camp_id: int, request: Request, db: Session = Depends(get_db)):
     """Get camp statistics (for HTMX updates)"""
     stats = get_camp_statistics(db, camp_id)
 
-    return templates.TemplateResponse("components/camp_stats.html", {
-        "request": request,
-        "stats": stats
-    })
+    return templates.TemplateResponse("components/camp_stats.html", {"request": request, "stats": stats})
+
 
 @router.get("/{camp_id}/edit", response_class=HTMLResponse)
-async def edit_camp_modal(
-    camp_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def edit_camp_modal(camp_id: int, request: Request, db: Session = Depends(get_db)):
     """Show edit camp modal"""
     camp = crud.get_camp(db, camp_id)
     if not camp:
         raise HTTPException(status_code=404, detail="Camp not found")
 
-    return templates.TemplateResponse("components/edit_camp_modal.html", {
-        "request": request,
-        "camp": camp
-    })
+    return templates.TemplateResponse("components/edit_camp_modal.html", {"request": request, "camp": camp})
+
 
 @router.put("/{camp_id}", response_class=HTMLResponse)
 async def update_camp(
     camp_id: int,
     request: Request,
-    name: Optional[str] = Form(None),
-    start_date: Optional[str] = Form(None),
-    end_date: Optional[str] = Form(None),
-    participant_count: Optional[int] = Form(None),
-    db: Session = Depends(get_db)
+    name: str | None = Form(None),
+    start_date: str | None = Form(None),
+    end_date: str | None = Form(None),
+    participant_count: int | None = Form(None),
+    db: Session = Depends(get_db),
 ):
     """Update a camp"""
     update_data = {}
@@ -138,12 +116,12 @@ async def update_camp(
         try:
             update_data["start_date"] = datetime.strptime(start_date, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(status_code=400, detail="Ungültiges Startdatum. Erwartet: JJJJ-MM-TT")
+            raise HTTPException(status_code=400, detail="Ungültiges Startdatum. Erwartet: JJJJ-MM-TT") from None
     if end_date is not None:
         try:
             update_data["end_date"] = datetime.strptime(end_date, "%Y-%m-%d")
         except ValueError:
-            raise HTTPException(status_code=400, detail="Ungültiges Enddatum. Erwartet: JJJJ-MM-TT")
+            raise HTTPException(status_code=400, detail="Ungültiges Enddatum. Erwartet: JJJJ-MM-TT") from None
 
     camp_update = schemas.CampUpdate(**update_data)
     camp = crud.update_camp(db, camp_id, camp_update)

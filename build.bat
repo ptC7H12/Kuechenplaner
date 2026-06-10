@@ -18,11 +18,23 @@ echo Freizeit Rezepturverwaltung Build
 echo ========================================
 echo.
 
-REM Check if Nuitka is installed
-python -m nuitka --version >nul 2>&1
+REM Python 3.14 wird von pythonnet (pywebview-Abhaengigkeit) und Nuitka nicht unterstuetzt.
+REM Verwende explizit Python 3.12 ueber den py-Launcher.
+set PYTHON_EXE=py -3.12
+%PYTHON_EXE% --version >nul 2>&1
 if errorlevel 1 (
-    echo Error: Nuitka is not installed
-    echo Install it with: pip install nuitka
+    echo Error: Python 3.12 nicht gefunden ^(py -3.12^).
+    echo Installieren von https://www.python.org/downloads/release/python-3120/
+    exit /b 1
+)
+echo Python: %PYTHON_EXE%
+echo.
+
+REM Check if Nuitka is installed
+%PYTHON_EXE% -m nuitka --version >nul 2>&1
+if errorlevel 1 (
+    echo Error: Nuitka ist fuer %PYTHON_EXE% nicht installiert
+    echo Installieren mit: %PYTHON_EXE% -m pip install nuitka
     exit /b 1
 )
 
@@ -46,11 +58,11 @@ echo.
 
 if "%BUILD_MODE%"=="standalone" (
     echo Building standalone executable...
-    python build.py
+    %PYTHON_EXE% build.py
     if errorlevel 1 exit /b 1
 ) else if "%BUILD_MODE%"=="debug" (
     echo Building with console enabled for debug output ^(RAM-optimized^)...
-    python -m nuitka ^
+    %PYTHON_EXE% -m nuitka ^
         --standalone ^
         --output-dir=dist ^
         --output-filename=FreizeitRezepturverwaltung-debug.exe ^
@@ -60,6 +72,7 @@ if "%BUILD_MODE%"=="standalone" (
         --include-data-files=alembic/env.py=alembic_migration/env.py ^
         --include-data-files=alembic/versions/*.py=alembic_migration/versions/ ^
         --include-data-file=alembic.ini=alembic.ini ^
+        --include-data-file=version.txt=version.txt ^
         --include-package=app ^
         --include-package=fastapi ^
         --include-package=uvicorn ^
@@ -116,12 +129,13 @@ if "%BUILD_MODE%"=="standalone" (
     )
 ) else if "%BUILD_MODE%"=="fast" (
     echo Building without onefile ^(faster startup^)...
-    python -m nuitka ^
+    %PYTHON_EXE% -m nuitka ^
         --standalone ^
         --output-dir=dist ^
         --output-filename=FreizeitRezepturverwaltung.exe ^
         --include-data-dir=app/templates=app/templates ^
         --include-data-dir=app/static=static ^
+        --include-data-file=version.txt=version.txt ^
         --include-package=app ^
         --follow-imports ^
         --windows-console-mode=disable ^

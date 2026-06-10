@@ -2,11 +2,12 @@
 Simplified logging configuration for Kuechenplaner
 Single log file with rotation
 """
+
 import logging
 import os
 import sys
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 
 def _get_log_dir() -> Path:
@@ -37,10 +38,7 @@ def setup_logging(log_level: str = "DEBUG"):
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     # Console handler (always safe)
     console_handler = logging.StreamHandler(sys.stdout)
@@ -54,9 +52,9 @@ def setup_logging(log_level: str = "DEBUG"):
         log_dir = _get_log_dir()
         file_handler = RotatingFileHandler(
             log_dir / "kuechenplaner.log",
-            maxBytes=10*1024*1024,  # 10MB
+            maxBytes=10 * 1024 * 1024,  # 10MB
             backupCount=5,
-            encoding='utf-8'
+            encoding="utf-8",
         )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)

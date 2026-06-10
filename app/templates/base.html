@@ -266,6 +266,35 @@
                 window.dispatchEvent(new CustomEvent('close-modal'));
             },
 
+            showUpdateToast: function(version, releaseUrl) {
+                const toast = document.createElement('div');
+                toast.className = 'bg-indigo-50 border-indigo-400 text-indigo-900 border rounded-xl shadow-lg p-4 transform transition-all duration-300 translate-x-full';
+                toast.innerHTML = `
+                    <div class="flex items-start">
+                        <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-current bg-opacity-20 mr-3 font-bold">
+                            <span class="text-base">⬆</span>
+                        </span>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold">Neue Version ${version} verfügbar</p>
+                            <a href="${releaseUrl}" target="_blank" rel="noopener" class="text-sm font-semibold underline hover:no-underline">Zu den Releases</a>
+                        </div>
+                        <button type="button" class="ml-4 text-current opacity-60 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-black hover:bg-opacity-10" aria-label="Hinweis schließen">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                // Persistent: no auto-hide, closes only via the × button which remembers the version.
+                toast.querySelector('button').addEventListener('click', function() {
+                    try { localStorage.setItem('update_dismissed_version', version); } catch (e) {}
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => toast.remove(), 300);
+                });
+                document.getElementById('toast-container').appendChild(toast);
+                setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+            },
+
             saveShoppingListNote: function(inputEl) {
                 const ingredientId = inputEl.dataset.ingredientId;
                 if (!ingredientId) return;
@@ -321,6 +350,27 @@
             } catch (e) {
                 // Ignore malformed flash cookie.
             }
+        })();
+
+        // Update check: poll the cached server result on load and every 2 h.
+        (function setupUpdateCheck() {
+            let shownVersion = null;
+            function checkForUpdate() {
+                fetch('/settings/api/update-check')
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(data) {
+                        if (!data || !data.update_available || !data.latest_version) return;
+                        if (shownVersion === data.latest_version) return;
+                        let dismissed = null;
+                        try { dismissed = localStorage.getItem('update_dismissed_version'); } catch (e) {}
+                        if (dismissed === data.latest_version) return;
+                        shownVersion = data.latest_version;
+                        FreizeitApp.showUpdateToast(data.latest_version, data.release_url);
+                    })
+                    .catch(function() { /* offline / server error: ignore silently */ });
+            }
+            checkForUpdate();
+            setInterval(checkForUpdate, 2 * 60 * 60 * 1000);
         })();
     </script>
 </body>

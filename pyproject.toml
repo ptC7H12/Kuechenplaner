@@ -36,6 +36,9 @@ ignore = [
 "tests/*" = ["F401", "F811"]  # Fixtures-Imports/Re-Definitionen sind im Test-Setup OK
 "app/seeders.py" = ["E501"]
 "build*.py" = ["E501", "T201"]  # print() in Build-Skripten erlaubt
+# main.py muss stdout/stderr-Guards, Logging-Setup und den webview-Conditional
+# vor den restlichen Imports ausführen — daher Imports bewusst nicht ganz oben.
+"app/main.py" = ["E402"]
 
 [tool.ruff.format]
 quote-style = "double"

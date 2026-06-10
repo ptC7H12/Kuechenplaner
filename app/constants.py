@@ -9,3 +9,4 @@ EXCEL_INSTRUCTION_ROW_START = 31
 MEAL_SUB_CATEGORIES = ["Vorspeise", "Hauptgang", "Beilage", "Salat", "Nachtisch"]
 
 REPO_URL = "https://github.com/ptC7H12/Kuechenplaner"
+GITHUB_API_LATEST_RELEASE = "https://api.github.com/repos/ptC7H12/Kuechenplaner/releases/latest"

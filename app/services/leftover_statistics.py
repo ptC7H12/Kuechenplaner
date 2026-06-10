@@ -1,14 +1,13 @@
 """Aggregated leftover statistics per recipe across all camps."""
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
 from app import models
 
 
-def get_recipe_statistics(db: Session, recipe_id: int, current_camp_id: Optional[int] = None) -> dict:
+def get_recipe_statistics(db: Session, recipe_id: int, current_camp_id: int | None = None) -> dict:
     """Compute "per recipe" leftover statistics for a single recipe across all camps.
 
     Only `tracking_type == 'per_recipe'` entries flow into this aggregate so that
@@ -27,19 +26,21 @@ def get_recipe_statistics(db: Session, recipe_id: int, current_camp_id: Optional
             "base_camp_participants": None,
         }
 
-    entries = db.query(models.Leftover).filter(
-        models.Leftover.recipe_id == recipe_id,
-        models.Leftover.tracking_type == "per_recipe",
-    ).all()
+    entries = (
+        db.query(models.Leftover)
+        .filter(
+            models.Leftover.recipe_id == recipe_id,
+            models.Leftover.tracking_type == "per_recipe",
+        )
+        .all()
+    )
     with_pct = [e for e in entries if e.percentage_left is not None]
 
-    avg_pct: Optional[float] = None
+    avg_pct: float | None = None
     if with_pct:
         avg_pct = sum(e.percentage_left for e in with_pct) / len(with_pct)
 
-    camps_with_leftovers = len({
-        e.camp_id for e in with_pct if e.percentage_left and e.percentage_left > 0
-    })
+    camps_with_leftovers = len({e.camp_id for e in with_pct if e.percentage_left and e.percentage_left > 0})
 
     suggested = None
     base_participants = None
@@ -67,11 +68,15 @@ def get_ingredient_breakdown(db: Session, recipe_id: int) -> list[dict]:
     Only entries with tracking_type='per_ingredient' and a non-null ingredient_id
     contribute. Ingredients without leftover data are omitted.
     """
-    entries = db.query(models.Leftover).filter(
-        models.Leftover.recipe_id == recipe_id,
-        models.Leftover.tracking_type == "per_ingredient",
-        models.Leftover.ingredient_id.isnot(None),
-    ).all()
+    entries = (
+        db.query(models.Leftover)
+        .filter(
+            models.Leftover.recipe_id == recipe_id,
+            models.Leftover.tracking_type == "per_ingredient",
+            models.Leftover.ingredient_id.isnot(None),
+        )
+        .all()
+    )
 
     grouped: dict[int, list] = {}
     camps_by_ingredient: dict[int, set] = {}
@@ -82,24 +87,22 @@ def get_ingredient_breakdown(db: Session, recipe_id: int) -> list[dict]:
 
     breakdown = []
     for ingredient_id, items in grouped.items():
-        ingredient = db.query(models.Ingredient).filter(
-            models.Ingredient.id == ingredient_id
-        ).first()
+        ingredient = db.query(models.Ingredient).filter(models.Ingredient.id == ingredient_id).first()
         with_pct = [i for i in items if i.percentage_left is not None]
         avg = sum(i.percentage_left for i in with_pct) / len(with_pct) if with_pct else None
-        breakdown.append({
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient.name if ingredient else f"#{ingredient_id}",
-            "avg_percentage_left": avg,
-            "camps_count": len(camps_by_ingredient.get(ingredient_id, set())),
-        })
+        breakdown.append(
+            {
+                "ingredient_id": ingredient_id,
+                "ingredient_name": ingredient.name if ingredient else f"#{ingredient_id}",
+                "avg_percentage_left": avg,
+                "camps_count": len(camps_by_ingredient.get(ingredient_id, set())),
+            }
+        )
 
-    breakdown.sort(key=lambda b: (b["avg_percentage_left"] or 0), reverse=True)
+    breakdown.sort(key=lambda b: b["avg_percentage_left"] or 0, reverse=True)
     return breakdown
 
 
 def count_recipe_leftover_entries(db: Session, recipe_id: int) -> int:
     """Total number of Leftover rows for a recipe (both tracking_types)."""
-    return db.query(models.Leftover).filter(
-        models.Leftover.recipe_id == recipe_id
-    ).count()
+    return db.query(models.Leftover).filter(models.Leftover.recipe_id == recipe_id).count()

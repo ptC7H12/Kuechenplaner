@@ -206,7 +206,7 @@
                         <span class="font-bold text-indigo-900" x-text="currentIngredient.name"></span>
                         <button
                             type="button"
-                            @click="currentIngredient = { id: null, name: '', quantity: null, unit: '', customUnit: '', category: '' }"
+                            @click="currentIngredient = { id: null, name: '', quantity: null, unit: '', customUnit: '', category: '', category_id: null }"
                             class="ml-3 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-full p-1"
                             title="Auswahl löschen"
                             aria-label="Ausgewählte Zutat entfernen"
@@ -257,6 +257,9 @@
                         <option value="Bund">Bund</option>
                         <option value="Dose">Dose</option>
                         <option value="Packung">Packung</option>
+                        {% for u in custom_units %}
+                        <option value="{{ u }}">{{ u }}</option>
+                        {% endfor %}
                         <option value="custom">➕ Eigene Einheit...</option>
                     </select>
                     <input
@@ -315,6 +318,22 @@
                                         <div class="flex-1">
                                             <p class="font-bold text-gray-900" x-text="ingredient.name"></p>
                                             <p class="text-sm text-gray-600" x-text="ingredient.quantity + ' ' + ingredient.unit"></p>
+                                            <div class="mt-2 flex items-center gap-2">
+                                                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex-shrink-0">Kategorie</label>
+                                                <select
+                                                    class="form-select text-sm py-1 flex-1"
+                                                    :value="ingredient.category_id"
+                                                    @change="onIngredientCategoryChange(ingredient, $event.target.value)"
+                                                    @click.stop
+                                                    @pointerdown.stop
+                                                    aria-label="Kategorie der Zutat"
+                                                >
+                                                    <option value="">— Keine Kategorie —</option>
+                                                    <template x-for="cat in categories" :key="cat.id">
+                                                        <option :value="cat.id" x-text="cat.name" :selected="cat.id === ingredient.category_id"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -404,17 +423,25 @@
             </div>
 
             <div class="form-group">
-                <label for="allergen_notes" class="form-label">Allergen-Hinweise</label>
-                <p class="form-help mb-2">Optional: Spezielle Hinweise zu Allergenen oder Unverträglichkeiten.</p>
-                <textarea
-                    id="allergen_notes"
-                    name="allergen_notes"
-                    x-model="formData.allergen_notes"
-                    @input="saveToLocalStorage"
-                    class="form-textarea"
-                    rows="3"
-                    placeholder="z.B. Enthält Gluten, Laktose..."
-                ></textarea>
+                <label class="form-label">Allergene</label>
+                <p class="form-help mb-2">Wählen Sie die im Rezept enthaltenen Allergene aus.</p>
+                <div class="flex flex-wrap gap-3">
+                    {% for allergen in allergens %}
+                    <label class="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            name="allergens"
+                            value="{{ allergen.id }}"
+                            x-model="formData.allergen_ids"
+                            @change="saveToLocalStorage"
+                            class="form-checkbox mr-2"
+                        >
+                        <span class="badge bg-red-50 text-red-800 border-red-200">
+                            {% if allergen.icon %}<span class="mr-1">{{ allergen.icon }}</span>{% endif %}{{ allergen.name }}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
