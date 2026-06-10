@@ -1,13 +1,26 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey, Table, CheckConstraint, UniqueConstraint, Enum
-from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
 import enum
+from datetime import UTC, datetime
+
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # Enums
@@ -16,23 +29,25 @@ class MealType(enum.Enum):
     LUNCH = "LUNCH"
     DINNER = "DINNER"
 
+
 # Association tables for many-to-many relationships
 recipe_tag_table = Table(
-    'recipe_tags',
+    "recipe_tags",
     Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id'), primary_key=True),
-    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
+    Column("recipe_id", Integer, ForeignKey("recipes.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
 )
 
 recipe_allergen_table = Table(
-    'recipe_allergens',
+    "recipe_allergens",
     Base.metadata,
-    Column('recipe_id', Integer, ForeignKey('recipes.id'), primary_key=True),
-    Column('allergen_id', Integer, ForeignKey('allergens.id'), primary_key=True)
+    Column("recipe_id", Integer, ForeignKey("recipes.id"), primary_key=True),
+    Column("allergen_id", Integer, ForeignKey("allergens.id"), primary_key=True),
 )
 
+
 class Camp(Base):
-    __tablename__ = 'camps'
+    __tablename__ = "camps"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
@@ -49,12 +64,13 @@ class Camp(Base):
 
     # Constraints
     __table_args__ = (
-        CheckConstraint('start_date <= end_date', name='check_camp_date_range'),
-        CheckConstraint('participant_count > 0', name='check_camp_participant_count_positive'),
+        CheckConstraint("start_date <= end_date", name="check_camp_date_range"),
+        CheckConstraint("participant_count > 0", name="check_camp_participant_count_positive"),
     )
 
+
 class Recipe(Base):
-    __tablename__ = 'recipes'
+    __tablename__ = "recipes"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
@@ -76,41 +92,55 @@ class Recipe(Base):
     meal_plans = relationship("MealPlan", back_populates="recipe", passive_deletes=True)
     versions = relationship("RecipeVersion", back_populates="recipe", cascade="all, delete-orphan")
 
+
 class Ingredient(Base):
-    __tablename__ = 'ingredients'
+    __tablename__ = "ingredients"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, unique=True, index=True)
     unit = Column(String(50), nullable=False)  # g, kg, L, ml, Stück, custom
-    category = Column(String(100), nullable=False, index=True)  # Obst, Gemüse, Milchprodukte, etc.
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True)
     note = Column(Text)  # Global note, applies across all camps (e.g. "beim Großhändler bestellen")
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     # Relationships
+    category = relationship("Category", back_populates="ingredients")
     recipe_ingredients = relationship("RecipeIngredient", back_populates="ingredient")
 
 
-class ShoppingListNote(Base):
-    __tablename__ = 'shopping_list_notes'
+class Category(Base):
+    __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    camp_id = Column(Integer, ForeignKey('camps.id', ondelete="CASCADE"), nullable=False, index=True)
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id', ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    color = Column(String(7), default="#6B7280")  # Hex color, used for shopping list grouping
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    # Relationships
+    ingredients = relationship("Ingredient", back_populates="category")
+
+
+class ShoppingListNote(Base):
+    __tablename__ = "shopping_list_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camp_id = Column(Integer, ForeignKey("camps.id", ondelete="CASCADE"), nullable=False, index=True)
+    ingredient_id = Column(Integer, ForeignKey("ingredients.id", ondelete="CASCADE"), nullable=False, index=True)
     note = Column(Text, nullable=False)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
-    __table_args__ = (
-        UniqueConstraint('camp_id', 'ingredient_id', name='uix_shopping_note_camp_ingredient'),
-    )
+    __table_args__ = (UniqueConstraint("camp_id", "ingredient_id", name="uix_shopping_note_camp_ingredient"),)
+
 
 class RecipeIngredient(Base):
-    __tablename__ = 'recipe_ingredients'
+    __tablename__ = "recipe_ingredients"
 
     id = Column(Integer, primary_key=True, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'), nullable=False, index=True)
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id'), nullable=False, index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=False, index=True)
+    ingredient_id = Column(Integer, ForeignKey("ingredients.id"), nullable=False, index=True)
     quantity = Column(Float, nullable=False)
     unit = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=_utcnow)
@@ -120,8 +150,9 @@ class RecipeIngredient(Base):
     recipe = relationship("Recipe", back_populates="ingredients")
     ingredient = relationship("Ingredient", back_populates="recipe_ingredients")
 
+
 class Tag(Base):
-    __tablename__ = 'tags'
+    __tablename__ = "tags"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True, index=True)
@@ -133,12 +164,13 @@ class Tag(Base):
     # Relationships
     recipes = relationship("Recipe", secondary=recipe_tag_table, back_populates="tags")
 
+
 class MealPlan(Base):
-    __tablename__ = 'meal_plans'
+    __tablename__ = "meal_plans"
 
     id = Column(Integer, primary_key=True, index=True)
-    camp_id = Column(Integer, ForeignKey('camps.id'), nullable=False, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id', ondelete="SET NULL"), nullable=True, index=True)
+    camp_id = Column(Integer, ForeignKey("camps.id"), nullable=False, index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True, index=True)
     meal_date = Column(DateTime, nullable=False, index=True)
     meal_type = Column(Enum(MealType), nullable=False, index=True)
     position = Column(Integer, default=0)  # for multiple recipes per slot
@@ -153,13 +185,11 @@ class MealPlan(Base):
     recipe = relationship("Recipe", back_populates="meal_plans")
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint('camp_id', 'meal_date', 'meal_type', 'position',
-                         name='uix_meal_plan_position'),
-    )
+    __table_args__ = (UniqueConstraint("camp_id", "meal_date", "meal_type", "position", name="uix_meal_plan_position"),)
+
 
 class Allergen(Base):
-    __tablename__ = 'allergens'
+    __tablename__ = "allergens"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True, index=True)
@@ -170,11 +200,12 @@ class Allergen(Base):
     # Relationships
     recipes = relationship("Recipe", secondary=recipe_allergen_table, back_populates="allergens")
 
+
 class RecipeVersion(Base):
-    __tablename__ = 'recipe_versions'
+    __tablename__ = "recipe_versions"
 
     id = Column(Integer, primary_key=True, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id'), nullable=False, index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=False, index=True)
     version_number = Column(Integer, nullable=False)
     name = Column(String(255), nullable=False)
     description = Column(Text)
@@ -192,19 +223,17 @@ class RecipeVersion(Base):
     recipe = relationship("Recipe", back_populates="versions")
 
     # Constraints
-    __table_args__ = (
-        UniqueConstraint('recipe_id', 'version_number',
-                         name='uix_recipe_version'),
-    )
+    __table_args__ = (UniqueConstraint("recipe_id", "version_number", name="uix_recipe_version"),)
+
 
 class Leftover(Base):
-    __tablename__ = 'leftovers'
+    __tablename__ = "leftovers"
 
     id = Column(Integer, primary_key=True, index=True)
-    camp_id = Column(Integer, ForeignKey('camps.id', ondelete="CASCADE"), nullable=False, index=True)
-    meal_plan_id = Column(Integer, ForeignKey('meal_plans.id', ondelete="SET NULL"), nullable=True, index=True)
-    recipe_id = Column(Integer, ForeignKey('recipes.id', ondelete="SET NULL"), nullable=True, index=True)
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id', ondelete="SET NULL"), nullable=True)
+    camp_id = Column(Integer, ForeignKey("camps.id", ondelete="CASCADE"), nullable=False, index=True)
+    meal_plan_id = Column(Integer, ForeignKey("meal_plans.id", ondelete="SET NULL"), nullable=True, index=True)
+    recipe_id = Column(Integer, ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True, index=True)
+    ingredient_id = Column(Integer, ForeignKey("ingredients.id", ondelete="SET NULL"), nullable=True)
     tracking_type = Column(String(20), nullable=False)  # "per_recipe" or "per_ingredient"
     percentage_left = Column(Float)  # 0..100
     description = Column(Text)
@@ -218,7 +247,7 @@ class Leftover(Base):
 
 
 class AppSettings(Base):
-    __tablename__ = 'app_settings'
+    __tablename__ = "app_settings"
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String(100), nullable=False, unique=True)

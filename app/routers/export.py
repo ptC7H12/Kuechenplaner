@@ -1,30 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse, FileResponse
-from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
-from io import BytesIO
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
 from collections import defaultdict
+from datetime import UTC, datetime, timedelta
+from io import BytesIO
+from pathlib import Path
 
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from sqlalchemy.orm import Session
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
-
-from app.database import get_db
 from app import crud, models
-from app.services.calculation import calculate_shopping_list
-from app.services.unit_converter import format_quantity_with_conversion
+from app.database import get_db
 from app.logging_config import get_logger
+from app.services.calculation import calculate_shopping_list
+from app.services.unit_converter import format_quantity_with_conversion, load_custom_conversions
 
 logger = get_logger("export")
 
@@ -43,23 +42,21 @@ DEFAULT_SUB_CATEGORY_COLOR = colors.HexColor("#6b7280")
 
 # --- Helper functions ---
 
+
 def sanitize_filename(name: str) -> str:
     """Sanitize a string for safe use as a filename"""
-    return re.sub(r'[^\w\-.]', '_', name)
+    return re.sub(r"[^\w\-.]", "_", name)
 
 
 def get_german_weekday(date):
     """Get German weekday name for a date"""
-    weekdays = {
-        0: "Montag", 1: "Dienstag", 2: "Mittwoch", 3: "Donnerstag",
-        4: "Freitag", 5: "Samstag", 6: "Sonntag"
-    }
-    return weekdays.get(date.weekday(), date.strftime('%A'))
+    weekdays = {0: "Montag", 1: "Dienstag", 2: "Mittwoch", 3: "Donnerstag", 4: "Freitag", 5: "Samstag", 6: "Sonntag"}
+    return weekdays.get(date.weekday(), date.strftime("%A"))
 
 
 def get_downloads_folder():
     """Get or create downloads folder for exported files"""
-    downloads_path = Path.home() / 'Downloads' / 'Kuechenplaner'
+    downloads_path = Path.home() / "Downloads" / "Kuechenplaner"
     downloads_path.mkdir(parents=True, exist_ok=True)
     return downloads_path
 
@@ -67,12 +64,12 @@ def get_downloads_folder():
 def open_file(filepath):
     """Open file with default system viewer"""
     try:
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             os.startfile(filepath)
-        elif sys.platform == 'darwin':
-            subprocess.run(['open', filepath])
+        elif sys.platform == "darwin":
+            subprocess.run(["open", filepath])
         else:
-            subprocess.run(['xdg-open', filepath])
+            subprocess.run(["xdg-open", filepath])
         return True
     except Exception as e:
         logger.error(f"Error opening file: {e}", exc_info=True)
@@ -85,7 +82,7 @@ def build_and_serve_pdf(buffer: BytesIO, filename: str) -> FileResponse:
     downloads_folder = get_downloads_folder()
     filepath = downloads_folder / filename
 
-    with open(filepath, 'wb') as f:
+    with open(filepath, "wb") as f:
         f.write(buffer.getvalue())
 
     open_file(str(filepath))
@@ -94,7 +91,7 @@ def build_and_serve_pdf(buffer: BytesIO, filename: str) -> FileResponse:
         path=str(filepath),
         media_type="application/pdf",
         filename=filename,
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
@@ -103,28 +100,20 @@ def get_pdf_styles():
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        'ExportTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#1F2937'),
-        spaceAfter=30
+        "ExportTitle", parent=styles["Heading1"], fontSize=24, textColor=colors.HexColor("#1F2937"), spaceAfter=30
     )
 
     heading_style = ParagraphStyle(
-        'ExportHeading',
-        parent=styles['Heading2'],
-        fontSize=16,
-        textColor=colors.HexColor('#374151'),
-        spaceAfter=12
+        "ExportHeading", parent=styles["Heading2"], fontSize=16, textColor=colors.HexColor("#374151"), spaceAfter=12
     )
 
     section_heading_style = ParagraphStyle(
-        'ExportSectionHeading',
-        parent=styles['Heading3'],
+        "ExportSectionHeading",
+        parent=styles["Heading3"],
         fontSize=14,
-        textColor=colors.HexColor('#374151'),
+        textColor=colors.HexColor("#374151"),
         spaceAfter=10,
-        fontName='Helvetica-Bold'
+        fontName="Helvetica-Bold",
     )
 
     return styles, title_style, heading_style, section_heading_style
@@ -132,31 +121,31 @@ def get_pdf_styles():
 
 def get_table_style():
     """Get common table style for ingredient/data tables"""
-    return TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (2, -1), 'RIGHT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    ])
+    return TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E5E7EB")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("ALIGN", (1, 0), (2, -1), "RIGHT"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 12),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ]
+    )
 
 
 def make_timestamp():
     """Generate a timestamp string for filenames"""
-    return datetime.now(timezone.utc).strftime('%Y%m%d')
+    return datetime.now(UTC).strftime("%Y%m%d")
 
 
 # --- Export endpoints ---
 
+
 @router.get("/shopping-list/pdf/{camp_id}")
-async def export_shopping_list_pdf(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def export_shopping_list_pdf(camp_id: int, db: Session = Depends(get_db)):
     """Export shopping list as PDF (compact layout with notes column)"""
     camp = crud.get_camp(db, camp_id)
     if not camp:
@@ -165,30 +154,30 @@ async def export_shopping_list_pdf(
     shopping_data = calculate_shopping_list(db, camp_id)
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=1.5*cm, leftMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm
+    )
 
     elements = []
     styles, _, _, _ = get_pdf_styles()
 
     compact_title = ParagraphStyle(
-        'ShoppingListTitle',
-        parent=styles['Heading1'],
+        "ShoppingListTitle",
+        parent=styles["Heading1"],
         fontSize=18,
-        textColor=colors.HexColor('#1F2937'),
+        textColor=colors.HexColor("#1F2937"),
         spaceAfter=8,
     )
     compact_heading = ParagraphStyle(
-        'ShoppingListHeading',
-        parent=styles['Heading2'],
+        "ShoppingListHeading",
+        parent=styles["Heading2"],
         fontSize=13,
-        textColor=colors.HexColor('#374151'),
+        textColor=colors.HexColor("#374151"),
         spaceAfter=4,
     )
     cell_style = ParagraphStyle(
-        'ShoppingListCell',
-        parent=styles['Normal'],
+        "ShoppingListCell",
+        parent=styles["Normal"],
         fontSize=9,
         leading=11,
     )
@@ -203,46 +192,50 @@ async def export_shopping_list_pdf(
         f"Rezepte: {shopping_data['total_recipes']} | "
         f"Zutaten: {shopping_data['total_items']}"
     )
-    elements.append(Paragraph(info_text, styles['Normal']))
+    elements.append(Paragraph(info_text, styles["Normal"]))
     elements.append(Spacer(1, 8))
 
-    compact_table_style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('ALIGN', (1, 1), (2, -1), 'RIGHT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-    ])
+    compact_table_style = TableStyle(
+        [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E5E7EB")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 10),
+            ("FONTSIZE", (0, 1), (-1, -1), 9),
+            ("ALIGN", (1, 1), (2, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+        ]
+    )
 
     # Shopping list by category
-    for category, items in shopping_data['categories'].items():
+    for category, items in shopping_data["categories"].items():
         elements.append(Paragraph(category, compact_heading))
 
         table_data = [["Zutat", "Menge", "Einheit", "Bemerkung"]]
         for item in items:
             note_parts = []
-            if item.get('global_note'):
-                note_parts.append(str(item['global_note']))
-            if item.get('note'):
-                note_parts.append(str(item['note']))
+            if item.get("global_note"):
+                note_parts.append(str(item["global_note"]))
+            if item.get("note"):
+                note_parts.append(str(item["note"]))
             note_text = "<br/>".join(note_parts) if note_parts else ""
 
-            table_data.append([
-                Paragraph(item['ingredient'].name, cell_style),
-                f"{item['quantity']:.1f}",
-                item['unit'],
-                Paragraph(note_text, cell_style),
-            ])
+            table_data.append(
+                [
+                    Paragraph(item["ingredient"].name, cell_style),
+                    f"{item['quantity']:.1f}",
+                    item["unit"],
+                    Paragraph(note_text, cell_style),
+                ]
+            )
 
-        table = Table(table_data, colWidths=[6.5*cm, 2.2*cm, 2.0*cm, 7.3*cm])
+        table = Table(table_data, colWidths=[6.5 * cm, 2.2 * cm, 2.0 * cm, 7.3 * cm])
         table.setStyle(compact_table_style)
         elements.append(table)
         elements.append(Spacer(1, 10))
@@ -254,10 +247,7 @@ async def export_shopping_list_pdf(
 
 
 @router.get("/shopping-list/excel/{camp_id}")
-async def export_shopping_list_excel(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def export_shopping_list_excel(camp_id: int, db: Session = Depends(get_db)):
     """Export shopping list as Excel"""
     camp = crud.get_camp(db, camp_id)
     if not camp:
@@ -269,40 +259,40 @@ async def export_shopping_list_excel(
     ws = wb.active
     ws.title = "Einkaufsliste"
 
-    ws['A1'] = f"Einkaufsliste: {camp.name}"
-    ws['A1'].font = Font(size=16, bold=True)
+    ws["A1"] = f"Einkaufsliste: {camp.name}"
+    ws["A1"].font = Font(size=16, bold=True)
 
-    ws['A3'] = "Zeitraum:"
-    ws['B3'] = f"{camp.start_date.strftime('%d.%m.%Y')} - {camp.end_date.strftime('%d.%m.%Y')}"
-    ws['A4'] = "Teilnehmer:"
-    ws['B4'] = camp.participant_count
-    ws['A5'] = "Rezepte:"
-    ws['B5'] = shopping_data['total_recipes']
+    ws["A3"] = "Zeitraum:"
+    ws["B3"] = f"{camp.start_date.strftime('%d.%m.%Y')} - {camp.end_date.strftime('%d.%m.%Y')}"
+    ws["A4"] = "Teilnehmer:"
+    ws["B4"] = camp.participant_count
+    ws["A5"] = "Rezepte:"
+    ws["B5"] = shopping_data["total_recipes"]
 
     row = 7
-    for col_letter, header in [('A', 'Kategorie'), ('B', 'Zutat'), ('C', 'Menge'), ('D', 'Einheit'), ('E', '?')]:
-        cell = ws[f'{col_letter}{row}']
+    for col_letter, header in [("A", "Kategorie"), ("B", "Zutat"), ("C", "Menge"), ("D", "Einheit"), ("E", "?")]:
+        cell = ws[f"{col_letter}{row}"]
         cell.value = header
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color="E5E7EB", end_color="E5E7EB", fill_type="solid")
-        cell.alignment = Alignment(horizontal='left')
+        cell.alignment = Alignment(horizontal="left")
 
     row += 1
 
-    for category, items in shopping_data['categories'].items():
+    for category, items in shopping_data["categories"].items():
         for item in items:
-            ws[f'A{row}'] = category
-            ws[f'B{row}'] = item['ingredient'].name
-            ws[f'C{row}'] = round(item['quantity'], 1)
-            ws[f'D{row}'] = item['unit']
-            ws[f'E{row}'] = ""
+            ws[f"A{row}"] = category
+            ws[f"B{row}"] = item["ingredient"].name
+            ws[f"C{row}"] = round(item["quantity"], 1)
+            ws[f"D{row}"] = item["unit"]
+            ws[f"E{row}"] = ""
             row += 1
 
-    ws.column_dimensions['A'].width = 20
-    ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 10
-    ws.column_dimensions['D'].width = 10
-    ws.column_dimensions['E'].width = 5
+    ws.column_dimensions["A"].width = 20
+    ws.column_dimensions["B"].width = 30
+    ws.column_dimensions["C"].width = 10
+    ws.column_dimensions["D"].width = 10
+    ws.column_dimensions["E"].width = 5
 
     buffer = BytesIO()
     wb.save(buffer)
@@ -313,15 +303,12 @@ async def export_shopping_list_excel(
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
 @router.get("/meal-plan/pdf/{camp_id}")
-async def export_meal_plan_pdf(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def export_meal_plan_pdf(camp_id: int, db: Session = Depends(get_db)):
     """Export meal plan as PDF in landscape table format"""
     camp = crud.get_camp(db, camp_id)
     if not camp:
@@ -329,32 +316,35 @@ async def export_meal_plan_pdf(
 
     meal_plans = crud.get_meal_plans_for_camp(db, camp_id)
 
-    meal_grid = defaultdict(lambda: {
-        models.MealType.BREAKFAST: [],
-        models.MealType.LUNCH: [],
-        models.MealType.DINNER: []
-    })
+    meal_grid = defaultdict(
+        lambda: {models.MealType.BREAKFAST: [], models.MealType.LUNCH: [], models.MealType.DINNER: []}
+    )
 
     for meal_plan in meal_plans:
         date_key = meal_plan.meal_date.date()
         meal_grid[date_key][meal_plan.meal_type].append(meal_plan)
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
-                            rightMargin=1.5*cm, leftMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=1.5 * cm,
+        leftMargin=1.5 * cm,
+        topMargin=1.5 * cm,
+        bottomMargin=1.5 * cm,
+    )
 
     elements = []
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        'MealPlanTitle',
-        parent=styles['Heading1'],
+        "MealPlanTitle",
+        parent=styles["Heading1"],
         fontSize=20,
-        textColor=colors.HexColor('#1F2937'),
+        textColor=colors.HexColor("#1F2937"),
         spaceAfter=10,
         alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
+        fontName="Helvetica-Bold",
     )
 
     # Generate all days
@@ -365,12 +355,12 @@ async def export_meal_plan_pdf(
         current_date += timedelta(days=1)
 
     # Split days into pages (10 days per page)
-    pages = [all_days[i:i+10] for i in range(0, len(all_days), 10)]
+    pages = [all_days[i : i + 10] for i in range(0, len(all_days), 10)]
 
     meal_types = [
         (models.MealType.BREAKFAST, "Frühstück"),
         (models.MealType.LUNCH, "Mittagessen"),
-        (models.MealType.DINNER, "Abendessen")
+        (models.MealType.DINNER, "Abendessen"),
     ]
 
     for page_idx, page_days in enumerate(pages):
@@ -383,7 +373,7 @@ async def export_meal_plan_pdf(
         if len(pages) > 1:
             info_text += f" | Seite {page_idx + 1} von {len(pages)}"
 
-        elements.append(Paragraph(info_text, styles['Normal']))
+        elements.append(Paragraph(info_text, styles["Normal"]))
         elements.append(Spacer(1, 15))
 
         table_data = [["Datum"] + [meal_name for _, meal_name in meal_types]]
@@ -408,35 +398,39 @@ async def export_meal_plan_pdf(
 
             table_data.append(row)
 
-        date_col_width = 3.5*cm
-        meal_col_width = (landscape(A4)[0] - 3*cm - date_col_width) / len(meal_types)
+        date_col_width = 3.5 * cm
+        meal_col_width = (landscape(A4)[0] - 3 * cm - date_col_width) / len(meal_types)
         col_widths = [date_col_width] + [meal_col_width] * len(meal_types)
 
         table = Table(table_data, colWidths=col_widths)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#F3F4F6')),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (0, -1), 9),
-            ('ALIGN', (0, 1), (0, -1), 'LEFT'),
-            ('VALIGN', (0, 1), (0, -1), 'MIDDLE'),
-            ('FONTSIZE', (1, 1), (-1, -1), 7),
-            ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
-            ('VALIGN', (1, 1), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#D1D5DB')),
-            ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4F46E5')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-        ]))
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4F46E5")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 10),
+                    ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                    ("ALIGN", (1, 0), (-1, 0), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+                    ("BACKGROUND", (0, 1), (0, -1), colors.HexColor("#F3F4F6")),
+                    ("FONTNAME", (0, 1), (0, -1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 1), (0, -1), 9),
+                    ("ALIGN", (0, 1), (0, -1), "LEFT"),
+                    ("VALIGN", (0, 1), (0, -1), "MIDDLE"),
+                    ("FONTSIZE", (1, 1), (-1, -1), 7),
+                    ("ALIGN", (1, 1), (-1, -1), "LEFT"),
+                    ("VALIGN", (1, 1), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ("GRID", (0, 0), (-1, -1), 1, colors.HexColor("#D1D5DB")),
+                    ("LINEBELOW", (0, 0), (-1, 0), 2, colors.HexColor("#4F46E5")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+                ]
+            )
+        )
 
         elements.append(table)
 
@@ -447,10 +441,7 @@ async def export_meal_plan_pdf(
 
 
 @router.get("/recipe-book/pdf/{camp_id}")
-async def export_recipe_book_pdf(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def export_recipe_book_pdf(camp_id: int, db: Session = Depends(get_db)):
     """Export recipe book with all recipes from meal plan.
 
     Scales each recipe to the largest custom_servings value seen across
@@ -479,12 +470,14 @@ async def export_recipe_book_pdf(
         raise HTTPException(status_code=404, detail="No recipes found in meal plan")
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=2*cm, leftMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm
+    )
 
     elements = []
     styles, title_style, _, section_heading_style = get_pdf_styles()
+
+    custom_conversions = load_custom_conversions(db)
 
     elements.append(Paragraph(f"Rezeptbuch: {camp.name}", title_style))
     elements.append(Spacer(1, 20))
@@ -496,10 +489,10 @@ async def export_recipe_book_pdf(
         target_servings = recipe_servings[recipe.id]
         scaling_factor = target_servings / recipe.base_servings
 
-        elements.append(Paragraph(recipe.name, styles['Heading1']))
+        elements.append(Paragraph(recipe.name, styles["Heading1"]))
 
         if recipe.description:
-            elements.append(Paragraph(recipe.description, styles['Normal']))
+            elements.append(Paragraph(recipe.description, styles["Normal"]))
             elements.append(Spacer(1, 10))
 
         info_text = f"Portionen: {target_servings} (Originalrezept: {recipe.base_servings}) | "
@@ -508,31 +501,38 @@ async def export_recipe_book_pdf(
         if recipe.cooking_time:
             info_text += f"Kochzeit: {recipe.cooking_time} min"
 
-        elements.append(Paragraph(f"<i>{info_text}</i>", styles['Normal']))
+        elements.append(Paragraph(f"<i>{info_text}</i>", styles["Normal"]))
         elements.append(Spacer(1, 15))
+
+        if recipe.tags:
+            tag_names = ", ".join([t.name for t in recipe.tags])
+            elements.append(Paragraph(f"<b>Tags:</b> {tag_names}", styles["Normal"]))
+            elements.append(Spacer(1, 10))
 
         if recipe.allergens:
             allergen_names = ", ".join([a.name for a in recipe.allergens])
-            elements.append(Paragraph(f"<b>Allergene:</b> {allergen_names}", styles['Normal']))
+            elements.append(Paragraph(f"<b>Allergene:</b> {allergen_names}", styles["Normal"]))
             elements.append(Spacer(1, 10))
 
-        elements.append(Paragraph("<b>Zutaten:</b>", styles['Heading3']))
+        elements.append(Paragraph("<b>Zutaten:</b>", styles["Heading3"]))
 
         ingredient_data = [["Zutat", "Menge"]]
         for ri in recipe.ingredients:
-            ingredient_data.append([
-                ri.ingredient.name,
-                format_quantity_with_conversion(ri.quantity * scaling_factor, ri.unit),
-            ])
+            ingredient_data.append(
+                [
+                    ri.ingredient.name,
+                    format_quantity_with_conversion(ri.quantity * scaling_factor, ri.unit, custom_conversions),
+                ]
+            )
 
-        ing_table = Table(ingredient_data, colWidths=[10*cm, 6*cm])
+        ing_table = Table(ingredient_data, colWidths=[10 * cm, 6 * cm])
         ing_table.setStyle(get_table_style())
         elements.append(ing_table)
         elements.append(Spacer(1, 15))
 
         if recipe.instructions:
-            elements.append(Paragraph("<b>Zubereitung:</b>", styles['Heading3']))
-            elements.append(Paragraph(recipe.instructions, styles['Normal']))
+            elements.append(Paragraph("<b>Zubereitung:</b>", styles["Heading3"]))
+            elements.append(Paragraph(recipe.instructions, styles["Normal"]))
 
     doc.build(elements)
 
@@ -541,10 +541,7 @@ async def export_recipe_book_pdf(
 
 
 @router.get("/daily-lists/pdf/{camp_id}")
-async def export_daily_lists_pdf(
-    camp_id: int,
-    db: Session = Depends(get_db)
-):
+async def export_daily_lists_pdf(camp_id: int, db: Session = Depends(get_db)):
     """Export a "Tageslisten" PDF: one page per camp day, grouped by meal type
     (with sub-categories for dinner), each recipe printed with its ingredients
     and preparation steps in a 3-column table.
@@ -566,11 +563,13 @@ async def export_daily_lists_pdf(
         sub_idx = sub_cat_order.get(mp.sub_category, len(MEAL_SUB_CATEGORIES))
         return (sub_idx, mp.position or 0)
 
-    by_date: dict = defaultdict(lambda: {
-        models.MealType.BREAKFAST: [],
-        models.MealType.LUNCH: [],
-        models.MealType.DINNER: [],
-    })
+    by_date: dict = defaultdict(
+        lambda: {
+            models.MealType.BREAKFAST: [],
+            models.MealType.LUNCH: [],
+            models.MealType.DINNER: [],
+        }
+    )
     for mp in meal_plans:
         if not mp.recipe_id or not mp.recipe:
             continue
@@ -581,32 +580,34 @@ async def export_daily_lists_pdf(
             by_date[date_key][mt].sort(key=sort_key)
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=1.5*cm, leftMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=1.5 * cm, leftMargin=1.5 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm
+    )
 
     elements = []
     styles, _, _, _ = get_pdf_styles()
 
+    custom_conversions = load_custom_conversions(db)
+
     day_title_style = ParagraphStyle(
-        'DayTitle',
-        parent=styles['Heading1'],
+        "DayTitle",
+        parent=styles["Heading1"],
         fontSize=18,
-        textColor=colors.HexColor('#1F2937'),
+        textColor=colors.HexColor("#1F2937"),
         spaceAfter=10,
-        fontName='Helvetica-Bold',
+        fontName="Helvetica-Bold",
     )
     meal_heading_style = ParagraphStyle(
-        'MealHeading',
-        parent=styles['Heading2'],
+        "MealHeading",
+        parent=styles["Heading2"],
         fontSize=13,
-        textColor=colors.HexColor('#4F46E5'),
+        textColor=colors.HexColor("#4F46E5"),
         spaceAfter=4,
-        fontName='Helvetica-Bold',
+        fontName="Helvetica-Bold",
     )
     cell_style = ParagraphStyle(
-        'DailyCell',
-        parent=styles['Normal'],
+        "DailyCell",
+        parent=styles["Normal"],
         fontSize=9,
         leading=11,
     )
@@ -617,10 +618,22 @@ async def export_daily_lists_pdf(
         models.MealType.DINNER: "Abendessen",
     }
 
-    def build_recipe_block(meal_plan, total_width=18.0*cm):
+    def build_recipe_block(meal_plan, total_width=18.0 * cm):
+        """Return the flowables for one recipe: an optional tags/allergens line
+        followed by the ingredient (+ instructions) table."""
         recipe = meal_plan.recipe
         effective_servings = meal_plan.custom_servings or camp.participant_count
         factor = effective_servings / recipe.base_servings if recipe.base_servings else 1.0
+
+        block = []
+        meta_parts = []
+        if recipe.tags:
+            meta_parts.append(f"<b>Tags:</b> {', '.join(t.name for t in recipe.tags)}")
+        if recipe.allergens:
+            meta_parts.append(f"<b>Allergene:</b> {', '.join(a.name for a in recipe.allergens)}")
+        if meta_parts:
+            block.append(Paragraph(" | ".join(meta_parts), cell_style))
+            block.append(Spacer(1, 4))
 
         ingredients = list(recipe.ingredients)
         instructions_text = (recipe.instructions or "").strip()
@@ -633,14 +646,13 @@ async def export_daily_lists_pdf(
         table_data = [header]
 
         instructions_paragraph = (
-            Paragraph(instructions_text.replace("\n", "<br/>"), cell_style)
-            if has_instructions else None
+            Paragraph(instructions_text.replace("\n", "<br/>"), cell_style) if has_instructions else None
         )
 
         for i in range(rows):
             if i < len(ingredients):
                 ri = ingredients[i]
-                qty_cell = format_quantity_with_conversion(ri.quantity * factor, ri.unit)
+                qty_cell = format_quantity_with_conversion(ri.quantity * factor, ri.unit, custom_conversions)
                 name_cell = ri.ingredient.name
             else:
                 qty_cell = ""
@@ -667,54 +679,59 @@ async def export_daily_lists_pdf(
             ]
 
         style_cmds = [
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('ALIGN', (0, 1), (0, -1), 'RIGHT'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E5E7EB")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 10),
+            ("FONTSIZE", (0, 1), (-1, -1), 9),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("ALIGN", (0, 1), (0, -1), "RIGHT"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
         ]
         if has_instructions and rows > 1:
-            style_cmds.append(('SPAN', (2, 1), (2, rows)))
+            style_cmds.append(("SPAN", (2, 1), (2, rows)))
 
         table = Table(table_data, colWidths=col_widths)
         table.setStyle(TableStyle(style_cmds))
-        return table
+        block.append(table)
+        return block
 
     def build_sub_category_block(meal_plan):
         """Indented block with a colored left bar and sub-category heading."""
         color = SUB_CATEGORY_COLORS.get(meal_plan.sub_category, DEFAULT_SUB_CATEGORY_COLOR)
         sub_label = meal_plan.sub_category or "Sonstiges"
         sub_heading_style = ParagraphStyle(
-            'SubCategoryHeading',
-            parent=styles['Normal'],
+            "SubCategoryHeading",
+            parent=styles["Normal"],
             fontSize=11,
             textColor=color,
-            fontName='Helvetica-Bold',
+            fontName="Helvetica-Bold",
             spaceAfter=2,
         )
         heading = Paragraph(f"{sub_label}: {meal_plan.recipe.name}", sub_heading_style)
-        inner_table = build_recipe_block(meal_plan, total_width=17.0*cm)
+        inner_block = build_recipe_block(meal_plan, total_width=17.0 * cm)
 
         wrapper = Table(
-            [[None, heading], [None, inner_table]],
-            colWidths=[1.0*cm, 17.0*cm],
+            [[None, heading], [None, inner_block]],
+            colWidths=[1.0 * cm, 17.0 * cm],
         )
-        wrapper.setStyle(TableStyle([
-            ('LINEBEFORE', (1, 0), (1, -1), 3, color),
-            ('LEFTPADDING', (1, 0), (1, -1), 8),
-            ('RIGHTPADDING', (1, 0), (1, -1), 0),
-            ('LEFTPADDING', (0, 0), (0, -1), 0),
-            ('RIGHTPADDING', (0, 0), (0, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
+        wrapper.setStyle(
+            TableStyle(
+                [
+                    ("LINEBEFORE", (1, 0), (1, -1), 3, color),
+                    ("LEFTPADDING", (1, 0), (1, -1), 8),
+                    ("RIGHTPADDING", (1, 0), (1, -1), 0),
+                    ("LEFTPADDING", (0, 0), (0, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (0, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         return wrapper
 
     sorted_dates = sorted(by_date.keys())
@@ -739,14 +756,14 @@ async def export_daily_lists_pdf(
             if single_no_sub:
                 mp = entries[0]
                 recipe_title_style = ParagraphStyle(
-                    'RecipeTitle',
-                    parent=styles['Normal'],
+                    "RecipeTitle",
+                    parent=styles["Normal"],
                     fontSize=11,
-                    fontName='Helvetica-Bold',
+                    fontName="Helvetica-Bold",
                     spaceAfter=2,
                 )
                 elements.append(Paragraph(mp.recipe.name, recipe_title_style))
-                elements.append(build_recipe_block(mp))
+                elements.extend(build_recipe_block(mp))
                 elements.append(Spacer(1, 8))
             else:
                 for mp in entries:
@@ -754,7 +771,7 @@ async def export_daily_lists_pdf(
                     elements.append(Spacer(1, 6))
 
         if not any_meal:
-            elements.append(Paragraph("<i>Keine Rezepte geplant.</i>", styles['Normal']))
+            elements.append(Paragraph("<i>Keine Rezepte geplant.</i>", styles["Normal"]))
 
     doc.build(elements)
     filename = f"tageslisten_{sanitize_filename(camp.name)}_{make_timestamp()}.pdf"
@@ -762,9 +779,7 @@ async def export_daily_lists_pdf(
 
 
 @router.get("/recipes/pdf")
-async def export_all_recipes_pdf(
-    db: Session = Depends(get_db)
-):
+async def export_all_recipes_pdf(db: Session = Depends(get_db)):
     """Export all recipes as PDF with improved formatting"""
     recipes = crud.get_recipes(db, skip=0, limit=10000)
 
@@ -772,69 +787,70 @@ async def export_all_recipes_pdf(
         raise HTTPException(status_code=404, detail="No recipes found")
 
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=2*cm, leftMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm
+    )
 
     elements = []
     styles, _, _, section_heading_style = get_pdf_styles()
 
     title_style = ParagraphStyle(
-        'BookTitle',
-        parent=styles['Heading1'],
+        "BookTitle",
+        parent=styles["Heading1"],
         fontSize=28,
-        textColor=colors.HexColor('#1F2937'),
+        textColor=colors.HexColor("#1F2937"),
         spaceAfter=30,
         alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
+        fontName="Helvetica-Bold",
     )
 
     subtitle_style = ParagraphStyle(
-        'BookSubtitle',
-        parent=styles['Normal'],
+        "BookSubtitle",
+        parent=styles["Normal"],
         fontSize=14,
-        textColor=colors.HexColor('#6B7280'),
+        textColor=colors.HexColor("#6B7280"),
         spaceAfter=20,
-        alignment=TA_CENTER
+        alignment=TA_CENTER,
     )
 
     recipe_title_style = ParagraphStyle(
-        'RecipeTitle',
-        parent=styles['Heading1'],
+        "RecipeTitle",
+        parent=styles["Heading1"],
         fontSize=22,
-        textColor=colors.HexColor('#1F2937'),
+        textColor=colors.HexColor("#1F2937"),
         spaceAfter=15,
-        fontName='Helvetica-Bold'
+        fontName="Helvetica-Bold",
     )
 
     # Title page
     elements.append(Paragraph("Rezeptsammlung", title_style))
-    elements.append(Paragraph(
-        f"{len(recipes)} Rezepte | {datetime.now(timezone.utc).strftime('%d.%m.%Y')}",
-        subtitle_style
-    ))
+    elements.append(Paragraph(f"{len(recipes)} Rezepte | {datetime.now(UTC).strftime('%d.%m.%Y')}", subtitle_style))
     elements.append(Spacer(1, 30))
 
     # Table of contents
-    elements.append(Paragraph("<b>Inhaltsverzeichnis</b>", styles['Heading2']))
+    elements.append(Paragraph("<b>Inhaltsverzeichnis</b>", styles["Heading2"]))
     elements.append(Spacer(1, 10))
 
     toc_data = [["Nr.", "Rezeptname", "Portionen"]]
     for idx, recipe in enumerate(recipes, 1):
         toc_data.append([str(idx), recipe.name, str(recipe.base_servings)])
 
-    toc_table = Table(toc_data, colWidths=[1.5*cm, 11*cm, 3*cm])
-    toc_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('TOPPADDING', (0, 0), (-1, 0), 12),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D1D5DB')),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-    ]))
+    toc_table = Table(toc_data, colWidths=[1.5 * cm, 11 * cm, 3 * cm])
+    toc_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E5E7EB")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
+                ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 12),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D1D5DB")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+            ]
+        )
+    )
 
     elements.append(toc_table)
     elements.append(PageBreak())
@@ -844,7 +860,7 @@ async def export_all_recipes_pdf(
         elements.append(Paragraph(f"{idx}. {recipe.name}", recipe_title_style))
 
         if recipe.description:
-            elements.append(Paragraph(f"<i>{recipe.description}</i>", styles['Normal']))
+            elements.append(Paragraph(f"<i>{recipe.description}</i>", styles["Normal"]))
             elements.append(Spacer(1, 10))
 
         # Recipe info box
@@ -854,16 +870,20 @@ async def export_all_recipes_pdf(
         if recipe.cooking_time:
             info_parts.append(f"<b>Kochzeit:</b> {recipe.cooking_time} min")
 
-        info_table = Table([info_parts], colWidths=[5*cm] * len(info_parts))
-        info_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#EEF2FF')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1F2937')),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ]))
+        info_table = Table([info_parts], colWidths=[5 * cm] * len(info_parts))
+        info_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#EEF2FF")),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1F2937")),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ]
+            )
+        )
 
         elements.append(info_table)
         elements.append(Spacer(1, 15))
@@ -875,7 +895,7 @@ async def export_all_recipes_pdf(
                 parts.append(f"<b>Tags:</b> {', '.join(t.name for t in recipe.tags)}")
             if recipe.allergens:
                 parts.append(f"<b>Allergene:</b> {', '.join(a.name for a in recipe.allergens)}")
-            elements.append(Paragraph(" | ".join(parts), styles['Normal']))
+            elements.append(Paragraph(" | ".join(parts), styles["Normal"]))
             elements.append(Spacer(1, 15))
 
         # Ingredients
@@ -886,24 +906,28 @@ async def export_all_recipes_pdf(
             for ri in recipe.ingredients:
                 ingredient_data.append([ri.ingredient.name, f"{ri.quantity:.1f}", ri.unit])
 
-            ing_table = Table(ingredient_data, colWidths=[10*cm, 3*cm, 3*cm])
-            ing_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('ALIGN', (1, 0), (2, -1), 'RIGHT'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D1D5DB')),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
-            ]))
+            ing_table = Table(ingredient_data, colWidths=[10 * cm, 3 * cm, 3 * cm])
+            ing_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E5E7EB")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#1F2937")),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("ALIGN", (1, 0), (2, -1), "RIGHT"),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#D1D5DB")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 8),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F9FAFB")]),
+                    ]
+                )
+            )
             elements.append(ing_table)
             elements.append(Spacer(1, 15))
 
         # Instructions
         if recipe.instructions:
             elements.append(Paragraph("Zubereitung", section_heading_style))
-            elements.append(Paragraph(recipe.instructions.replace('\n', '<br/>'), styles['Normal']))
+            elements.append(Paragraph(recipe.instructions.replace("\n", "<br/>"), styles["Normal"]))
 
         if idx < len(recipes):
             elements.append(PageBreak())

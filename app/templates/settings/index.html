@@ -27,6 +27,12 @@
                 Tags & Kategorien
             </button>
             <button
+                @click="activeTab = 'ingredients'"
+                :class="activeTab === 'ingredients' ? 'tab-button-active' : ''"
+                class="tab-button">
+                Zutaten
+            </button>
+            <button
                 @click="activeTab = 'import'"
                 :class="activeTab === 'import' ? 'tab-button-active' : ''"
                 class="tab-button">
@@ -148,31 +154,36 @@
                         <div>
                             <h3 class="font-medium text-gray-900 mb-3">Benutzerdefinierte Konvertierungen</h3>
                             <div class="space-y-3">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                                    <div>
-                                        <label class="form-label">Von Einheit</label>
-                                        <input type="text" class="form-input" placeholder="z.B. Becher">
+                                <form hx-post="/settings/api/settings/units/conversions/add"
+                                      hx-target="#conversions-list"
+                                      hx-swap="innerHTML"
+                                      hx-on::after-request="if(event.detail.successful) this.reset()">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                        <div>
+                                            <label class="form-label" for="conv-from">Von Einheit</label>
+                                            <input id="conv-from" name="from_unit" type="text" class="form-input" placeholder="z.B. Becher" required>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="conv-to">Zu Einheit</label>
+                                            <input id="conv-to" name="to_unit" type="text" class="form-input" placeholder="z.B. ml" required>
+                                        </div>
+                                        <div>
+                                            <label class="form-label" for="conv-factor">Faktor</label>
+                                            <input id="conv-factor" name="factor" type="number" class="form-input" placeholder="z.B. 250" step="0.001" min="0" required>
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary w-full">
+                                                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Hinzufügen
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label class="form-label">Zu Einheit</label>
-                                        <input type="text" class="form-input" placeholder="z.B. ml">
-                                    </div>
-                                    <div>
-                                        <label class="form-label">Faktor</label>
-                                        <input type="number" class="form-input" placeholder="z.B. 250" step="0.001">
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-primary w-full">
-                                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Hinzufügen
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="text-center py-4 text-gray-500 text-sm">
-                                    Keine benutzerdefinierten Konvertierungen vorhanden
+                                </form>
+
+                                <div id="conversions-list">
+                                    {% include "settings/_conversions_list.html" %}
                                 </div>
                             </div>
                         </div>
@@ -191,9 +202,10 @@
                     <div class="space-y-8">
                         <!-- Tags -->
                         <div>
-                            <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-lg font-bold text-gray-900">Rezept-Tags</h3>
                             </div>
+                            <p class="text-sm text-gray-500 mb-4">Tags helfen beim Filtern von Rezepten im Speiseplan.</p>
 
                             <!-- Tags Grid -->
                             <div id="tags-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
@@ -269,30 +281,156 @@
 
                         <!-- Ingredient Categories -->
                         <div class="pt-6 border-t-2 border-gray-200">
-                            <h3 class="text-lg font-bold text-gray-900 mb-4">Zutaten-Kategorien</h3>
-                            <div class="alert alert-info mb-4">
-                                <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <p class="text-sm">
-                                    Diese Kategorien werden automatisch aus den Zutaten generiert und können nicht bearbeitet werden.
-                                </p>
+                            <h3 class="text-lg font-bold text-gray-900 mb-2">Zutaten-Kategorien</h3>
+                            <p class="text-sm text-gray-500 mb-4">Kategorien gruppieren Zutaten in der Einkaufsliste.</p>
+
+                            <!-- Categories Grid -->
+                            <div id="categories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                                {% for category in categories %}
+                                {% include "settings/_category_card.html" %}
+                                {% else %}
+                                <p class="text-sm text-gray-400 col-span-full">Noch keine Kategorien angelegt.</p>
+                                {% endfor %}
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                <span class="px-4 py-2 bg-gradient-to-br from-green-100 to-green-200 text-green-800 rounded-lg text-sm font-semibold shadow-sm">🥬 Gemüse</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-red-100 to-red-200 text-red-800 rounded-lg text-sm font-semibold shadow-sm">🍎 Obst</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 rounded-lg text-sm font-semibold shadow-sm">🥛 Milchprodukte</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-pink-100 to-pink-200 text-pink-800 rounded-lg text-sm font-semibold shadow-sm">🥩 Fleisch</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-800 rounded-lg text-sm font-semibold shadow-sm">🌾 Getreide</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-800 rounded-lg text-sm font-semibold shadow-sm">🧂 Gewürze</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-amber-100 to-amber-200 text-amber-800 rounded-lg text-sm font-semibold shadow-sm">🫒 Öle & Fette</span>
-                                <span class="px-4 py-2 bg-gradient-to-br from-stone-100 to-stone-200 text-stone-800 rounded-lg text-sm font-semibold shadow-sm">🍞 Backwaren</span>
+
+                            <!-- Add New Category Form -->
+                            <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 p-5 rounded-xl border border-emerald-200 shadow-md">
+                                <h4 class="text-base font-bold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-emerald-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Neue Kategorie erstellen
+                                </h4>
+                                <form hx-post="/settings/api/categories"
+                                      hx-target="#categories-grid"
+                                      hx-swap="afterbegin"
+                                      hx-on::after-request="if(event.detail.successful) this.reset()">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                        <div>
+                                            <label class="form-label text-xs mb-2">Name *</label>
+                                            <input type="text"
+                                                   name="name"
+                                                   class="form-input text-xl"
+                                                   placeholder="z.B. Tiefkühl"
+                                                   required>
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-xs mb-2">Farbe</label>
+                                            <input type="color"
+                                                   name="color"
+                                                   class="form-input form-input-color"
+                                                   value="#6B7280">
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary w-full form-input-color">
+                                                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Hinzufügen
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Allergens -->
+                        <div class="pt-6 border-t-2 border-gray-200">
+                            <h3 class="text-lg font-bold text-gray-900 mb-2">Allergene</h3>
+                            <p class="text-sm text-gray-500 mb-4">Allergene können Rezepten zugeordnet und in Listen/Exporten ausgegeben werden.</p>
+
+                            <!-- Allergens Grid -->
+                            <div id="allergens-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                                {% for allergen in allergens %}
+                                {% include "settings/_allergen_card.html" %}
+                                {% else %}
+                                <p class="text-sm text-gray-400 col-span-full">Noch keine Allergene angelegt.</p>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Add New Allergen Form -->
+                            <div class="bg-gradient-to-br from-amber-50 to-amber-100 p-5 rounded-xl border border-amber-200 shadow-md">
+                                <h4 class="text-base font-bold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-amber-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Neues Allergen erstellen
+                                </h4>
+                                <form hx-post="/settings/api/allergens"
+                                      hx-target="#allergens-grid"
+                                      hx-swap="afterbegin"
+                                      hx-on::after-request="if(event.detail.successful) this.reset()">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                        <div>
+                                            <label class="form-label text-xs mb-2">Name *</label>
+                                            <input type="text"
+                                                   name="name"
+                                                   class="form-input text-xl"
+                                                   placeholder="z.B. Gluten"
+                                                   required>
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-xs mb-2">Icon</label>
+                                            <input type="text"
+                                                   name="icon"
+                                                   class="form-input text-center text-xl"
+                                                   placeholder="🌾"
+                                                   maxlength="2">
+                                        </div>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary w-full form-input-color">
+                                                <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                Hinzufügen
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Ingredients Tab -->
+            <div x-show="activeTab === 'ingredients'" x-cloak>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Zutaten verwalten</h2>
+                        <span class="badge badge-primary">{{ ingredients|length }} Zutaten</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="alert alert-info flex items-start">
+                            <svg class="w-6 h-6 mr-2 flex-shrink-0 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-sm">
+                                Ändern Sie Einheit und Kategorie einer Zutat direkt in der Tabelle. Änderungen werden sofort gespeichert und wirken sich auf die Gruppierung der Einkaufsliste aus.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="form-label" for="ingredient-search">Zutat suchen</label>
+                            <input id="ingredient-search"
+                                   type="search"
+                                   name="search"
+                                   class="form-input"
+                                   placeholder="Name eingeben…"
+                                   hx-get="/settings/ingredients"
+                                   hx-trigger="keyup changed delay:300ms, search"
+                                   hx-target="#ingredients-table-wrap"
+                                   hx-swap="innerHTML">
+                        </div>
+
+                        <div id="ingredients-table-wrap" class="overflow-x-auto">
+                            {% include "settings/_ingredients_table.html" %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Import Tab -->
             <div x-show="activeTab === 'import'" x-cloak>
                 <div class="card">

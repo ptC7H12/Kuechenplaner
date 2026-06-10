@@ -1,0 +1,16 @@
+<table class="w-full text-left">
+    <thead>
+        <tr class="border-b-2 border-gray-200 text-xs uppercase tracking-wide text-gray-500">
+            <th class="px-4 py-2">Zutat</th>
+            <th class="px-4 py-2">Einheit</th>
+            <th class="px-4 py-2">Kategorie</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ingredient in ingredients %}
+        {% include "settings/_ingredient_row.html" %}
+        {% else %}
+        <tr><td colspan="3" class="px-4 py-6 text-center text-sm text-gray-400">Keine Zutaten gefunden.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

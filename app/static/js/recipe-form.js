@@ -46,7 +46,8 @@ function ingredientAutocomplete() {
                     id: suggestion.id,
                     name: suggestion.name,
                     unit: suggestion.unit,
-                    category: suggestion.category
+                    category: suggestion.category,
+                    category_id: suggestion.category_id ?? null
                 }
             }));
 
@@ -120,13 +121,15 @@ function newIngredientForm() {
 
                     const formElement = document.getElementById('recipe-form');
                     if (formElement && formElement.__x && formElement.__x.$data) {
+                        formElement.__x.$data.ensureUnitOption(ingredient.unit);
                         formElement.__x.$data.currentIngredient = {
                             id: ingredient.id,
                             name: ingredient.name,
                             quantity: null,
                             unit: ingredient.unit,
                             customUnit: '',
-                            category: ingredient.category
+                            category: ingredient.category,
+                            category_id: ingredient.category_id ?? null
                         };
                     }
 
@@ -156,6 +159,7 @@ function recipeForm() {
 
     return {
         config: config,
+        categories: config.categories || [],
         formData: config.initialData ? { ...config.initialData } : {
             name: '',
             description: '',
@@ -165,7 +169,7 @@ function recipeForm() {
             instructions: '',
             ingredients: [],
             tag_ids: [],
-            allergen_notes: ''
+            allergen_ids: []
         },
         currentIngredient: {
             id: null,
@@ -173,7 +177,8 @@ function recipeForm() {
             quantity: null,
             unit: '',
             customUnit: '',
-            category: ''
+            category: '',
+            category_id: null
         },
         errors: {},
         isSubmitting: false,
@@ -197,13 +202,15 @@ function recipeForm() {
             });
 
             this._handleIngredientSelected = (event) => {
+                this.ensureUnitOption(event.detail.unit);
                 this.currentIngredient = {
                     id: event.detail.id,
                     name: event.detail.name,
                     quantity: null,
                     unit: event.detail.unit,
                     customUnit: '',
-                    category: event.detail.category
+                    category: event.detail.category,
+                    category_id: event.detail.category_id ?? null
                 };
             };
             window.addEventListener('ingredient-selected', this._handleIngredientSelected);
@@ -260,6 +267,28 @@ function recipeForm() {
             });
         },
 
+        ensureUnitOption(unit) {
+            // Make an arbitrary unit (e.g. from a freshly created ingredient that
+            // uses neither a standard nor a configured custom unit) selectable by
+            // injecting it as an <option> ahead of the "Eigene Einheit..." entry.
+            if (!unit) {
+                return;
+            }
+            const select = document.getElementById('ingredient-unit');
+            if (!select) {
+                return;
+            }
+            const exists = Array.from(select.options).some(o => o.value === unit);
+            if (exists) {
+                return;
+            }
+            const option = document.createElement('option');
+            option.value = unit;
+            option.textContent = unit;
+            const customOption = Array.from(select.options).find(o => o.value === 'custom');
+            select.insertBefore(option, customOption || null);
+        },
+
         canAddIngredient() {
             return this.currentIngredient.id &&
                    this.currentIngredient.quantity > 0 &&
@@ -281,7 +310,8 @@ function recipeForm() {
                 name: this.currentIngredient.name,
                 quantity: this.currentIngredient.quantity,
                 unit: finalUnit,
-                category: this.currentIngredient.category
+                category: this.currentIngredient.category,
+                category_id: this.currentIngredient.category_id ?? null
             });
 
             window.FreizeitApp.showToast('Zutat hinzugefuegt!', 'success');
@@ -292,7 +322,8 @@ function recipeForm() {
                 quantity: null,
                 unit: '',
                 customUnit: '',
-                category: ''
+                category: '',
+                category_id: null
             };
 
             if (this.config.draftKey) {
@@ -314,6 +345,16 @@ function recipeForm() {
 
         getIngredientsByCategory(category) {
             return this.formData.ingredients.filter(i => i.category === category);
+        },
+
+        onIngredientCategoryChange(ingredient, value) {
+            const categoryId = value === '' ? null : parseInt(value);
+            ingredient.category_id = categoryId;
+            const category = this.categories.find(c => c.id === categoryId);
+            ingredient.category = category ? category.name : '';
+            if (this.config.draftKey) {
+                this.saveToLocalStorage();
+            }
         },
 
         validateForm() {
@@ -356,17 +397,18 @@ function recipeForm() {
                 }
 
                 formData.append('instructions', this.formData.instructions);
-                formData.append('allergen_notes', this.formData.allergen_notes || '');
 
                 formData.append('ingredients', JSON.stringify(
                     this.formData.ingredients.map(ing => ({
                         ingredient_id: ing.ingredient_id,
                         quantity: ing.quantity,
-                        unit: ing.unit
+                        unit: ing.unit,
+                        category_id: ing.category_id ?? null
                     }))
                 ));
 
                 formData.append('tag_ids', JSON.stringify(this.formData.tag_ids));
+                formData.append('allergen_ids', JSON.stringify(this.formData.allergen_ids));
 
                 const response = await fetch(this.config.submitUrl, {
                     method: this.config.submitMethod,

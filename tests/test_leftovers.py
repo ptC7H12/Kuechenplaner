@@ -30,7 +30,7 @@ def _make_recipe(db_session, name: str = "Pizzasuppe") -> models.Recipe:
 
 
 def _make_ingredient(db_session, name: str = "Nudeln") -> models.Ingredient:
-    ing = models.Ingredient(name=name, unit="g", category="Getreide")
+    ing = models.Ingredient(name=name, unit="g")
     db_session.add(ing)
     db_session.commit()
     db_session.refresh(ing)
@@ -40,13 +40,16 @@ def _make_ingredient(db_session, name: str = "Nudeln") -> models.Ingredient:
 def test_create_leftover_per_recipe(db_session):
     camp = _make_camp(db_session)
     recipe = _make_recipe(db_session)
-    leftover = crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id,
-        recipe_id=recipe.id,
-        tracking_type="per_recipe",
-        percentage_left=15.0,
-        description="ein Topf uebrig",
-    ))
+    leftover = crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=15.0,
+            description="ein Topf uebrig",
+        ),
+    )
     assert leftover.id is not None
     assert leftover.tracking_type == "per_recipe"
     assert leftover.percentage_left == 15.0
@@ -64,12 +67,15 @@ def test_per_ingredient_requires_ingredient_id():
 def test_per_ingredient_with_ingredient_id_works(db_session):
     camp = _make_camp(db_session)
     ing = _make_ingredient(db_session)
-    leftover = crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id,
-        ingredient_id=ing.id,
-        tracking_type="per_ingredient",
-        percentage_left=30.0,
-    ))
+    leftover = crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            ingredient_id=ing.id,
+            tracking_type="per_ingredient",
+            percentage_left=30.0,
+        ),
+    )
     assert leftover.ingredient_id == ing.id
 
 
@@ -104,14 +110,24 @@ def test_statistics_aggregates_over_multiple_camps(db_session):
     camp_a = _make_camp(db_session, "A", participant_count=40)
     camp_b = _make_camp(db_session, "B", participant_count=50)
 
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp_a.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=20.0,
-    ))
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp_b.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=30.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp_a.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=20.0,
+        ),
+    )
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp_b.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=30.0,
+        ),
+    )
 
     stats = get_recipe_statistics(db_session, recipe.id)
     assert stats["total_entries"] == 2
@@ -122,10 +138,15 @@ def test_statistics_aggregates_over_multiple_camps(db_session):
 def test_statistics_suggests_smaller_servings_when_leftovers_high(db_session):
     recipe = _make_recipe(db_session)
     camp = _make_camp(db_session, participant_count=45)
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=20.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=20.0,
+        ),
+    )
 
     stats = get_recipe_statistics(db_session, recipe.id, current_camp_id=camp.id)
     # 45 * (1 - 0.20) = 36
@@ -136,10 +157,15 @@ def test_statistics_suggests_smaller_servings_when_leftovers_high(db_session):
 def test_statistics_no_suggestion_when_leftovers_low(db_session):
     recipe = _make_recipe(db_session)
     camp = _make_camp(db_session)
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=5.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=5.0,
+        ),
+    )
 
     stats = get_recipe_statistics(db_session, recipe.id, current_camp_id=camp.id)
     assert stats["suggested_servings"] is None
@@ -148,10 +174,15 @@ def test_statistics_no_suggestion_when_leftovers_low(db_session):
 def test_leftover_cascades_on_camp_delete(db_session):
     camp = _make_camp(db_session)
     recipe = _make_recipe(db_session)
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=10.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=10.0,
+        ),
+    )
     assert len(crud.get_leftovers_for_camp(db_session, camp.id)) == 1
 
     crud.delete_camp(db_session, camp.id)
@@ -162,13 +193,16 @@ def test_leftover_cascades_on_camp_delete(db_session):
 def test_leftover_create_endpoint_round_trip(client, db_session):
     camp = _make_camp(db_session)
     recipe = _make_recipe(db_session)
-    response = client.post("/leftovers/api/leftovers", json={
-        "camp_id": camp.id,
-        "recipe_id": recipe.id,
-        "tracking_type": "per_recipe",
-        "percentage_left": 25.0,
-        "description": "etwa ein Viertel",
-    })
+    response = client.post(
+        "/leftovers/api/leftovers",
+        json={
+            "camp_id": camp.id,
+            "recipe_id": recipe.id,
+            "tracking_type": "per_recipe",
+            "percentage_left": 25.0,
+            "description": "etwa ein Viertel",
+        },
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["percentage_left"] == 25.0
@@ -181,16 +215,22 @@ def test_leftover_create_endpoint_round_trip(client, db_session):
 def test_leftover_delete_endpoint(client, db_session):
     camp = _make_camp(db_session)
     recipe = _make_recipe(db_session)
-    leftover = crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=10.0,
-    ))
+    leftover = crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=10.0,
+        ),
+    )
     response = client.delete(f"/leftovers/api/leftovers/{leftover.id}")
     assert response.status_code == 200
     assert db_session.query(models.Leftover).count() == 0
 
 
 # --- Story 8 follow-up: stats only count per_recipe entries ---
+
 
 def test_statistics_ignores_per_ingredient_entries(db_session):
     """Per-ingredient measurements must not skew the per-recipe average (Story 8)."""
@@ -199,10 +239,16 @@ def test_statistics_ignores_per_ingredient_entries(db_session):
     ing = _make_ingredient(db_session)
 
     # Only per_ingredient data exists.
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id, ingredient_id=ing.id,
-        tracking_type="per_ingredient", percentage_left=40.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            ingredient_id=ing.id,
+            tracking_type="per_ingredient",
+            percentage_left=40.0,
+        ),
+    )
 
     stats = get_recipe_statistics(db_session, recipe.id, current_camp_id=camp.id)
     assert stats["total_entries"] == 0
@@ -215,15 +261,26 @@ def test_statistics_mixed_only_uses_per_recipe(db_session):
     camp = _make_camp(db_session, participant_count=50)
     ing = _make_ingredient(db_session)
 
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id,
-        tracking_type="per_recipe", percentage_left=20.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            tracking_type="per_recipe",
+            percentage_left=20.0,
+        ),
+    )
     # Per-ingredient with much higher % should NOT inflate per-recipe avg.
-    crud.create_leftover(db_session, schemas.LeftoverCreate(
-        camp_id=camp.id, recipe_id=recipe.id, ingredient_id=ing.id,
-        tracking_type="per_ingredient", percentage_left=80.0,
-    ))
+    crud.create_leftover(
+        db_session,
+        schemas.LeftoverCreate(
+            camp_id=camp.id,
+            recipe_id=recipe.id,
+            ingredient_id=ing.id,
+            tracking_type="per_ingredient",
+            percentage_left=80.0,
+        ),
+    )
 
     stats = get_recipe_statistics(db_session, recipe.id, current_camp_id=camp.id)
     assert stats["total_entries"] == 1
@@ -231,6 +288,7 @@ def test_statistics_mixed_only_uses_per_recipe(db_session):
 
 
 # --- Story 7: sync endpoint replaces all entries for a meal plan ---
+
 
 def _make_meal_plan(db_session, camp, recipe) -> models.MealPlan:
     mp = models.MealPlan(
@@ -284,21 +342,27 @@ def test_sync_endpoint_replaces_previous_entries(client, db_session):
     client.cookies.set("current_camp_id", str(camp.id))
 
     # First sync: 3 entries.
-    client.post(f"/leftovers/api/meal-plan/{mp.id}/sync", json={
-        "entries": [
-            {"tracking_type": "per_recipe", "percentage_left": 10.0},
-            {"tracking_type": "per_ingredient", "ingredient_id": ing_a.id, "percentage_left": 20.0},
-            {"tracking_type": "per_ingredient", "ingredient_id": ing_b.id, "percentage_left": 30.0},
-        ]
-    })
+    client.post(
+        f"/leftovers/api/meal-plan/{mp.id}/sync",
+        json={
+            "entries": [
+                {"tracking_type": "per_recipe", "percentage_left": 10.0},
+                {"tracking_type": "per_ingredient", "ingredient_id": ing_a.id, "percentage_left": 20.0},
+                {"tracking_type": "per_ingredient", "ingredient_id": ing_b.id, "percentage_left": 30.0},
+            ]
+        },
+    )
     assert len(crud.get_leftovers_for_meal_plan(db_session, mp.id)) == 3
 
     # Second sync: only 1 entry — Mehl-only.
-    response = client.post(f"/leftovers/api/meal-plan/{mp.id}/sync", json={
-        "entries": [
-            {"tracking_type": "per_ingredient", "ingredient_id": ing_a.id, "percentage_left": 50.0},
-        ]
-    })
+    response = client.post(
+        f"/leftovers/api/meal-plan/{mp.id}/sync",
+        json={
+            "entries": [
+                {"tracking_type": "per_ingredient", "ingredient_id": ing_a.id, "percentage_left": 50.0},
+            ]
+        },
+    )
     assert response.status_code == 200
     rows = crud.get_leftovers_for_meal_plan(db_session, mp.id)
     assert len(rows) == 1
@@ -312,9 +376,10 @@ def test_sync_endpoint_empty_list_clears_all(client, db_session):
     mp = _make_meal_plan(db_session, camp, recipe)
     client.cookies.set("current_camp_id", str(camp.id))
 
-    client.post(f"/leftovers/api/meal-plan/{mp.id}/sync", json={
-        "entries": [{"tracking_type": "per_recipe", "percentage_left": 25.0}]
-    })
+    client.post(
+        f"/leftovers/api/meal-plan/{mp.id}/sync",
+        json={"entries": [{"tracking_type": "per_recipe", "percentage_left": 25.0}]},
+    )
     assert len(crud.get_leftovers_for_meal_plan(db_session, mp.id)) == 1
 
     response = client.post(f"/leftovers/api/meal-plan/{mp.id}/sync", json={"entries": []})
@@ -328,9 +393,12 @@ def test_sync_endpoint_rejects_per_ingredient_without_ingredient_id(client, db_s
     mp = _make_meal_plan(db_session, camp, recipe)
     client.cookies.set("current_camp_id", str(camp.id))
 
-    response = client.post(f"/leftovers/api/meal-plan/{mp.id}/sync", json={
-        "entries": [
-            {"tracking_type": "per_ingredient", "percentage_left": 10.0},
-        ]
-    })
+    response = client.post(
+        f"/leftovers/api/meal-plan/{mp.id}/sync",
+        json={
+            "entries": [
+                {"tracking_type": "per_ingredient", "percentage_left": 10.0},
+            ]
+        },
+    )
     assert response.status_code == 422  # Pydantic validation error

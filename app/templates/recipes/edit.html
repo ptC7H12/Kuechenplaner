@@ -44,7 +44,6 @@
             preparation_time: {{ recipe.preparation_time if recipe.preparation_time else 'null' }},
             cooking_time: {{ recipe.cooking_time if recipe.cooking_time else 'null' }},
             instructions: {{ (recipe.instructions|tojson if recipe.instructions else '""')|safe }},
-            allergen_notes: {{ (recipe.allergen_notes|tojson if recipe.allergen_notes else '""')|safe }},
             ingredients: [
                 {% for ri in recipe.ingredients %}
                 {
@@ -52,12 +51,18 @@
                     name: {{ ri.ingredient.name|tojson|safe }},
                     quantity: {{ ri.quantity }},
                     unit: {{ ri.unit|tojson|safe }},
-                    category: {{ ri.ingredient.category|tojson|safe }}
+                    category: {{ (ri.ingredient.category.name if ri.ingredient.category else '')|tojson|safe }},
+                    category_id: {{ ri.ingredient.category_id if ri.ingredient.category_id else 'null' }}
                 }{% if not loop.last %},{% endif %}
                 {% endfor %}
             ],
-            tag_ids: [{% for tag in recipe.tags %}{{ tag.id }}{% if not loop.last %},{% endif %}{% endfor %}]
-        }
+            tag_ids: [{% for tag in recipe.tags %}{{ tag.id }}{% if not loop.last %},{% endif %}{% endfor %}],
+            allergen_ids: [{% for allergen in recipe.allergens %}{{ allergen.id }}{% if not loop.last %},{% endif %}{% endfor %}]
+        },
+        categories: [
+            {% for c in categories %}{ id: {{ c.id }}, name: {{ c.name|tojson|safe }} }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
     };
 </script>
 <script src="/static/js/recipe-form.js"></script>

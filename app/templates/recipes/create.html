@@ -27,7 +27,11 @@
         submitMethod: 'POST',
         redirectUrl: '/recipes/',
         draftKey: 'recipe_draft',
-        initialData: null
+        initialData: null,
+        categories: [
+            {% for c in categories %}{ id: {{ c.id }}, name: {{ c.name|tojson|safe }} }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
     };
 </script>
 <script src="/static/js/recipe-form.js"></script>

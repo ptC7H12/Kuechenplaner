@@ -263,9 +263,6 @@
                         <th scope="col" class="px-6 py-4 text-center text-xs font-black text-gray-900 uppercase tracking-wider">
                             Zeit
                         </th>
-                        <th scope="col" class="px-6 py-4 text-left text-xs font-black text-gray-900 uppercase tracking-wider hidden lg:table-cell">
-                            Tags
-                        </th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-black text-gray-900 uppercase tracking-wider">
                             Aktionen
                         </th>
@@ -285,7 +282,7 @@
                         @click="window.location.href = '/recipes/{{ recipe.id }}'"
                     >
                         <!-- Name -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-12 w-12">
                                     {% if recipe.image_path %}
@@ -296,17 +293,25 @@
                                     </div>
                                     {% endif %}
                                 </div>
-                                <div class="ml-4">
+                                <div class="ml-4 min-w-0">
                                     <div class="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{{ recipe.name }}</div>
-                                    {% if recipe.allergens %}
-                                    <div class="flex flex-wrap gap-1 mt-1">
-                                        {% for allergen in recipe.allergens[:2] %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                                            {% if allergen.icon %}{{ allergen.icon }}{% endif %}
+                                    {% if recipe.tags or recipe.allergens %}
+                                    <div class="flex flex-wrap items-center gap-1 mt-1">
+                                        {% for tag in recipe.tags[:3] %}
+                                        <span class="badge" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border-color: {{ tag.color }}40;">
+                                            {% if tag.icon %}{{ tag.icon }}{% endif %} {{ tag.name }}
                                         </span>
                                         {% endfor %}
-                                        {% if recipe.allergens|length > 2 %}
-                                        <span class="text-xs text-red-600 font-bold">+{{ recipe.allergens|length - 2 }}</span>
+                                        {% if recipe.tags|length > 3 %}
+                                        <span class="badge badge-info">+{{ recipe.tags|length - 3 }}</span>
+                                        {% endif %}
+                                        {% for allergen in recipe.allergens[:3] %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                            {% if allergen.icon %}{{ allergen.icon }}{% endif %} {{ allergen.name }}
+                                        </span>
+                                        {% endfor %}
+                                        {% if recipe.allergens|length > 3 %}
+                                        <span class="text-xs text-red-600 font-bold">+{{ recipe.allergens|length - 3 }}</span>
                                         {% endif %}
                                     </div>
                                     {% endif %}
@@ -337,25 +342,6 @@
                                 </svg>
                                 <span class="text-sm font-bold text-gray-900">{{ (recipe.preparation_time or 0) + (recipe.cooking_time or 0) }}</span>
                                 <span class="text-xs text-gray-500">min</span>
-                            </div>
-                            {% else %}
-                            <span class="text-sm text-gray-400">-</span>
-                            {% endif %}
-                        </td>
-                        <!-- Tags -->
-                        <td class="px-6 py-4 hidden lg:table-cell">
-                            {% if recipe.tags %}
-                            <div class="flex flex-wrap gap-1">
-                                {% for tag in recipe.tags[:2] %}
-                                <span class="badge" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border-color: {{ tag.color }}40;">
-                                    {% if tag.icon %}{{ tag.icon }}{% endif %} {{ tag.name }}
-                                </span>
-                                {% endfor %}
-                                {% if recipe.tags|length > 2 %}
-                                <span class="badge badge-info">
-                                    +{{ recipe.tags|length - 2 }}
-                                </span>
-                                {% endif %}
                             </div>
                             {% else %}
                             <span class="text-sm text-gray-400">-</span>

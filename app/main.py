@@ -1,37 +1,50 @@
-import uvicorn
-from threading import Thread
+import logging
 import os
 import sys
-import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from threading import Thread
+
+import uvicorn
 
 # In console-disabled Nuitka builds, sys.stdout/stderr can be None.
 # Guard against AttributeError when anything tries to write to them.
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+    sys.stdout = open(os.devnull, "w")  # noqa: SIM115 — handle must stay open for the process lifetime
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
+    sys.stderr = open(os.devnull, "w")  # noqa: SIM115 — handle must stay open for the process lifetime
 
 # Setup logging first
 from app.logging_config import setup_logging
+
 setup_logging(log_level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("kuechenplaner.main")
 
 # Only import webview if not in development mode
 if not os.environ.get("DEVELOPMENT"):
     import webview
-from fastapi import FastAPI, Request, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 import locale
 from pathlib import Path
 
-from app.database import run_migrations, backup_database, get_db, SessionLocal
-from app.dependencies import get_current_camp, get_template_context, templates
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from app import crud
+from app.database import backup_database, get_db, run_migrations
+from app.dependencies import get_current_camp, get_template_context, templates
 from app.seeders import init_default_data
+
+
+def _kickoff_update_check():
+    """Populate the update-check cache on startup; log and swallow any failure."""
+    try:
+        from app.services.update_checker import check_for_update
+
+        check_for_update(force=True)
+    except Exception:
+        logger.warning("Initial update check failed", exc_info=True)
 
 
 @asynccontextmanager
@@ -40,7 +53,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
 
     # Set German locale for date formatting
-    for locale_name in ('de_DE.UTF-8', 'de_DE', 'German'):
+    for locale_name in ("de_DE.UTF-8", "de_DE", "German"):
         try:
             locale.setlocale(locale.LC_TIME, locale_name)
             logger.info(f"Locale set to {locale_name}")
@@ -54,20 +67,17 @@ async def lifespan(app: FastAPI):
     run_migrations()
     init_default_data()
 
+    # Warm the update-check cache in the background; never block or crash startup.
+    Thread(target=_kickoff_update_check, daemon=True).start()
+
     logger.info("Application startup complete")
     yield
     logger.info("Application shutting down...")
 
 
 # Import routers
-from app.routers import camps
+from app.routers import allergens, camps, export, leftovers, meal_planning, settings, shopping_list
 from app.routers import recipes as recipes_router
-from app.routers import allergens
-from app.routers import meal_planning
-from app.routers import shopping_list
-from app.routers import settings
-from app.routers import export
-from app.routers import leftovers
 
 app = FastAPI(title="Freizeit Rezepturverwaltung", version="1.0.0", lifespan=lifespan)
 
@@ -82,10 +92,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     logger.error(f"Database error: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Datenbankfehler. Bitte versuchen Sie es erneut."}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Datenbankfehler. Bitte versuchen Sie es erneut."})
 
 
 # Root route - redirect to camp selection or dashboard
@@ -99,44 +106,35 @@ async def root(
     else:
         return RedirectResponse(url="/select-camp", status_code=302)
 
+
 # Camp selection page
 @app.get("/select-camp", response_class=HTMLResponse)
-async def select_camp(
-    context=Depends(get_template_context),
-    db: Session = Depends(get_db)
-):
+async def select_camp(context=Depends(get_template_context), db: Session = Depends(get_db)):
     camps_list = crud.get_camps(db)
     last_selected_id = crud.get_setting_value(db, "last_selected_camp_id")
     last_selected_camp = None
 
     if last_selected_id:
-        try:
+        with suppress(ValueError, TypeError):
             last_selected_camp = crud.get_camp(db, int(last_selected_id))
-        except (ValueError, TypeError):
-            pass
 
-    return templates.TemplateResponse("camp_select.html", {
-        **context,
-        "camps": camps_list,
-        "last_selected_camp": last_selected_camp
-    })
+    return templates.TemplateResponse(
+        "camp_select.html", {**context, "camps": camps_list, "last_selected_camp": last_selected_camp}
+    )
+
 
 # Dashboard
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(
-    context=Depends(get_template_context),
-    db: Session = Depends(get_db)
-):
+async def dashboard(context=Depends(get_template_context), db: Session = Depends(get_db)):
     if not context["current_camp"]:
         return RedirectResponse(url="/select-camp", status_code=302)
 
     from app.services.calculation import get_camp_statistics
+
     stats = get_camp_statistics(db, context["current_camp"].id)
 
-    return templates.TemplateResponse("dashboard.html", {
-        **context,
-        "stats": stats
-    })
+    return templates.TemplateResponse("dashboard.html", {**context, "stats": stats})
+
 
 # Health check endpoint for startup detection
 @app.get("/health")
@@ -154,18 +152,15 @@ app.include_router(settings.router, prefix="/settings", tags=["settings"])
 app.include_router(export.router, prefix="/export", tags=["export"])
 app.include_router(leftovers.router, prefix="/leftovers", tags=["leftovers"])
 
+
 def start_server():
     """Start the FastAPI server"""
     logger.info("Starting FastAPI server on port 12000...")
     try:
-        uvicorn.run(
-            app,
-            host="127.0.0.1",
-            port=12000,
-            log_level="info"
-        )
+        uvicorn.run(app, host="127.0.0.1", port=12000, log_level="info")
     except Exception:
         logger.exception("uvicorn crashed during startup")
+
 
 def main():
     """Main entry point for the application"""
@@ -177,9 +172,10 @@ def main():
         Thread(target=start_server, daemon=True).start()
 
         # Wait for server to be ready via health check
-        import urllib.request
-        import time
         import platform
+        import time
+        import urllib.request
+
         server_ready = False
         for _ in range(60):  # up to ~72 s (covers slow first-run migrations)
             try:
@@ -209,14 +205,10 @@ def main():
             return
 
         webview.create_window(
-            "Freizeit Rezepturverwaltung",
-            "http://127.0.0.1:12000",
-            width=1400,
-            height=900,
-            resizable=True,
-            shadow=True
+            "Freizeit Rezepturverwaltung", "http://127.0.0.1:12000", width=1400, height=900, resizable=True, shadow=True
         )
         webview.start()
+
 
 if __name__ == "__main__":
     main()

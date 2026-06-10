@@ -19,7 +19,7 @@ def _make_camp(db_session, name: str = "Camp", participant_count: int = 10):
 
 
 def _make_ingredient(db_session, name: str = "Mehl") -> models.Ingredient:
-    ing = models.Ingredient(name=name, unit="g", category="Backwaren")
+    ing = models.Ingredient(name=name, unit="g")
     db_session.add(ing)
     db_session.commit()
     db_session.refresh(ing)

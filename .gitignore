@@ -1,5 +1,5 @@
 # Python
-__pycache__/
+*/__pycache__/*
 app/__pycache__/
 *.py[cod]
 *$py.class
@@ -73,3 +73,4 @@ releases/
 installer/*.exe
 nuitka-crash-report.xml
 TODOs
+app/services/__pycache__/*

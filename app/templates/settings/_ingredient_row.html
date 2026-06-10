@@ -1,0 +1,28 @@
+<tr id="ingredient-{{ ingredient.id }}" class="border-b border-gray-100 hover:bg-gray-50">
+    <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ ingredient.name }}</td>
+    <td class="px-4 py-2">
+        <input type="text" name="unit" value="{{ ingredient.unit }}"
+               class="form-input w-24 text-sm py-1"
+               hx-patch="/settings/ingredients/{{ ingredient.id }}"
+               hx-trigger="change"
+               hx-include="closest tr"
+               hx-target="#ingredient-{{ ingredient.id }}"
+               hx-swap="outerHTML"
+               aria-label="Einheit von {{ ingredient.name }}">
+    </td>
+    <td class="px-4 py-2">
+        <select name="category_id"
+                class="form-select text-sm py-1"
+                hx-patch="/settings/ingredients/{{ ingredient.id }}"
+                hx-trigger="change"
+                hx-include="closest tr"
+                hx-target="#ingredient-{{ ingredient.id }}"
+                hx-swap="outerHTML"
+                aria-label="Kategorie von {{ ingredient.name }}">
+            <option value="" {% if not ingredient.category_id %}selected{% endif %}>– keine –</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if ingredient.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </td>
+</tr>

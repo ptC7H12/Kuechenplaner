@@ -39,6 +39,7 @@ def build():
         f"--include-data-dir={project_dir}/app/static=static",
         f"--include-data-dir={project_dir}/alembic=alembic",
         f"--include-data-file={project_dir}/alembic.ini=alembic.ini",
+        f"--include-data-file={project_dir}/version.txt=version.txt",
         # Nuitka excludes .py files from --include-data-dir (treats them as modules).
         # Alembic needs env.py and version scripts as actual .py files on disk
         # because it loads them at runtime via exec(). Include them explicitly.
@@ -98,7 +99,8 @@ def build():
 
         # Optimization - RAM sparen und Stabilität
         "--lto=no",  # Link Time Optimization aus für Stabilität
-        "--jobs=1",  # Reduziert auf 2 Threads für weniger RAM-Nutzung
+        "--jobs=1",  # Ein Compiler-Job gleichzeitig für weniger RAM-Nutzung
+        "--low-memory",  # Kleinere C-Dateien generieren, verhindert MSVC C1002 (Heap-Overflow)
         #"--remove-output",  # Temporäre Dateien löschen
     ]
 

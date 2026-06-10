@@ -96,8 +96,11 @@
     <!-- Shopping List Content -->
     <div id="shopping-list-content" class="space-y-4" x-data="shoppingList()" @clear-shopping-list.window="clearAll()">
         {% for category, items in categories.items() %}
-        <div class="shopping-category bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden">
+        {% set category_color = category_colors.get(category, '#6B7280') %}
+        <div class="shopping-category bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden"
+             style="border-left: 4px solid {{ category_color }}">
             <div class="shopping-category-header px-4 py-3 cursor-pointer"
+                 style="background-color: {{ category_color }}20"
                  @click="toggleCategory('{{ category }}')">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
